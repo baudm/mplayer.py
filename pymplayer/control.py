@@ -1,5 +1,5 @@
 #
-# control.py SVN r10
+# control.py 0.1.1
 #
 
 try:

@@ -1,5 +1,5 @@
 #
-# base.py SVN r10
+# base.py 0.1.5
 #
 
 try:

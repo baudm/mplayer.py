@@ -4,7 +4,7 @@
 # server.py
 #
 
-version = "SVN r10"
+version = "0.5.3"
 
 host = ''
 port = 50001

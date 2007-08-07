@@ -4,7 +4,7 @@
 # client.py
 #
 
-version = "SVN r10"
+version = "0.4.4"
 
 host = 'bbs.eee.upd.edu.ph'
 port = 50001
