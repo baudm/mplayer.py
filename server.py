@@ -4,7 +4,7 @@
 # server.py
 #
 
-version = "0.5.3"
+version = "0.5.4"
 
 host = ''
 port = 50001
@@ -53,10 +53,10 @@ class ClientThread(Thread):
       try:
         cmd = cPickle.loads( self.channel.recv(1024) )
       except socket.error, msg:
-        print msg[1]
+        print >> sys.stderr, msg[1]
         break
       except EOFError, msg:
-        print msg
+        print >> sys.stderr, msg
         break
 
       # Restrict client from terminating MPlayer
@@ -83,7 +83,7 @@ class ClientThread(Thread):
       self.channel.shutdown(socket.SHUT_RDWR)
       self.channel.close()
     except socket.error, msg:
-      print msg[1]
+      print >> sys.stderr, msg[1]
 
     globals()['curr_conns'] -= 1
     print "Connection closed: %s at port %d" % self.details

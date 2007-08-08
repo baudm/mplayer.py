@@ -4,7 +4,7 @@
 # client.py
 #
 
-version = "0.4.4"
+version = "0.5.0"
 
 host = 'bbs.eee.upd.edu.ph'
 port = 50001
@@ -19,6 +19,7 @@ try:
   import curses
   import cPickle
   import re
+  from optparse import OptionParser
 except ImportError, msg:
   exit(msg)
 
@@ -73,8 +74,19 @@ def end_ui(stdscr):
 
 
 def main():
+  cl_usage = "%prog [OPTIONS] [COMMAND]"
+  cl_ver = "%prog "+version
+
+  parser = OptionParser(usage=cl_usage, version=cl_ver)
+
+  parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar="\"CMD\"")
+
+  (options, args) = parser.parse_args()
+
   client = connect_client()
-  stdscr = start_ui(client)
+
+  if options.command == None:
+    stdscr = start_ui(client)
 
   # Just a string of spaces
   spaces = "     ".join(["     " for x in range(1,10)])
@@ -85,57 +97,63 @@ def main():
   quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$')
 
   while True:
-    stdscr.addstr(12, 0, "Command: ")
+    if options.command == None:
+      stdscr.addstr(12, 0, "Command: ")
 
-    try:
-      c = stdscr.getch()
-    except KeyboardInterrupt:
-      c = ord('q')
-
-    if c in (ord('q'), ord('Q')):
-      cmd = "quit"
-    elif c == ord(':'):
-      curses.echo()
-      stdscr.addstr(12, 0, "Command: "+spaces)
       try:
-        cmd = stdscr.getstr(12, 9, globals()['max_cmd_length'])
+        c = stdscr.getch()
       except KeyboardInterrupt:
-        cmd = ""
-      curses.noecho()
-    elif c == curses.KEY_LEFT:
-      cmd = "seek -5"
-    elif c == curses.KEY_RIGHT:
-      cmd = "seek +5"
-    elif c in (ord('p'), ord('P'), ord(' ')):
-      cmd = "pause"
-    elif c == curses.KEY_NPAGE:
-      cmd = "pt_step -1"
-    elif c == curses.KEY_PPAGE:
-      cmd = "pt_step +1"
-    elif c == curses.KEY_UP:
-      cmd = "volume +2"
-    elif c == curses.KEY_DOWN:
-      cmd = "volume -2"
-    elif c in (ord('m'), ord('M')):
-      cmd = "mute"
-    elif c in (ord('f'), ord('F')):
-      cmd = "vo_fullscreen"
-    elif c == curses.KEY_HOME:
-      cmd = "seek 0 1"
-    elif c == curses.KEY_END:
-      cmd = "seek 100 1"
-    elif c in (ord('r'), ord('R')):
-      cmd = "reload"
+        c = ord('q')
+
+      if c in (ord('q'), ord('Q')):
+        cmd = "quit"
+      elif c == ord(':'):
+        curses.echo()
+        stdscr.addstr(12, 0, "Command: "+spaces)
+        try:
+          cmd = stdscr.getstr(12, 9, globals()['max_cmd_length'])
+        except KeyboardInterrupt:
+          cmd = ""
+        curses.noecho()
+      elif c == curses.KEY_LEFT:
+        cmd = "seek -5"
+      elif c == curses.KEY_RIGHT:
+        cmd = "seek +5"
+      elif c in (ord('p'), ord('P'), ord(' ')):
+        cmd = "pause"
+      elif c == curses.KEY_NPAGE:
+        cmd = "pt_step -1"
+      elif c == curses.KEY_PPAGE:
+        cmd = "pt_step +1"
+      elif c == curses.KEY_UP:
+        cmd = "volume +2"
+      elif c == curses.KEY_DOWN:
+        cmd = "volume -2"
+      elif c in (ord('m'), ord('M')):
+        cmd = "mute"
+      elif c in (ord('f'), ord('F')):
+        cmd = "vo_fullscreen"
+      elif c == curses.KEY_HOME:
+        cmd = "seek 0 1"
+      elif c == curses.KEY_END:
+        cmd = "seek 100 1"
+      elif c in (ord('r'), ord('R')):
+        cmd = "reload"
+      else:
+        continue
+
+      if c != ord(':'):
+        stdscr.addstr(12, 9, cmd+spaces)
+        stdscr.move(12, 9)
     else:
-      continue
+      cmd = options.command
 
     # Zero-length command
     if len(cmd) == 0:
-      continue
-
-    if c != ord(':'):
-      stdscr.addstr(12, 9, cmd+spaces)
-      stdscr.move(12, 9)
+      if options.command == None:
+        continue
+      else:
+        break
 
     try:
       client.send( cPickle.dumps(cmd) )
@@ -143,19 +161,22 @@ def main():
       msg = "Connection lost"
       break
 
-    if quit_cmd.match(cmd.lower()):
+    if quit_cmd.match(cmd.lower()) or options.command != None:
       break
 
   #if get.match(cmd) != None:
   #  stdscr.addstr("Output: '"+client.recv(1024)+"'"+spaces)
 
-  end_ui(stdscr)
+  if options.command == None:
+    end_ui(stdscr)
+
   client.close()
 
   try:
-    print msg
+    print >> sys.stderr, msg
   except NameError:
     pass
+
 
 if __name__ == "__main__":
   main()
