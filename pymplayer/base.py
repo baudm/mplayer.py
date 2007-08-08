@@ -1,11 +1,11 @@
 #
-# base.py 0.1.5
+# base.py 0.1.6
 #
 
 try:
   from subprocess import Popen, PIPE
   from time import sleep
-  from os import getcwd
+  #from os import getcwd
   from threading import Thread
   import re
 except ImportError, msg:
@@ -93,7 +93,7 @@ class MPlayer:
     self.cmdline.extend(args)
 
     #self._subprocess = Popen(self.cmdline, stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=getcwd(), universal_newlines=True)
-    self._subprocess = Popen(self.cmdline, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    self._subprocess = Popen(self.cmdline, stdin=PIPE)
 
     # Wait for MPlayer to start
     sleep(0.25)
