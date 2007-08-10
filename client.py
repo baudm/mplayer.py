@@ -50,6 +50,7 @@ def start_ui(client):
   stdscr.addstr("\t          q - quit\n")
   stdscr.addstr("\tp, spacebar - pause\n")
   stdscr.addstr("\t          m - mute\n")
+  stdscr.addstr("\t          o - osd\n")
   stdscr.addstr("\t          f - fullscreen\n")
   stdscr.addstr("\t          r - reload playlists\n")
   stdscr.addstr("\t          : - input command\n")
@@ -133,6 +134,8 @@ def main():
         cmd = "mute"
       elif c in (ord('f'), ord('F')):
         cmd = "vo_fullscreen"
+      elif c in (ord('o'), ord('O')):
+        cmd = "osd"
       elif c == curses.KEY_HOME:
         cmd = "seek 0 1"
       elif c == curses.KEY_END:
