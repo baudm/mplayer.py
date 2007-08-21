@@ -19,7 +19,7 @@
 #
 
 
-version = "0.6.0"
+version = "0.6.1"
 
 host = 'bbs.eee.upd.edu.ph'
 port = 50001
@@ -31,18 +31,26 @@ max_cmd_length = 150
 try:
   import socket
   import sys
-  import curses
   import cPickle
   import re
   from optparse import OptionParser
 except ImportError, msg:
   exit(msg)
 
+try:
+  import curses
+except ImportError:
+  no_curses = True
+else:
+  no_curses = False
+
 
 def connect_client():
+  global host, port
+
   try:
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((globals()['host'], globals()['port']))
+    client.connect((host, port))
   except socket.error, msg:
     sys.exit(msg[1])
   except KeyboardInterrupt:
@@ -62,8 +70,8 @@ def start_ui(client):
   stdscr.addstr("Connected to %s at port %d\n" % client.getpeername())
 
   stdscr.addstr("\n   Controls:\n")
-  stdscr.addstr("\t          q - quit\n")
-  stdscr.addstr("\tp, spacebar - pause\n")
+  stdscr.addstr("\t     Esc, q - quit\n")
+  stdscr.addstr("\tspacebar, p - pause\n")
   stdscr.addstr("\t          m - mute\n")
   stdscr.addstr("\t          o - osd\n")
   stdscr.addstr("\t          f - fullscreen\n")
@@ -90,18 +98,27 @@ def end_ui(stdscr):
 
 
 def main():
+  global no_curses
+
   cl_usage = "%prog [OPTIONS] [COMMAND]"
   cl_ver = "%prog "+version
 
   parser = OptionParser(usage=cl_usage, version=cl_ver)
 
   parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar="\"CMD\"")
+  parser.add_option("-n", "--no-curses", dest="no_curses", action="store_true", help="don't use curses interface")
 
   (options, args) = parser.parse_args()
 
+  if not no_curses:
+    no_curses = options.no_curses
+
+  if no_curses and not options.command:
+    parser.error("not using curses but no command specified")
+
   client = connect_client()
 
-  if options.command == None:
+  if options.command == None and not no_curses:
     stdscr = start_ui(client)
 
   # Just a string of spaces
@@ -113,7 +130,7 @@ def main():
   quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$')
 
   while True:
-    if options.command == None:
+    if options.command == None and not no_curses:
       stdscr.addstr(12, 0, "Command: ")
 
       try:
@@ -121,7 +138,7 @@ def main():
       except KeyboardInterrupt:
         c = ord('q')
 
-      if c in (ord('q'), ord('Q')):
+      if c in (ord('q'), ord('Q'), 27):
         cmd = "quit"
       elif c == ord(':'):
         curses.echo()
@@ -168,7 +185,7 @@ def main():
 
     # Zero-length command
     if len(cmd) == 0:
-      if options.command == None:
+      if options.command == None and not no_curses:
         continue
       else:
         break
@@ -185,7 +202,7 @@ def main():
   #if get.match(cmd) != None:
   #  stdscr.addstr("Output: '"+client.recv(1024)+"'"+spaces)
 
-  if options.command == None:
+  if options.command == None and not no_curses:
     end_ui(stdscr)
 
   client.close()
