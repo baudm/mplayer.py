@@ -1,11 +1,212 @@
-#
-# control.py 0.1.1
-#
+"""pymplayer - MPlayer wrapper for Python.
+
+By Darwin Bautista <djclue917@gmail.com>
+"""
+
+__version__ = "$Revision: 42 $"
+# $Source$
+
+__all__ = ['MPlayer', 'MPlayerControl']
+
+__copyright__ = """
+Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 try:
-  from pymplayer.base import MPlayer
+  from subprocess import Popen, PIPE
+  from time import sleep
+  #from os import getcwd
+  from threading import Thread
+  import re
 except ImportError, msg:
   exit(msg)
+
+#from os import O_NONBLOCK
+#from fcntl import fcntl, F_SETFL
+
+"""
+import threading
+
+class MPlayerChecker(threading.Thread):
+
+  Thread to continuously poll MPlayer subprocess every <interval> seconds
+
+
+  def __init__(self, poll, interval=1.0):
+    self.interval = interval
+    self._poll = poll
+    threading.Thread.__init__ (self)
+
+  def run(self):
+    while True:
+      sleep(self.interval)
+      if self._poll() != None:
+        raise OSError, "MPlayer died unexpectedly"
+"""
+
+class BenchmarkThread(Thread):
+  def __init__(self, mplayer):
+    self._mplayer = mplayer
+    Thread.__init__(self)
+
+  # TODO: add some checks here
+  # while block will loop forever... find a way to stop it
+  def run(self):
+    benchmark = re.compile("Playing |BENCHMARK(s|%):")
+    output = ""
+    #result = ""
+    #counter = 0
+
+    while True:
+      try:
+        output = self._mplayer._subprocess.stdout.readline()
+      except sys.excepthook:
+        break
+
+      if benchmark.match(output):
+        file = open(self._mplayer.benchmark_log, "a")
+        file.writelines(output)
+        file.close()
+        #result += output
+        #counter += 1
+        #if counter == 3:
+          #file = open(self.logfile, "a")
+          #file.writelines(result+"\n")
+          #file.close()
+          #result = ""
+          #counter = 0
+
+
+class MPlayer:
+  """
+  MPlayer wrapper for Python
+  Provides the basic interface for sending commands and receiving responses to and from MPlayer
+  Responsible for starting up MPlayer in slave mode
+  """
+
+  def __init__(self, args=(), benchmark_log="benchmark.log"):
+    # args must either be a tuple or a list
+    if not isinstance(args, (list, tuple)):
+      raise TypeError("args should either be a tuple or list of strings")
+
+    if len(args) > 0:
+      for arg in args:
+        if not isinstance(arg, basestring):
+          raise TypeError("args should either be a tuple or list of strings")
+
+    if not isinstance(benchmark_log, basestring):
+      raise TypeError("benchmark log should be a string")
+
+    self.benchmark_log = benchmark_log
+
+    self.cmdline = ["mplayer", "-slave", "-idle", "-quiet"]
+    self.cmdline.extend(args)
+
+    #self._subprocess = Popen(self.cmdline, stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=getcwd(), universal_newlines=True)
+    self._subprocess = Popen(self.cmdline, stdin=PIPE)
+
+    # Wait for MPlayer to start
+    sleep(0.25)
+
+    # If MPlayer died unexpectedly (maybe the args are invalid/incorrect), raise an exception
+    if self._subprocess.poll() is not None:
+      raise OSError("MPlayer died unexpectedly (possibly invalid/incorrect args)")
+
+    #if self.cmdline.count("-benchmark") != 0:
+      # Start benchmark thread
+      #BenchmarkThread(self).start()
+
+
+  def __del__(self):
+    if self._subprocess.poll() is None:
+      self.command("quit")
+      self._subprocess.wait()
+
+
+  def isrunning(self):
+    return True if self._subprocess.poll() is None else False
+
+
+  def playlists(self):
+    """
+    Returns the list of playlists based on MPlayer cmdline
+    """
+    playlists = []
+    idx = 0
+
+    for match in range(self.cmdline.count("-playlist")):
+      try:
+        idx = self.cmdline.index("-playlist", idx) + 1
+      except ValueError:
+        break
+      try:
+        playlists.append(self.cmdline[idx])
+      except IndexError:
+        break
+
+    return playlists
+
+
+  def command(self, cmd):
+    if not isinstance(cmd, basestring):
+      raise TypeError("command must be a string")
+
+    #if len(cmd) == 0:
+    #  raise ValueError, "zero-length command"
+
+    self._subprocess.stdin.write("".join([cmd, '\n']))
+
+    """
+    cmd_error = re.compile("Command "+cmd+" requires.")
+    error = ""
+
+    while True:
+      try:
+        error = self._subprocess.stderr.readline()
+        if cmd_error.match(error):
+          break
+      except IOError:
+        error = ""
+        break
+
+    if error != "":
+      return error
+    """
+
+    """
+    get_cmd = re.compile("get_.")
+
+    if get_cmd.match(cmd.lower()):
+      ans = re.compile("ANS_.*='.*'")
+      output = ""
+
+      sleep(0.1)
+
+      while ans.match(output) == None:
+        try:
+          output = self._subprocess.stdout.readline()
+        except IOError:
+          output = ""
+          break
+
+      try:
+        return output.split("=", 1)[1].strip("'\n")
+      except IndexError:
+        return None
+    """
 
 
 class MPlayerControl(MPlayer):
@@ -41,20 +242,20 @@ class MPlayerControl(MPlayer):
     If [abs] is non-zero, parameter is set to <value>.
     <value> is in the range [-100, 100].
     """
-    if type(param) != type(""):
-      raise TypeError, "param must be a string"
+    if not isinstance(param, basestring):
+      raise TypeError("param must be a string")
 
-    if type(value) != type(0):
-      raise TypeError, "value must be an integer"
+    if not isinstance(value, int):
+      raise TypeError("value must be an integer")
 
-    if type(value) != type(0):
-      raise TypeError, "abs must be an integer"
+    if not isinstance(value, int):
+      raise TypeError("abs must be an integer")
 
     if param.lower() not in ('brightness', 'contrast', 'gamma', 'hue', 'saturation'):
-      raise ValueError, "param = [brightness|contrast|gamma|hue|saturation]"
+      raise ValueError("param = [brightness|contrast|gamma|hue|saturation]")
 
     if not -100 <= value <= 100:
-      raise ValueError, "value is in the range [-100, 100]"
+      raise ValueError("value is in the range [-100, 100]")
 
     self.command("set_video_param %s %f %d" % (param, value, abs))
 
@@ -78,11 +279,11 @@ class MPlayerControl(MPlayer):
                 rectangle corner. Positive values move the rectangle
                 right/down and negative values move the rectangle left/up.
     """
-    if type(val1) != type(0):
-      raise TypeError, "val1 must be an integer"
+    if not isinstance(val1, int):
+      raise TypeError("val1 must be an integer")
 
-    if type(val2) != type(0):
-      raise TypeError, "val2 must be an integer"
+    if not isinstance(val2, int):
+      raise TypeError("val2 must be an integer")
 
     if val1 not in (0, 1, 2, 3):
       raise ValueError, "val1 must be one of the ff: 0, 1, 2, 3"
@@ -106,7 +307,7 @@ class MPlayerControl(MPlayer):
         5 menu
         6 select
     """
-    if type(button) != type(0):
+    if not isinstance(button, int):
       raise TypeError, "button must be an integer"
 
     if button not in (1, 2, 3, 4, 5, 6):
@@ -254,7 +455,7 @@ class MPlayerControl(MPlayer):
         0 Take a single screenshot.
         1 Start/stop taking screenshot of each frame.
     """
-    if type(value) != type(0):
+    if not isinstance(value, int):
       raise TypeError, "value must be an integer"
 
     if value not in (0, 1):
@@ -303,11 +504,12 @@ class MPlayerControl(MPlayer):
     """
     try:
       file = open(filename, "rb")
-      file.close()
     except IOError:
-      raise IOError, "file not found or isn't readable"
+      raise IOError("file not found or isn't readable")
     except TypeError:
-      raise TypeError, "filename should be a string"
+      raise TypeError("filename should be a string")
+    else:
+      file.close()
 
     self.command("loadfile %s %d" % (filename, append))
 
@@ -319,11 +521,12 @@ class MPlayerControl(MPlayer):
     """
     try:
       file = open(playlist, "rb")
-      file.close()
     except IOError:
-      raise IOError, "playlist not found or isn't readable"
+      raise IOError("playlist not found or isn't readable")
     except TypeError:
-      raise TypeError, "filename should be a string"
+      raise TypeError("filename should be a string")
+    else:
+      file.close()
 
     self.command("loadlist %s %d" % (playlist, append))
 
@@ -336,11 +539,11 @@ class MPlayerControl(MPlayer):
         cancel Cancel selection.
         hide   Hide the OSD menu.
     """
-    if type(command) != type(""):
-      raise TypeError, "command should be a string"
+    if not isinstance(command, basestring):
+      raise TypeError("command should be a string")
 
-    if command not in ("up", "down", "ok", "cancel", "hide")
-      raise ValueError, "command should be one of the ff: up, down, ok, cancel, hide"
+    if command not in ("up", "down", "ok", "cancel", "hide"):
+      raise ValueError("command should be one of the ff: up, down, ok, cancel, hide")
 
     self.command("menu "+command)
 

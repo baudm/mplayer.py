@@ -8,6 +8,6 @@ setup (
 	author_email='djclue917@gmail.com',
 	url='http://bbs.eee.upd.edu.ph/',
 	license='GPL3',
-	py_modules=['pymplayer/__init__', 'pymplayer/base'],
+	py_modules=['pymplayer'],
 	scripts=['server.py', 'client.py']
 )

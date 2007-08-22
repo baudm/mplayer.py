@@ -1,25 +1,28 @@
 #!/usr/bin/env python
 
-#
-# pymplayer-server.py: MPlayer remote control server
-#    Copyright (C) 2007  The MA3X Project
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+"""MPlayer remote control server
+"""
 
+__version__ = "$Revision: 42 $"
+# $Source$
 
-version = "0.6.0"
+__copyright__ = """
+Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 
 host = ''
 port = 50001
@@ -32,7 +35,9 @@ try:
   import cPickle
   import re
   from threading import Thread
-  from pymplayer.base import MPlayer
+  from optparse import OptionParser
+
+  from pymplayer import MPlayer
 except ImportError, msg:
   exit(msg)
 
@@ -57,9 +62,11 @@ class ClientThread(Thread):
     Thread.__init__(self)
 
   def run(self):
+    global curr_conns
+
     print "Remote host %s connected at port %d" % self.details
     # Count this connection
-    globals()['curr_conns'] += 1
+    curr_conns += 1
     # RegExp for "quit" command in MPlayer
     quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$')
 
@@ -85,10 +92,10 @@ class ClientThread(Thread):
         for playlist in playlists:
           if playlists.index(playlist) == 0:
             # First playlist, just load it! :D
-            self._mplayer.command("loadlist "+playlist)
+            self._mplayer.command("".join(['loadlist ', playlist]))
           else:
             # 2nd to nth playlist, append it (take note of the '+' sign!)
-            self._mplayer.command("loadlist "+playlist+" +1")
+            self._mplayer.command("".join(['loadlist ', playlist, ' +1']))
       else:
         # Send the command to MPlayer
         self._mplayer.command(cmd)
@@ -100,7 +107,7 @@ class ClientThread(Thread):
     except socket.error, msg:
       print >> sys.stderr, msg[1]
 
-    globals()['curr_conns'] -= 1
+    curr_conns -= 1
     print "Connection closed: %s at port %d" % self.details
 
 
@@ -127,6 +134,23 @@ def start_server(queue=1):
 
 
 def main():
+  global curr_conns, port, max_connections
+
+  sv_ver = "".join(['%prog ', __version__])
+
+  parser = OptionParser(version=sv_ver)
+
+  parser.add_option("-m", "--max-connections", dest="max_connections", metavar="N", help="Maximum number of simultaneous connections")
+  parser.add_option("-p", "--port", dest="port", help="server port to connect to")
+
+  (options, args) = parser.parse_args()
+
+  if options.max_connections is not None:
+    max_connections = options.max_connections
+
+  if options.port is not None:
+    port = options.port
+
   # MPlayer instance
   try:
     mplayer = MPlayer(sys.argv[1:])
@@ -136,7 +160,7 @@ def main():
   # The server
   server = start_server()
 
-  print "server.py "+version
+  print "".join(['server.py ', __version__])
 
   while mplayer.isrunning():
     try:
@@ -144,7 +168,7 @@ def main():
       # Wait for connection from client
       (conn, addr) = server.accept()
 
-      if globals()['curr_conns'] < max_connections:
+      if curr_conns < max_connections:
         # Start separate client thread to handle connection
         ClientThread(mplayer, conn, addr).start()
       else:

@@ -1,25 +1,28 @@
 #!/usr/bin/env python
 
-#
-# pymplayer-client.py: MPlayer remote control client
-#    Copyright (C) 2007  The MA3X Project
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+"""MPlayer remote control client
+"""
 
+__version__ = "$Revision: 42 $"
+# $Source$
 
-version = "0.6.1"
+__copyright__ = """
+Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 
 host = 'bbs.eee.upd.edu.ph'
 port = 50001
@@ -40,9 +43,7 @@ except ImportError, msg:
 try:
   import curses
 except ImportError:
-  no_curses = True
-else:
-  no_curses = False
+  curses = None
 
 
 def connect_client():
@@ -66,7 +67,7 @@ def start_ui(client):
   curses.cbreak()
   stdscr.keypad(1)
 
-  stdscr.addstr("client.py "+globals()['version']+"\n")
+  stdscr.addstr("".join(['client.py ', __version__, '\n']))
   stdscr.addstr("Connected to %s at port %d\n" % client.getpeername())
 
   stdscr.addstr("\n   Controls:\n")
@@ -98,27 +99,31 @@ def end_ui(stdscr):
 
 
 def main():
-  global no_curses
+  global host, max_cmd_length
 
   cl_usage = "%prog [OPTIONS] [COMMAND]"
-  cl_ver = "%prog "+version
+  cl_ver = "".join(['%prog ', __version__])
 
   parser = OptionParser(usage=cl_usage, version=cl_ver)
 
   parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar="\"CMD\"")
   parser.add_option("-n", "--no-curses", dest="no_curses", action="store_true", help="don't use curses interface")
+  parser.add_option("-s", "--server", dest="server", help="server to connect to", metavar="HOST")
 
   (options, args) = parser.parse_args()
 
-  if not no_curses:
-    no_curses = options.no_curses
+  if curses is None:
+    options.no_curses = True
 
-  if no_curses and not options.command:
+  if options.server is not None:
+    host = options.server
+
+  if options.no_curses and not options.command:
     parser.error("not using curses but no command specified")
 
   client = connect_client()
 
-  if options.command == None and not no_curses:
+  if options.command is None and not options.no_curses:
     stdscr = start_ui(client)
 
   # Just a string of spaces
@@ -130,7 +135,7 @@ def main():
   quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$')
 
   while True:
-    if options.command == None and not no_curses:
+    if options.command is None and not options.no_curses:
       stdscr.addstr(12, 0, "Command: ")
 
       try:
@@ -142,9 +147,9 @@ def main():
         cmd = "quit"
       elif c == ord(':'):
         curses.echo()
-        stdscr.addstr(12, 0, "Command: "+spaces)
+        stdscr.addstr(12, 0, "".join(['Command: ', spaces]))
         try:
-          cmd = stdscr.getstr(12, 9, globals()['max_cmd_length'])
+          cmd = stdscr.getstr(12, 9, max_cmd_length)
         except KeyboardInterrupt:
           cmd = ""
         curses.noecho()
@@ -178,14 +183,14 @@ def main():
         continue
 
       if c != ord(':'):
-        stdscr.addstr(12, 9, cmd+spaces)
+        stdscr.addstr(12, 9, "".join([cmd, spaces]))
         stdscr.move(12, 9)
     else:
       cmd = options.command
 
     # Zero-length command
-    if len(cmd) == 0:
-      if options.command == None and not no_curses:
+    if not cmd:
+      if options.command is None and not options.no_curses:
         continue
       else:
         break
@@ -196,13 +201,13 @@ def main():
       msg = "Connection lost"
       break
 
-    if quit_cmd.match(cmd.lower()) or options.command != None:
+    if quit_cmd.match(cmd.lower()) or options.command is not None:
       break
 
   #if get.match(cmd) != None:
   #  stdscr.addstr("Output: '"+client.recv(1024)+"'"+spaces)
 
-  if options.command == None and not no_curses:
+  if options.command is None and not options.no_curses:
     end_ui(stdscr)
 
   client.close()
