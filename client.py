@@ -109,6 +109,7 @@ def main():
   parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar="\"CMD\"")
   parser.add_option("-n", "--no-curses", dest="no_curses", action="store_true", help="don't use curses interface")
   parser.add_option("-s", "--server", dest="server", help="server to connect to", metavar="HOST")
+  parser.add_option("-p", "--port", dest="port", help="server port to connect to")
 
   (options, args) = parser.parse_args()
 
@@ -117,6 +118,9 @@ def main():
 
   if options.server is not None:
     host = options.server
+
+  if options.port is not None:
+    port = int(options.port)
 
   if options.no_curses and not options.command:
     parser.error("not using curses but no command specified")
@@ -128,9 +132,6 @@ def main():
 
   # Just a string of spaces
   spaces = "     ".join(["     " for x in range(1,10)])
-
-  # get_* commands
-  #get = re.compile("get_*")
 
   quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$')
 
@@ -203,9 +204,6 @@ def main():
 
     if quit_cmd.match(cmd.lower()) or options.command is not None:
       break
-
-  #if get.match(cmd) != None:
-  #  stdscr.addstr("Output: '"+client.recv(1024)+"'"+spaces)
 
   if options.command is None and not options.no_curses:
     end_ui(stdscr)
