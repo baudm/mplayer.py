@@ -6,8 +6,6 @@ By Darwin Bautista <djclue917@gmail.com>
 __version__ = "$Revision: 49 $"
 # $Source$
 
-__all__ = ['MPlayer', 'MPlayerServer']
-
 __copyright__ = """
 Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
 
@@ -30,10 +28,13 @@ try:
     import cPickle
     import sys
     from subprocess import Popen, PIPE
-    from threading import Thread, Timer
+    from threading import Thread
     from re import compile
 except ImportError, msg:
     exit(msg)
+
+
+__all__ = ['MPlayer', 'MPlayerServer']
 
 
 class MPlayer:
@@ -76,13 +77,11 @@ class MPlayer:
         # args must either be a tuple or a list
         if not isinstance(args, (list, tuple)):
             raise TypeError("args should either be a tuple or list of strings")
-
         if args:
             for arg in args:
                 if not isinstance(arg, basestring):
                     raise TypeError("args should either be a tuple or list of\
                                      strings")
-
         self._command = ["mplayer", "-slave", "-idle", "-quiet"]
         self._command.extend(args)
 
@@ -95,7 +94,6 @@ class MPlayer:
         """
         playlists = []
         idx = 0
-
         for match in range(self._command.count("-playlist")):
             try:
                 idx = self._command.index("-playlist", idx) + 1
@@ -108,7 +106,7 @@ class MPlayer:
         return playlists
 
 
-class ClientThread(Thread):
+class _ClientThread(Thread):
     """
     Thread for handling a client connection
     usage: ClientThread(mplayer, channel, details).start()
@@ -128,45 +126,30 @@ class ClientThread(Thread):
         print "Remote host %s connected at port %d" % self.details
         # RegExp for "quit" command in MPlayer
         quit_cmd = compile('^(qu?|qui?|quit?)( ?| .*)$')
-
         while self._mplayer_server.isrunning():
-            # Receive command from the client then unpickle it
             try:
-                cmd = cPickle.loads( self.channel.recv(1024) )
+                # Receive command from the client
+                data = self.channel.recv(1024)
             except socket.error, msg:
-                try:
-                    print >> sys.stderr, msg[1]
-                except IndexError:
-                    print >> sys.stderr, msg
+                print >> sys.stderr, msg
                 break
             except EOFError, msg:
                 print >> sys.stderr, msg
                 break
-
-            # Restrict client from terminating MPlayer
-            if quit_cmd.match(cmd.lower()):
-                # Remote client closed the connection
+            except socket.timeout:
+                print "Connection timed out."
                 break
-            # TODO: Add condition for "loadlist <playlist>" or "loadfile <file>"
-            # use set_args(['-playlist', <playlist>]) or set_args([<file>])
-            # then, call restart_mp()
+            # Unpickle data
+            cmd = cPickle.loads(data)
+            # Remote client closed the connection
+            if quit_cmd.match(cmd.lower()):
+                break
             elif cmd.lower() == "reload":
                 # (Re)Loading a playlist makes MPlayer "jump out" of its XEmbed container
                 self._mplayer_server.restart_mp()
-                # Get list of playlists
-                #playlists = self._mplayer_server.get_playlists()
-
-                #for playlist in playlists:
-                #    if playlists.index(playlist) == 0:
-                #        # First playlist, just load it! :D
-                #        self._mplayer_server.execute("".join(['loadlist ', playlist]))
-                #    else:
-                        # 2nd to nth playlist, append it (take note of the '+' sign!)
-                #        self._mplayer_server.execute("".join(['loadlist ', playlist, ' +1']))
             else:
                 # Send the command to MPlayer
                 self._mplayer_server.execute(cmd)
-
         # Close the connection
         try:
             self.channel.shutdown(socket.SHUT_RDWR)
@@ -186,7 +169,6 @@ class MPlayerServer(MPlayer, Thread):
     def __init__(self, mplayer_args=(), host='', port=50001, max_connections=2):
         if not isinstance(port, int):
             raise TypeError("port must be an integer")
-
         MPlayer.__init__(self, mplayer_args)
         Thread.__init__(self)
         self.host = host
@@ -197,13 +179,13 @@ class MPlayerServer(MPlayer, Thread):
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error, msg:
             print >> sys.stderr, msg[1]
-        #Set option to re-use the address to prevent "Address already in use" errors
+        # Set option to re-use the address to prevent "Address already in use" errors
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._socket.settimeout(5.0)
 
     def __del__(self):
-        self.stop()
         MPlayer.__del__(self)
-        Thread.__del__(self)
+        self.stop()
 
     def start(self):
         Thread.start(self)
@@ -218,14 +200,17 @@ class MPlayerServer(MPlayer, Thread):
             sys.exit(msg[1])
 
         while self.isrunning():
-            print "Waiting for connection..."
             # Wait for connection from client
-            # FIXME: accept() waits for a while
-            (conn, addr) = self._socket.accept()
+            try:
+                (conn, addr) = self._socket.accept()
+            except socket.timeout:
+                continue
+            except socket.error:
+                break
 
             if len(self.connections) < self.max_connections:
-                # Start separate client thread to handle connection (timeout: 60 seconds)
-                client = ClientThread(self, conn, addr, 60.0)
+                # Start separate client thread to handle connection (timeout: 30 seconds)
+                client = _ClientThread(self, conn, addr, 30.0)
                 self.connections.append(client)
                 client.start()
             else:
@@ -235,7 +220,7 @@ class MPlayerServer(MPlayer, Thread):
     def stop(self):
         MPlayer.stop(self)
         self._socket.close()
-        # terminate all ClientThreads here
+        # Wait for _ClientThreads to terminate.
         for connection in self.connections:
             connection.join()
 
