@@ -130,7 +130,7 @@ def main():
     # Just a string of spaces
     spaces = "         ".join(["         " for x in range(1,10)])
 
-    quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$')
+    quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
 
     while True:
         if options.command is None and not options.no_curses:
@@ -155,7 +155,7 @@ def main():
                 cmd = "seek -5"
             elif c == curses.KEY_RIGHT:
                 cmd = "seek +5"
-            elif c in (ord('p'), ord('P'), ord(' ')):
+            elif chr(c) in ('p', 'P', ' '):
                 cmd = "pause"
             elif c == curses.KEY_NPAGE:
                 cmd = "pt_step -1"
@@ -165,17 +165,17 @@ def main():
                 cmd = "volume +2"
             elif c == curses.KEY_DOWN:
                 cmd = "volume -2"
-            elif c in (ord('m'), ord('M')):
+            elif chr(c) in ('m', 'M'):
                 cmd = "mute"
-            elif c in (ord('f'), ord('F')):
+            elif chr(c) in ('f', 'F'):
                 cmd = "vo_fullscreen"
-            elif c in (ord('o'), ord('O')):
+            elif chr(c) in ('o', 'O'):
                 cmd = "osd"
             elif c == curses.KEY_HOME:
                 cmd = "seek 0 1"
             elif c == curses.KEY_END:
                 cmd = "seek 100 1"
-            elif c in (ord('r'), ord('R')):
+            elif chr(c) in ('r', 'R'):
                 cmd = "reload"
             else:
                 continue
@@ -202,7 +202,7 @@ def main():
             msg = "Connection lost"
             break
 
-        if quit_cmd.match(cmd.lower()) or options.command is not None:
+        if quit_cmd.match(cmd) or options.command is not None:
             break
 
     if options.command is None and not options.no_curses:

@@ -44,11 +44,9 @@ def main():
         server.start()
         # wait for server to terminate
         # (actually, this is to stop the server from terminating prematurely)
-        server.join()
+        server.wait()
     except KeyboardInterrupt:
         pass
-
-    server.stop()
 
     sys.exit()
 

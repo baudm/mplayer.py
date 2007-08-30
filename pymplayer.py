@@ -1,10 +1,12 @@
 """pymplayer - MPlayer wrapper for Python.
-
-By Darwin Bautista <djclue917@gmail.com>
 """
+
+__author__ = "Darwin Bautista <djclue917@gmail.com>"
 
 __version__ = "$Revision: 49 $"
 # $Source$
+
+__date__ = "$Date: $"
 
 __copyright__ = """
 Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
@@ -23,13 +25,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+__license__ = "GPL-3"
+
 try:
     import socket
     import cPickle
     import sys
+    import re
     from subprocess import Popen, PIPE
     from threading import Thread
-    from re import compile
 except ImportError, msg:
     exit(msg)
 
@@ -46,18 +50,22 @@ class MPlayer:
     """
     def __init__(self, args=()):
         self.set_args(args)
+        self.__subprocess = None
 
     def __del__(self):
         self.stop()
 
     def start(self):
         if not self.isrunning():
-            self._subprocess = Popen(self._command, stdin=PIPE)
+            self.__subprocess = Popen(self._command, stdin=PIPE)
 
     def stop(self):
         if self.isrunning():
             self.execute("quit")
-            self._subprocess.wait()
+            self.__subprocess.wait()
+            return self.__subprocess.poll()
+        else:
+            return None
 
     def execute(self, cmd):
         if not isinstance(cmd, basestring):
@@ -65,13 +73,20 @@ class MPlayer:
         if not cmd:
             raise ValueError("zero-length command")
         if self.isrunning():
-            self._subprocess.stdin.write("".join([cmd, '\n']))
+            self.__subprocess.stdin.write("".join([cmd, '\n']))
 
     def isrunning(self):
         try:
-            return True if self._subprocess.poll() is None else False
+            return True if self.__subprocess.poll() is None else False
         except AttributeError:
             return False
+
+    def embed_into(self, window_id):
+        if not isinstance(window_id, long):
+            raise TypeError("window_id should be a long int")
+        args = self.get_args()
+        args.extend(["-wid", str(window_id)])
+        self.set_args(args)
 
     def set_args(self, args):
         # args must either be a tuple or a list
@@ -86,7 +101,17 @@ class MPlayer:
         self._command.extend(args)
 
     def get_args(self):
-        return self._command[4:]
+        args = self._command[4:]
+        try:
+            idx = args.index('-wid')
+        except ValueError:
+            idx = None
+
+        if idx is not None:
+            args.remove(args[idx + 1])
+            args.remove('-wid')
+
+        return args
 
     def get_playlists(self):
         """
@@ -116,7 +141,7 @@ class _ClientThread(Thread):
         if not isinstance(mplayer_server, MPlayerServer):
             raise TypeError("mplayer_server must be an instance of MPlayerServer")
 
-        self._mplayer_server = mplayer_server
+        self.__mplayer_server = mplayer_server
         self.channel = channel
         self.details = details
         self.channel.settimeout(timeout)
@@ -125,8 +150,8 @@ class _ClientThread(Thread):
     def run(self):
         print "Remote host %s connected at port %d" % self.details
         # RegExp for "quit" command in MPlayer
-        quit_cmd = compile('^(qu?|qui?|quit?)( ?| .*)$')
-        while self._mplayer_server.isrunning():
+        quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
+        while self.__mplayer_server.isrunning():
             try:
                 # Receive command from the client
                 data = self.channel.recv(1024)
@@ -142,14 +167,14 @@ class _ClientThread(Thread):
             # Unpickle data
             cmd = cPickle.loads(data)
             # Remote client closed the connection
-            if quit_cmd.match(cmd.lower()):
+            if quit_cmd.match(cmd):
                 break
             elif cmd.lower() == "reload":
                 # (Re)Loading a playlist makes MPlayer "jump out" of its XEmbed container
-                self._mplayer_server.restart_mp()
+                self.__mplayer_server.restart_mp()
             else:
                 # Send the command to MPlayer
-                self._mplayer_server.execute(cmd)
+                self.__mplayer_server.execute(cmd)
         # Close the connection
         try:
             self.channel.shutdown(socket.SHUT_RDWR)
@@ -157,7 +182,7 @@ class _ClientThread(Thread):
         except socket.error, msg:
             print >> sys.stderr, msg[1]
 
-        self._mplayer_server.connections.remove(self)
+        self.__mplayer_server._connections.remove(self)
         print "Connection closed: %s at port %d" % self.details
 
 
@@ -166,22 +191,18 @@ class MPlayerServer(MPlayer, Thread):
     MPlayer wrapper with commands implemented as functions
     This is useful for easily controlling MPlayer in Python
     """
-    def __init__(self, mplayer_args=(), host='', port=50001, max_connections=2):
-        if not isinstance(port, int):
-            raise TypeError("port must be an integer")
-        MPlayer.__init__(self, mplayer_args)
+    wait = Thread.join
+    def __init__(self, args=(), host='', port=50001, max_connections=2):
+        MPlayer.__init__(self, args)
         Thread.__init__(self)
-        self.host = host
-        self.port = port
-        self.max_connections = max_connections
-        self.connections = []
-        try:
-            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        except socket.error, msg:
-            print >> sys.stderr, msg[1]
+        self.set_host(host)
+        self.set_port(port)
+        self.set_max_connections(max_connections)
+        self._connections = []
+        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Set option to re-use the address to prevent "Address already in use" errors
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._socket.settimeout(5.0)
+        self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.__socket.settimeout(5.0)
 
     def __del__(self):
         MPlayer.__del__(self)
@@ -190,28 +211,54 @@ class MPlayerServer(MPlayer, Thread):
     def start(self):
         Thread.start(self)
 
+    def set_host(self, host):
+        if not isinstance(host, basestring):
+            raise TypeError("host must be a string")
+        self._host = host
+
+    def get_host(self):
+        return self._host
+
+    def set_port(self, port):
+        if not isinstance(port, int):
+            raise TypeError("port must be an integer")
+        self._port = port
+
+    def get_port(self):
+        return self._port
+
+    def set_max_connections(self, max_connections):
+        if not isinstance(max_connections, int):
+            raise TypeError("port must be an integer")
+        self._max_connections = max_connections
+
+    def get_max_connections(self):
+        return self._max_connections
+
     def run(self):
         MPlayer.start(self)
         try:
-            self._socket.bind((self.host, self.port))
-            self._socket.listen(1)
+            self.__socket.bind((self._host, self._port))
         except socket.error, msg:
-            self._socket.close()
-            sys.exit(msg[1])
+            self.__socket.close()
+            print >> sys.stderr, msg[1]
+            return
+
+        self.__socket.listen(1)
 
         while self.isrunning():
             # Wait for connection from client
             try:
-                (conn, addr) = self._socket.accept()
+                (conn, addr) = self.__socket.accept()
             except socket.timeout:
                 continue
             except socket.error:
                 break
 
-            if len(self.connections) < self.max_connections:
+            if len(self._connections) < self._max_connections:
                 # Start separate client thread to handle connection (timeout: 30 seconds)
                 client = _ClientThread(self, conn, addr, 30.0)
-                self.connections.append(client)
+                self._connections.append(client)
                 client.start()
             else:
                 conn.close()
@@ -219,9 +266,12 @@ class MPlayerServer(MPlayer, Thread):
 
     def stop(self):
         MPlayer.stop(self)
-        self._socket.close()
+        try:
+            self.__socket.close()
+        except AttributeError:
+            pass
         # Wait for _ClientThreads to terminate.
-        for connection in self.connections:
+        for connection in self._connections:
             connection.join()
 
     def restart_mp(self):
