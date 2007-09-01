@@ -155,7 +155,7 @@ def main():
                 cmd = "seek -5"
             elif c == curses.KEY_RIGHT:
                 cmd = "seek +5"
-            elif chr(c) in ('p', 'P', ' '):
+            elif c in [ord(x) for x in ('p', 'P', ' ')]:
                 cmd = "pause"
             elif c == curses.KEY_NPAGE:
                 cmd = "pt_step -1"
@@ -165,17 +165,17 @@ def main():
                 cmd = "volume +2"
             elif c == curses.KEY_DOWN:
                 cmd = "volume -2"
-            elif chr(c) in ('m', 'M'):
+            elif c in (ord('m'), ord('M')):
                 cmd = "mute"
-            elif chr(c) in ('f', 'F'):
+            elif c in (ord('f'), ord('F')):
                 cmd = "vo_fullscreen"
-            elif chr(c) in ('o', 'O'):
+            elif c in (ord('o'), ord('O')):
                 cmd = "osd"
             elif c == curses.KEY_HOME:
                 cmd = "seek 0 1"
             elif c == curses.KEY_END:
                 cmd = "seek 100 1"
-            elif chr(c) in ('r', 'R'):
+            elif c in (ord('r'), ord('R')):
                 cmd = "reload"
             else:
                 continue
