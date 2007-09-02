@@ -145,17 +145,18 @@ class _ClientThread(Thread):
             try:
                 # Receive command from the client
                 data = self.channel.recv(1024)
-            except socket.error, msg:
-                print >> sys.stderr, msg
-                break
-            except EOFError, msg:
-                print >> sys.stderr, msg
-                break
             except socket.timeout:
                 print "Connection timed out."
                 break
-            # Unpickle data
-            cmd = cPickle.loads(data)
+            except socket.error, msg:
+                print >> sys.stderr, msg
+                break
+
+            try:
+                # Unpickle data
+                cmd = cPickle.loads(data)
+            except EOFError:
+                break
             # Remote client closed the connection
             if quit_cmd.match(cmd):
                 break
