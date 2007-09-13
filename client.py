@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-
 """MPlayer remote control client
 """
 
-__version__ = "$Revision: 42 $"
+__version__ = "$Revision$"
 # $Source$
+
+__date__ = "$Date$"
 
 __copyright__ = """
 Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)

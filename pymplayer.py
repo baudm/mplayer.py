@@ -1,10 +1,10 @@
 """pymplayer - MPlayer wrapper for Python.
 """
 
-__author__ = "Darwin Bautista <djclue917@gmail.com>"
-
 __version__ = "$Revision$"
 # $Source$
+
+__author__ = "Darwin Bautista <djclue917@gmail.com>"
 
 __date__ = "$Date$"
 
@@ -25,7 +25,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__license__ = "GPL-3"
 
 try:
     import socket

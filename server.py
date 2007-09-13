@@ -3,8 +3,10 @@
 """MPlayer remote control server
 """
 
-__version__ = "$Revision: 49 $"
+__version__ = "$Revision$"
 # $Source$
+
+__date__ = "$Date$"
 
 __copyright__ = """
 Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)

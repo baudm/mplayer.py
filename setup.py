@@ -1,3 +1,9 @@
+
+__version__ = "$Revision$"
+# $Source$
+
+__date__ = "$Date$"
+
 from distutils.core import setup
 
 setup (
