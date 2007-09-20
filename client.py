@@ -45,6 +45,21 @@ try:
     import curses
 except ImportError:
     curses = None
+else:
+    command_map = {ord('q'): "quit", ord('Q'): "quit", 27: "quit",
+                   ord('p'): "pause", ord('P'): "pause", ord(' '): "pause",
+                   ord('m'): "mute", ord('M'): "mute",
+                   ord('f'): "vo_fullscreen", ord('F'): "vo_fullscreen",
+                   ord('o'): "osd", ord('O'): "osd",
+                   ord('r'): "reload", ord('R'): "reload",
+                   curses.KEY_LEFT: "seek -5",
+                   curses.KEY_RIGHT: "seek +5",
+                   curses.KEY_NPAGE: "pt_step -1",
+                   curses.KEY_PPAGE: "pt_step +1",
+                   curses.KEY_UP: "volume +2",
+                   curses.KEY_DOWN: "volume -2",
+                   curses.KEY_HOME: "seek 0 1",
+                   curses.KEY_END: "seek 100 1"}
 
 
 def connect_client():
@@ -136,15 +151,11 @@ def main():
     while True:
         if options.command is None and not options.no_curses:
             stdscr.addstr(12, 0, "Command: ")
-
             try:
                 c = stdscr.getch()
             except KeyboardInterrupt:
                 c = ord('q')
-
-            if c in (ord('q'), ord('Q'), 27):
-                cmd = "quit"
-            elif c == ord(':'):
+            if c == ord(':'):
                 curses.echo()
                 stdscr.addstr(12, 0, "".join(['Command: ', spaces]))
                 try:
@@ -152,57 +163,29 @@ def main():
                 except KeyboardInterrupt:
                     cmd = ""
                 curses.noecho()
-            elif c == curses.KEY_LEFT:
-                cmd = "seek -5"
-            elif c == curses.KEY_RIGHT:
-                cmd = "seek +5"
-            elif c in [ord(x) for x in ('p', 'P', ' ')]:
-                cmd = "pause"
-            elif c == curses.KEY_NPAGE:
-                cmd = "pt_step -1"
-            elif c == curses.KEY_PPAGE:
-                cmd = "pt_step +1"
-            elif c == curses.KEY_UP:
-                cmd = "volume +2"
-            elif c == curses.KEY_DOWN:
-                cmd = "volume -2"
-            elif c in (ord('m'), ord('M')):
-                cmd = "mute"
-            elif c in (ord('f'), ord('F')):
-                cmd = "vo_fullscreen"
-            elif c in (ord('o'), ord('O')):
-                cmd = "osd"
-            elif c == curses.KEY_HOME:
-                cmd = "seek 0 1"
-            elif c == curses.KEY_END:
-                cmd = "seek 100 1"
-            elif c in (ord('r'), ord('R')):
-                cmd = "reload"
             else:
-                continue
-
+                try:
+                    cmd = command_map[c]
+                except KeyError:
+                    continue
             if c != ord(':'):
                 stdscr.addstr(12, 9, "".join([cmd, spaces]))
                 stdscr.move(12, 9)
         else:
             cmd = options.command
-
         # Zero-length command
         if not cmd:
             if options.command is None and not options.no_curses:
                 continue
             else:
                 break
-
         # Pickle cmd
         data = cPickle.dumps(cmd)
-
         try:
             client.send(data)
         except socket.error:
             msg = "Connection lost"
             break
-
         if quit_cmd.match(cmd) or options.command is not None:
             break
 
