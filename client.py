@@ -38,6 +38,8 @@ try:
     import cPickle
     import re
     from optparse import OptionParser
+
+    from pymplayer import re_cmd_quit
 except ImportError, msg:
     exit(msg)
 
@@ -146,8 +148,6 @@ def main():
     # Just a string of spaces
     spaces = "         ".join(["         " for x in range(1,10)])
 
-    quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
-
     while True:
         if options.command is None and not options.no_curses:
             stdscr.addstr(12, 0, "Command: ")
@@ -186,7 +186,7 @@ def main():
         except socket.error:
             msg = "Connection lost"
             break
-        if quit_cmd.match(cmd) or options.command is not None:
+        if re_cmd_quit.match(cmd) or options.command is not None:
             break
 
     if options.command is None and not options.no_curses:

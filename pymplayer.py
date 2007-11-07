@@ -25,19 +25,18 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
-try:
-    import socket
-    import cPickle
-    import sys
-    import re
-    from subprocess import Popen, PIPE
-    from threading import Thread
-except ImportError, msg:
-    exit(msg)
+import socket
+import cPickle
+import sys
+import re
+from subprocess import Popen, PIPE
+from threading import Thread
 
 
-__all__ = ['MPlayer', 'MPlayerServer']
+__all__ = ['MPlayer', 'MPlayerServer', 're_cmd_quit']
+
+
+re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
 
 
 class MPlayer:
@@ -139,7 +138,6 @@ class _ClientThread(Thread):
     def run(self):
         print "Remote host %s connected at port %d" % self.details
         # RegExp for "quit" command in MPlayer
-        quit_cmd = re.compile('^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
         while self.__mplayer_server.isrunning():
             try:
                 # Receive command from the client
@@ -157,7 +155,7 @@ class _ClientThread(Thread):
             except EOFError:
                 break
             # Remote client closed the connection
-            if quit_cmd.match(cmd):
+            if re_cmd_quit.match(cmd):
                 break
             elif cmd.lower() == "reload":
                 # (Re)Loading a playlist makes MPlayer "jump out" of its XEmbed container
