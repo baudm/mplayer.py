@@ -8,7 +8,7 @@ from distutils.core import setup
 
 setup (
 	name='PyMPlayer',
-	version='20070915',
+	version='20071114',
 	description='MPlayer wrapper for Python',
 	author='Darwin Bautista',
 	author_email='djclue917@gmail.com',
