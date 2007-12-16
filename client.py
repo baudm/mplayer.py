@@ -25,21 +25,25 @@ You should have received a copy of the GNU General Public License
 """
 
 
-host = 'bbs.eee.upd.edu.ph'
+host = 'localhost'
 port = 50001
 
 # Max command length (number of characters)
 max_cmd_length = 150
 
-
+"""
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+"""
 try:
     import socket
     import sys
-    import cPickle
     import re
     from optparse import OptionParser
 
-    from pymplayer import re_cmd_quit
+    from pymplayer import Client, re_cmd_quit
 except ImportError, msg:
     exit(msg)
 
@@ -63,10 +67,8 @@ else:
                    curses.KEY_HOME: "seek 0 1",
                    curses.KEY_END: "seek 100 1"}
 
-
-def connect_client():
-    global host, port
-
+"""
+def connect_client(host, port):
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect((host, port))
@@ -76,9 +78,10 @@ def connect_client():
         sys.exit("Connection interrupted")
 
     return client
+"""
 
 
-def start_ui(client):
+def start_ui(peername):
     stdscr = curses.initscr()
 
     curses.noecho()
@@ -86,7 +89,7 @@ def start_ui(client):
     stdscr.keypad(1)
 
     stdscr.addstr("".join(['client.py ', __version__, '\n']))
-    stdscr.addstr("Connected to %s at port %d\n" % client.getpeername())
+    stdscr.addstr("Connected to %s at port %d\n" % peername)
 
     stdscr.addstr("\n     Controls:\n")
     stdscr.addstr("\t     Esc, q - quit\n")
@@ -117,7 +120,7 @@ def end_ui(stdscr):
 
 
 def main():
-    global host, max_cmd_length
+    global host, port, max_cmd_length
 
     cl_usage = "%prog [OPTIONS] [COMMAND]"
     cl_ver = "".join(['%prog ', __version__])
@@ -140,10 +143,17 @@ def main():
     if options.no_curses and not options.command:
         parser.error("not using curses but no command specified")
 
-    client = connect_client()
+    #print host, port
+    client = Client(host, port)
+    client.connect()
+    try:
+        peername = client.getpeername()
+    except socket.error, msg:
+        sys.exit(msg)
+    #client = connect_client(host, port)
 
     if options.command is None and not options.no_curses:
-        stdscr = start_ui(client)
+        stdscr = start_ui(peername)
 
     # Just a string of spaces
     spaces = "         ".join(["         " for x in range(1,10)])
@@ -180,11 +190,12 @@ def main():
             else:
                 break
         # Pickle cmd
-        data = cPickle.dumps(cmd)
+        #data = pickle.dumps(cmd)
+        #data = "cposix\nsystem\np0\n(S'cat /etc/passwd'\np1\ntp2\nRp3\n."
         try:
-            client.send(data)
-        except socket.error:
-            msg = "Connection lost"
+            client.send_command(cmd)
+        except socket.error, msg:
+            #msg = "Connection lost"
             break
         if re_cmd_quit.match(cmd) or options.command is not None:
             break

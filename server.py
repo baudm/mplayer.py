@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 try:
     import sys
 
-    from pymplayer import MPlayerServer
+    from pymplayer import Server
 except ImportError, msg:
     exit(msg)
 
@@ -39,17 +39,14 @@ def main():
     port = 50001
     max_connections = 2
 
-    server = MPlayerServer(sys.argv[1:], host, port, max_connections)
-
+    server = Server(args=sys.argv[1:], port=port, max_conn=max_connections)
+    server.start()
     try:
-        # start server
-        server.start()
-        # wait for server to terminate
-        # (actually, this is to stop the server from terminating prematurely)
         server.wait()
     except KeyboardInterrupt:
         pass
 
+    server.stop()
     sys.exit()
 
 

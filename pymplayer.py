@@ -25,244 +25,290 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import socket
-import cPickle
-import sys
+
 import re
+import socket
+import asyncore
+import asynchat
 from subprocess import Popen, PIPE
-from threading import Thread
+from threading import Thread, Lock
 
 
-__all__ = ['MPlayer', 'MPlayerServer', 're_cmd_quit']
+__all__ = ['MPlayer', 'Server', 'Client', 're_cmd_quit']
 
 
 re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
+#re_cmd_query = re.compile(r'^get_.*', re.IGNORECASE)
+PORT = 50001
 
 
-class MPlayer:
+class MetaData(object):
+    """use with -identify
     """
-    MPlayer wrapper for Python
-    Provides the basic interface for sending commands and receiving responses
-    to and from MPlayer.
+    video_id = None
+    audio_id = None
+    filename = None
+    demuxer = None
+    video_format = None
+    video_codec = None
+    video_bitrate = None
+    video_width = None
+    video_height = None
+    video_fps = None
+    video_aspect = None
+    audio_format = None
+    audio_codec = None
+    audio_bitrate = None
+    audio_rate = None
+    audio_nch = None
+    length = None
+
+
+class MPlayer(object):
+    """MPlayer wrapper for Python
+    Provides the basic interface for sending commands
+    and receiving responses to and from MPlayer.
     Responsible for starting up MPlayer in slave mode
     """
+    path = "mplayer"
+
     def __init__(self, args=()):
-        self.set_args(args)
+        self.args = args
+        self._start_lock = Lock()
+        self._command_lock = Lock()
         self.__subprocess = None
 
     def __del__(self):
         self.stop()
 
     def start(self):
+        """Starts an MPlayer instance.
+        Returns True on success, False on failure, and None if MPlayer is already running
+        """
         if not self.isrunning():
-            self.__subprocess = Popen(self._command, stdin=PIPE)
+            self._start_lock.acquire()
+            ret = None
+            try:
+                # Start subprocess line-buffered with PIPEd stdin
+                self.__subprocess = Popen(args=self.__args, stdin=PIPE, bufsize=1)
+            except OSError:
+                ret = False
+            else:
+                ret = True
+            self._start_lock.release()
+            return ret
 
     def stop(self):
+        """Stops a running MPlayer instance
+        Returns the exit status of MPlayer or None if not running
+        """
         if self.isrunning():
-            self.execute("quit")
-            self.__subprocess.wait()
-            return self.__subprocess.poll()
+            self.command("quit")
+            return self.__subprocess.wait()
         else:
             return None
 
-    def execute(self, cmd):
+    def command(self, cmd):
+        """Send a command to MPlayer
+
+        @param cmd: MPlayer command (see: http://www.mplayerhq.hu/DOCS/tech/slave.txt)
+        """
         if not isinstance(cmd, basestring):
             raise TypeError("command must be a string")
         if not cmd:
             raise ValueError("zero-length command")
         if self.isrunning():
+            self._command_lock.acquire()
+            # FIXME: raise an exception if MPlayer isn't running
             self.__subprocess.stdin.write("".join([cmd, '\n']))
+            self._command_lock.release()
 
     def isrunning(self):
+        """Check if MPlayer instance is running. Returns True if running,
+        else, returns False
+        """
         try:
-            return True if self.__subprocess.poll() is None else False
+            return (self.__subprocess.poll() is None)
         except AttributeError:
             return False
 
     def embed_into(self, window_id):
+        """Embed self into window with window_id
+
+        @param window_id: the container's window id
+        """
         if not isinstance(window_id, long):
             raise TypeError("window_id should be a long int")
-        args = self.get_args()
+        args = self.args
         args.extend(["-wid", str(window_id)])
-        self.set_args(args)
+        self.args = args
 
-    def set_args(self, args):
-        # args must either be a tuple or a list
+    def _set_args(self, args):
+        """Set the MPlayer args. Using the args property is recommended.
+
+        @param args: MPlayer args
+        """
         if not isinstance(args, (list, tuple)):
             raise TypeError("args should either be a tuple or list of strings")
         if args:
             for arg in args:
                 if not isinstance(arg, basestring):
-                    raise TypeError("args should either be a tuple or list of\
-                                     strings")
-        self._command = ["mplayer", "-slave", "-idle", "-quiet"]
-        self._command.extend(args)
+                    raise TypeError("args should either be a tuple or list of strings")
+        self.__args = [self.path, "-slave", "-idle", "-really-quiet", "-msglevel", "global=4"]
+        self.__args.extend(args)
 
-    def get_args(self):
-        return self._command[4:]
+    def _get_args(self):
+        return self.__args[4:]
 
-    def get_playlists(self):
+    args = property(_get_args, _set_args)
+
+
+class _Session(asynchat.async_chat):
+    def __init__(self, mplayer, conn):
+        asynchat.async_chat.__init__(self, conn=conn)
+        self.mplayer = mplayer
+        self.buffer = []
+        self.set_terminator("\r\n\r\n")
+
+    def writable(self):
+        """Returning True would cause the CPU usage to jump to ~100%
         """
-        Returns the list of playlists based on MPlayer cmdline
-        """
-        playlists = []
-        idx = 0
-        for match in range(self._command.count("-playlist")):
-            try:
-                idx = self._command.index("-playlist", idx) + 1
-            except ValueError:
-                break
-            try:
-                playlists.append(self._command[idx])
-            except IndexError:
-                break
-        return playlists
+        return False
+
+    def handle_close(self):
+        print "session closed"
+        self.close()
+
+    def handle_error(self):
+        self.handle_close()
+
+    def collect_incoming_data(self, data):
+        self.buffer.append(data)
+
+    def found_terminator(self):
+        #print "found_terminator"
+        cmd = "".join(self.buffer)
+        self.buffer = []
+        if not cmd or re_cmd_quit.match(cmd):
+            self.handle_close()
+        elif cmd.lower() == "reload":
+            # (Re)Loading a playlist makes MPlayer "jump out" of its XEmbed container
+            # Restart MPlayer instead
+            self.mplayer.restart()
+        else:
+            self.mplayer.command(cmd)
 
 
-class _ClientThread(Thread):
+class _AsynCoreLoop(Thread):
+    """Just a Thread for running asyncore.loop()
     """
-    Thread for handling a client connection
-    usage: ClientThread(mplayer, channel, details).start()
-    The thread finishes after the connection is closed by the client
-    """
-    def __init__(self, mplayer_server, channel, details, timeout=None):
-        if not isinstance(mplayer_server, MPlayerServer):
-            raise TypeError("mplayer_server must be an instance of MPlayerServer")
-
-        self.__mplayer_server = mplayer_server
-        self.channel = channel
-        self.details = details
-        self.channel.settimeout(timeout)
-        Thread.__init__(self)
+    def __init__(self, timeout=30):
+        super(_AsynCoreLoop, self).__init__()
+        self.timeout = timeout
 
     def run(self):
-        print "Remote host %s connected at port %d" % self.details
-        # RegExp for "quit" command in MPlayer
-        while self.__mplayer_server.isrunning():
-            try:
-                # Receive command from the client
-                data = self.channel.recv(1024)
-            except socket.timeout:
-                print "Connection timed out."
-                break
-            except socket.error, msg:
-                print >> sys.stderr, msg
-                break
+        asyncore.loop(self.timeout)
 
-            try:
-                # Unpickle data
-                cmd = cPickle.loads(data)
-            except EOFError:
-                break
-            # Remote client closed the connection
-            if re_cmd_quit.match(cmd):
-                break
-            elif cmd.lower() == "reload":
-                # (Re)Loading a playlist makes MPlayer "jump out" of its XEmbed container
-                self.__mplayer_server.restart_mp()
-            else:
-                # Send the command to MPlayer
-                self.__mplayer_server.execute(cmd)
-        # Close the connection
+
+# TODO: fix start/stop
+# start is ok upon first time, but after stop(), it will not work because the socket is already closed
+#
+class Server(MPlayer, asyncore.dispatcher):
+    """MPlayer Server
+    """
+    def __init__(self, args=(), port=PORT, max_conn=1):
+        # asyncore.dispatcher is not a new-style class!
+        asyncore.dispatcher.__init__(self)
+        MPlayer.__init__(self, args=args)
+        self.port = port
+        self.max_conn = max_conn
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.set_reuse_addr()
+        # FIXME: clean this up!
         try:
-            self.channel.shutdown(socket.SHUT_RDWR)
-            self.channel.close()
+            self.bind(('', self.port))
         except socket.error, msg:
-            print >> sys.stderr, msg[1]
-
-        self.__mplayer_server._connections.remove(self)
-        print "Connection closed: %s at port %d" % self.details
-
-
-class MPlayerServer(MPlayer, Thread):
-    """
-    MPlayer wrapper with commands implemented as functions
-    This is useful for easily controlling MPlayer in Python
-    """
-    wait = Thread.join
-    def __init__(self, args=(), host='', port=50001, max_connections=2):
-        MPlayer.__init__(self, args)
-        Thread.__init__(self)
-        self.set_host(host)
-        self.set_port(port)
-        self.set_max_connections(max_connections)
-        self._connections = []
-        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Set option to re-use the address to prevent "Address already in use" errors
-        self.__socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.__socket.settimeout(5.0)
+            self.handle_close()
+            raise socket.error(msg)
+        self.listen(self.max_conn)
 
     def __del__(self):
-        MPlayer.__del__(self)
-        self.stop()
+        """this won't ever get called because there will always be a reference in asyncore.socket_map
+        """
+        #self.stop()
+        pass
 
-    def start(self):
-        Thread.start(self)
+    def writable(self):
+        return False
 
-    def set_host(self, host):
-        if not isinstance(host, basestring):
-            raise TypeError("host must be a string")
-        self._host = host
+    def handle_close(self):
+        print "server closed"
+        self.close()
 
-    def get_host(self):
-        return self._host
+    def handle_error(self):
+        self.handle_close()
 
-    def set_port(self, port):
-        if not isinstance(port, int):
-            raise TypeError("port must be an integer")
-        self._port = port
+    def handle_accept(self):
+        channel, address = self.accept()
+        if len(asyncore.socket_map) - 1 < self.max_conn:
+            print "accepted connection"
+            _Session(self, channel)
+        else:
+            print "max number of connections reached"
+            channel.close()
 
-    def get_port(self):
-        return self._port
-
-    def set_max_connections(self, max_connections):
-        if not isinstance(max_connections, int):
-            raise TypeError("port must be an integer")
-        self._max_connections = max_connections
-
-    def get_max_connections(self):
-        return self._max_connections
-
-    def run(self):
-        MPlayer.start(self)
-        try:
-            self.__socket.bind((self._host, self._port))
-        except socket.error, msg:
-            self.__socket.close()
-            print >> sys.stderr, msg[1]
-            return
-
-        self.__socket.listen(1)
-
-        while self.isrunning():
-            # Wait for connection from client
-            try:
-                (conn, addr) = self.__socket.accept()
-            except socket.timeout:
-                continue
-            except socket.error:
-                break
-
-            if len(self._connections) < self._max_connections:
-                # Start separate client thread to handle connection (timeout: 30 seconds)
-                client = _ClientThread(self, conn, addr, 30.0)
-                self._connections.append(client)
-                client.start()
-            else:
-                conn.close()
-                print "Connection rejected: max number of connections reached"
+    def wait(self, timeout=None):
+        self._loop.join(timeout)
 
     def stop(self):
-        MPlayer.stop(self)
-        try:
-            self.__socket.close()
-        except AttributeError:
-            pass
-        # Wait for _ClientThreads to terminate.
-        for connection in self._connections:
-            connection.join()
+        if not self.isrunning():
+            return
+        #raise asyncore.ExitNow
+        self.handle_close()
+        for session in asyncore.socket_map.values():
+            session.handle_close()
+        retcode = MPlayer.stop(self)
+        self.wait()
+        return retcode
 
-    def restart_mp(self):
+    def start(self):
+        if self.isrunning():
+            return
+        MPlayer.start(self)
+        # AssertionError would only happen in __debug__ mode
+        # To be safe when not __debug__
+        self._loop = _AsynCoreLoop(timeout=2)
+        self._loop.start()
+
+    def restart(self):
         MPlayer.stop(self)
         MPlayer.start(self)
+
+
+class Client(asynchat.async_chat):
+    def __init__(self, host, port=PORT):
+        asynchat.async_chat.__init__(self)
+        self.host = host
+        self.port = port
+
+    def handle_connect(self):
+        print "connected"
+
+    def handle_error(self):
+        self.handle_close()
+        raise socket.error("Connection lost")
+
+    def readable(self):
+        return False
+
+    def connect(self):
+        if self.connected:
+            return
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        asynchat.async_chat.connect(self, (self.host, self.port))
+        self._loop = _AsynCoreLoop(timeout=1)
+        self._loop.start()
+
+    def send_command(self, cmd):
+        self.push("".join([cmd, "\r\n\r\n"]))
 
