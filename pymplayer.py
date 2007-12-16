@@ -37,6 +37,7 @@ from threading import Thread, Lock
 __all__ = ['MPlayer', 'Server', 'Client', 're_cmd_quit']
 
 
+_asyncore_loop_started = False
 re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
 #re_cmd_query = re.compile(r'^get_.*', re.IGNORECASE)
 PORT = 50001
@@ -205,9 +206,14 @@ class _AsynCoreLoop(Thread):
     def __init__(self, timeout=30):
         super(_AsynCoreLoop, self).__init__()
         self.timeout = timeout
+        self.setDaemon(True)
 
     def run(self):
+        global _asyncore_loop_started
+        if _asyncore_loop_started:
+            raise RuntimeError("asyncore.loop() already started")
         asyncore.loop(self.timeout)
+        _asyncore_loop_started = True
 
 
 # TODO: fix start/stop
