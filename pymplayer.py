@@ -159,7 +159,7 @@ class MPlayer(object):
         self.__args.extend(args)
 
     def _get_args(self):
-        return self.__args[4:]
+        return self.__args[6:]
 
     args = property(_get_args, _set_args)
 
