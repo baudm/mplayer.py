@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-"""MPlayer remote control client
-"""
+# $Id$
+
+"""MPlayer remote control client"""
 
 __version__ = "$Revision$"
-# $Source$
-
-__date__ = "$Date$"
 
 __copyright__ = """
 Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
@@ -25,60 +23,34 @@ You should have received a copy of the GNU General Public License
 """
 
 
-host = 'localhost'
-port = 50001
-
-# Max command length (number of characters)
-max_cmd_length = 150
-
-"""
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-"""
 try:
     import socket
     import sys
     import re
     from optparse import OptionParser
-
-    from pymplayer import Client, re_cmd_quit
 except ImportError, msg:
     exit(msg)
-
+from pymplayer import Client, PORT, MAX_CMD_LENGTH
 try:
     import curses
 except ImportError:
     curses = None
 else:
-    command_map = {ord('q'): "quit", ord('Q'): "quit", 27: "quit",
-                   ord('p'): "pause", ord('P'): "pause", ord(' '): "pause",
-                   ord('m'): "mute", ord('M'): "mute",
-                   ord('f'): "vo_fullscreen", ord('F'): "vo_fullscreen",
-                   ord('o'): "osd", ord('O'): "osd",
-                   ord('r'): "reload", ord('R'): "reload",
-                   curses.KEY_LEFT: "seek -5",
-                   curses.KEY_RIGHT: "seek +5",
-                   curses.KEY_NPAGE: "pt_step -1",
-                   curses.KEY_PPAGE: "pt_step +1",
-                   curses.KEY_UP: "volume +2",
-                   curses.KEY_DOWN: "volume -2",
-                   curses.KEY_HOME: "seek 0 1",
-                   curses.KEY_END: "seek 100 1"}
-
-"""
-def connect_client(host, port):
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect((host, port))
-    except socket.error, msg:
-        sys.exit(msg[1])
-    except KeyboardInterrupt:
-        sys.exit("Connection interrupted")
-
-    return client
-"""
+    command_map = {
+        ord('q'): "quit", ord('Q'): "quit", 27: "quit",
+        ord('p'): "pause", ord('P'): "pause", ord(' '): "pause",
+        ord('m'): "mute", ord('M'): "mute",
+        ord('f'): "vo_fullscreen", ord('F'): "vo_fullscreen",
+        ord('o'): "osd", ord('O'): "osd",
+        ord('r'): "reload", ord('R'): "reload",
+        curses.KEY_LEFT: "seek -5",
+        curses.KEY_RIGHT: "seek +5",
+        curses.KEY_NPAGE: "pt_step -1",
+        curses.KEY_PPAGE: "pt_step +1",
+        curses.KEY_UP: "volume +2",
+        curses.KEY_DOWN: "volume -2",
+        curses.KEY_HOME: "seek 0 1",
+        curses.KEY_END: "seek 100 1"}
 
 
 def start_ui(peername):
@@ -120,46 +92,37 @@ def end_ui(stdscr):
 
 
 def main():
-    global host, port, max_cmd_length
-
     cl_usage = "%prog [OPTIONS] [COMMAND]"
     cl_ver = "".join(['%prog ', __version__])
 
     parser = OptionParser(usage=cl_usage, version=cl_ver)
 
-    parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar="\"CMD\"")
-    parser.add_option("-n", "--no-curses", dest="no_curses", action="store_true", help="don't use curses interface")
-    parser.add_option("-s", "--server", dest="server", help="server to connect to", metavar="HOST")
-    parser.add_option("-p", "--port", dest="port", help="server port to connect to")
+    parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar='"CMD"')
+    parser.add_option("-n", "--no-curses", dest="curses", default=True, action="store_false", help="don't use curses interface")
+    parser.add_option("-H", "--host", dest="host", default="localhost", help="server to connect to")
+    parser.add_option("-p", "--port", dest="port", default=PORT, type="int", help="server port to connect to")
 
     (options, args) = parser.parse_args()
 
     if curses is None:
-        options.no_curses = True
-    if options.server is not None:
-        host = options.server
-    if options.port is not None:
-        port = int(options.port)
-    if options.no_curses and not options.command:
+        options.curses = False
+    if not options.curses and options.command is None:
         parser.error("not using curses but no command specified")
 
-    #print host, port
-    client = Client(host, port)
+    client = Client(options.host, options.port)
     client.connect()
     try:
         peername = client.getpeername()
     except socket.error, msg:
         sys.exit(msg)
-    #client = connect_client(host, port)
 
-    if options.command is None and not options.no_curses:
+    if options.curses and options.command is None:
         stdscr = start_ui(peername)
-
-    # Just a string of spaces
-    spaces = "         ".join(["         " for x in range(1,10)])
+        # Just a string of spaces
+        spaces = "         ".join(["         " for x in range(10)])
 
     while True:
-        if options.command is None and not options.no_curses:
+        if options.curses and options.command is None:
             stdscr.addstr(12, 0, "Command: ")
             try:
                 c = stdscr.getch()
@@ -169,7 +132,7 @@ def main():
                 curses.echo()
                 stdscr.addstr(12, 0, "".join(['Command: ', spaces]))
                 try:
-                    cmd = stdscr.getstr(12, 9, max_cmd_length)
+                    cmd = stdscr.getstr(12, 9, MAX_CMD_LENGTH)
                 except KeyboardInterrupt:
                     cmd = ""
                 curses.noecho()
@@ -185,25 +148,23 @@ def main():
             cmd = options.command
         # Zero-length command
         if not cmd:
-            if options.command is None and not options.no_curses:
+            if options.curses and options.command is None:
                 continue
             else:
                 break
-        # Pickle cmd
-        #data = pickle.dumps(cmd)
-        #data = "cposix\nsystem\np0\n(S'cat /etc/passwd'\np1\ntp2\nRp3\n."
+
         try:
-            client.send_command(cmd)
+            if not client.send_command(cmd):
+                break
         except socket.error, msg:
-            #msg = "Connection lost"
             break
-        if re_cmd_quit.match(cmd) or options.command is not None:
+        if options.command is not None:
             break
 
-    if options.command is None and not options.no_curses:
+    if options.curses and options.command is None:
         end_ui(stdscr)
 
-    client.close()
+    client.disconnect()
 
     try:
         print >> sys.stderr, msg

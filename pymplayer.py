@@ -1,12 +1,8 @@
-"""pymplayer - MPlayer wrapper for Python.
-"""
+# $Id$
 
-__version__ = "$Revision$"
-# $Source$
+"""pymplayer - MPlayer wrapper for Python."""
 
 __author__ = "Darwin Bautista <djclue917@gmail.com>"
-
-__date__ = "$Date$"
 
 __copyright__ = """
 Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
@@ -34,13 +30,15 @@ from subprocess import Popen, PIPE
 from threading import Thread, Lock
 
 
-__all__ = ['MPlayer', 'Server', 'Client', 're_cmd_quit']
+__all__ = ['MPlayer', 'Server', 'Client', 'PORT', 'MAX_CMD_LENGTH']
 
 
 _asyncore_loop_started = False
-re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
-#re_cmd_query = re.compile(r'^get_.*', re.IGNORECASE)
+_re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
+
+
 PORT = 50001
+MAX_CMD_LENGTH = 150
 
 
 class MetaData(object):
@@ -164,8 +162,10 @@ class MPlayer(object):
     args = property(_get_args, _set_args)
 
 
-class _Session(asynchat.async_chat):
+class _Channel(asynchat.async_chat):
+    """Client -> Server connection"""
     def __init__(self, mplayer, conn):
+        print "session started"
         asynchat.async_chat.__init__(self, conn=conn)
         self.mplayer = mplayer
         self.buffer = []
@@ -190,7 +190,7 @@ class _Session(asynchat.async_chat):
         #print "found_terminator"
         cmd = "".join(self.buffer)
         self.buffer = []
-        if not cmd or re_cmd_quit.match(cmd):
+        if not cmd or _re_cmd_quit.match(cmd):
             self.handle_close()
         elif cmd.lower() == "reload":
             # (Re)Loading a playlist makes MPlayer "jump out" of its XEmbed container
@@ -255,13 +255,13 @@ class Server(MPlayer, asyncore.dispatcher):
         self.handle_close()
 
     def handle_accept(self):
-        channel, address = self.accept()
+        connection, address = self.accept()
         if len(asyncore.socket_map) - 1 < self.max_conn:
             print "accepted connection"
-            _Session(self, channel)
+            _Channel(self, connection)
         else:
             print "max number of connections reached"
-            channel.close()
+            connection.close()
 
     def wait(self, timeout=None):
         self._loop.join(timeout)
@@ -301,7 +301,7 @@ class Client(asynchat.async_chat):
         print "connected"
 
     def handle_error(self):
-        self.handle_close()
+        self.close()
         raise socket.error("Connection lost")
 
     def readable(self):
@@ -315,6 +315,14 @@ class Client(asynchat.async_chat):
         self._loop = _AsynCoreLoop(timeout=1)
         self._loop.start()
 
+    def disconnect(self):
+        self.close()
+
     def send_command(self, cmd):
         self.push("".join([cmd, "\r\n\r\n"]))
+        if _re_cmd_quit.match(cmd):
+            self.close()
+            return False
+        else:
+            return True
 

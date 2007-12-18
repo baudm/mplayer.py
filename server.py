@@ -1,12 +1,7 @@
 #!/usr/bin/env python
+# $Id$
 
-"""MPlayer remote control server
-"""
-
-__version__ = "$Revision$"
-# $Source$
-
-__date__ = "$Date$"
+"""MPlayer remote control server"""
 
 __copyright__ = """
 Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
@@ -28,18 +23,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 try:
     import sys
-
-    from pymplayer import Server
+    import socket
 except ImportError, msg:
     exit(msg)
+from pymplayer import Server
 
 
 def main():
-    host = ''
-    port = 50001
-    max_connections = 2
-
-    server = Server(args=sys.argv[1:], port=port, max_conn=max_connections)
+    try:
+        server = Server(args=sys.argv[1:], max_conn=2)
+    except socket.error, msg:
+        sys.exit(msg)
     server.start()
     try:
         server.wait()
