@@ -71,8 +71,9 @@ class MPlayer(object):
     """
     path = "mplayer"
 
-    def __init__(self, args=()):
+    def __init__(self, args=(), pipe_stdout=False):
         self.args = args
+        self._pipe_stdout = pipe_stdout
         self.__subprocess = None
 
     def __del__(self):
@@ -85,8 +86,11 @@ class MPlayer(object):
         if not self.isrunning():
             ret = None
             try:
-                # Start subprocess line-buffered with PIPEd stdin
-                self.__subprocess = Popen(args=self.__args, stdin=PIPE, bufsize=1)
+                if self._pipe_stdout:
+                    self.__subprocess = Popen(args=self.__args, stdin=PIPE, stdout=PIPE, bufsize=1)
+                else:
+                    # Start subprocess line-buffered with PIPEd stdin
+                    self.__subprocess = Popen(args=self.__args, stdin=PIPE, bufsize=1)
             except OSError:
                 ret = False
             else:
@@ -274,11 +278,12 @@ class Server(MPlayer, asyncore.dispatcher):
     def start(self):
         if self.isrunning():
             return
-        MPlayer.start(self)
+        retcode = MPlayer.start(self)
         # AssertionError would only happen in __debug__ mode
         # To be safe when not __debug__
         self._loop = _AsynCoreLoop(timeout=2)
         self._loop.start()
+        return retcode
 
     def restart(self):
         MPlayer.stop(self)
