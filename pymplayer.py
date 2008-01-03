@@ -5,7 +5,7 @@
 __author__ = "Darwin Bautista <djclue917@gmail.com>"
 
 __copyright__ = """
-Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
+Copyright (C) 2007-2008  The MA3X Project (http://bbs.eee.upd.edu.ph)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -27,7 +27,7 @@ import socket
 import asyncore
 import asynchat
 from subprocess import Popen, PIPE
-from threading import Thread, Lock
+from threading import Thread
 
 
 __all__ = ['MPlayer', 'Server', 'Client', 'PORT', 'MAX_CMD_LENGTH']
@@ -73,8 +73,6 @@ class MPlayer(object):
 
     def __init__(self, args=()):
         self.args = args
-        self._start_lock = Lock()
-        self._command_lock = Lock()
         self.__subprocess = None
 
     def __del__(self):
@@ -85,7 +83,6 @@ class MPlayer(object):
         Returns True on success, False on failure, and None if MPlayer is already running
         """
         if not self.isrunning():
-            self._start_lock.acquire()
             ret = None
             try:
                 # Start subprocess line-buffered with PIPEd stdin
@@ -94,7 +91,6 @@ class MPlayer(object):
                 ret = False
             else:
                 ret = True
-            self._start_lock.release()
             return ret
 
     def stop(self):
@@ -117,10 +113,8 @@ class MPlayer(object):
         if not cmd:
             raise ValueError("zero-length command")
         if self.isrunning():
-            self._command_lock.acquire()
             # FIXME: raise an exception if MPlayer isn't running
             self.__subprocess.stdin.write("".join([cmd, '\n']))
-            self._command_lock.release()
 
     def isrunning(self):
         """Check if MPlayer instance is running. Returns True if running,

@@ -4,7 +4,7 @@
 """MPlayer remote control server"""
 
 __copyright__ = """
-Copyright (C) 2007  The MA3X Project (http://bbs.eee.upd.edu.ph)
+Copyright (C) 2007-2008  The MA3X Project (http://bbs.eee.upd.edu.ph)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
