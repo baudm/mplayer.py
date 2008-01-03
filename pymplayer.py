@@ -298,7 +298,7 @@ class Client(asynchat.async_chat):
         self.port = port
 
     def handle_connect(self):
-        print "connected"
+        pass
 
     def handle_error(self):
         self.close()
