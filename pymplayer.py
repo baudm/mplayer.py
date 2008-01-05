@@ -2,7 +2,9 @@
 
 """pymplayer - MPlayer wrapper for Python."""
 
-__author__ = "Darwin Bautista <djclue917@gmail.com>"
+__version__ = '0.1.0'
+
+__author__ = 'Darwin Bautista <djclue917@gmail.com>'
 
 __copyright__ = """
 Copyright (C) 2007-2008  The MA3X Project (http://bbs.eee.upd.edu.ph)
@@ -28,6 +30,8 @@ import asyncore
 import asynchat
 from subprocess import Popen, PIPE
 from threading import Thread
+
+import gobject
 
 
 __all__ = ['MPlayer', 'Server', 'Client', 'PORT', 'MAX_CMD_LENGTH']
@@ -68,32 +72,57 @@ class MPlayer(object):
     Provides the basic interface for sending commands
     and receiving responses to and from MPlayer.
     Responsible for starting up MPlayer in slave mode
+
+    The handle_data and handle_error methods would
+    only be called if gobject.MainLoop is running.
     """
     path = "mplayer"
 
-    def __init__(self, args=(), pipe_stdout=False):
+    def __init__(self, args=()):
         self.args = args
-        self._pipe_stdout = pipe_stdout
         self.__subprocess = None
 
     def __del__(self):
         self.stop()
 
+    def _set_args(self, args):
+        if not isinstance(args, (list, tuple)):
+            raise TypeError("args should either be a tuple or list of strings")
+        if args:
+            for arg in args:
+                if not isinstance(arg, basestring):
+                    raise TypeError("args should either be a tuple or list of strings")
+        self.__args = [self.path, "-slave", "-idle", "-really-quiet", "-msglevel", "global=4"]
+        self.__args.extend(args)
+
+    def _get_args(self):
+        return self.__args[6:]
+
+    args = property(_get_args, _set_args, doc="MPlayer arguments")
+
+    def _handle_data(self, source, condition):
+        self.handle_data(source.readline().rstrip())
+        return True
+
+    def _handle_error(self, source, condition):
+        self.handle_error(source.readline().rstrip())
+        return True
+
     def start(self):
         """Starts an MPlayer instance.
         Returns True on success, False on failure, and None if MPlayer is already running
         """
-        if not self.isrunning():
-            ret = None
+        if not self.isalive():
             try:
-                if self._pipe_stdout:
-                    self.__subprocess = Popen(args=self.__args, stdin=PIPE, stdout=PIPE, bufsize=1)
-                else:
-                    # Start subprocess line-buffered with PIPEd stdin
-                    self.__subprocess = Popen(args=self.__args, stdin=PIPE, bufsize=1)
+                # Start subprocess (line-buffered)
+                self.__subprocess = Popen(args=self.__args, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1)
             except OSError:
                 ret = False
             else:
+                self._stdout_watch = gobject.io_add_watch(self.__subprocess.stdout,
+                    gobject.IO_IN|gobject.IO_PRI, self._handle_data)
+                self._stderr_watch = gobject.io_add_watch(self.__subprocess.stderr,
+                    gobject.IO_IN|gobject.IO_PRI, self._handle_error)
                 ret = True
             return ret
 
@@ -101,8 +130,10 @@ class MPlayer(object):
         """Stops a running MPlayer instance
         Returns the exit status of MPlayer or None if not running
         """
-        if self.isrunning():
+        if self.isalive():
             self.command("quit")
+            gobject.source_remove(self._stdout_watch)
+            gobject.source_remove(self._stderr_watch)
             return self.__subprocess.wait()
         else:
             return None
@@ -116,48 +147,33 @@ class MPlayer(object):
             raise TypeError("command must be a string")
         if not cmd:
             raise ValueError("zero-length command")
-        if self.isrunning():
-            # FIXME: raise an exception if MPlayer isn't running
+        if self.isalive():
             self.__subprocess.stdin.write("".join([cmd, '\n']))
 
-    def isrunning(self):
-        """Check if MPlayer instance is running. Returns True if running,
-        else, returns False
+    def isalive(self):
+        """Check if MPlayer process is alive.
+        Returns True if alive, else, returns False
         """
         try:
             return (self.__subprocess.poll() is None)
         except AttributeError:
             return False
 
-    def embed_into(self, window_id):
-        """Embed self into window with window_id
+    def handle_data(self, data):
+        """This method is meant to be overridden.
+        This method is called when a line is read from stdout.
 
-        @param window_id: the container's window id
+        @param data: the line read from stdout
         """
-        if not isinstance(window_id, long):
-            raise TypeError("window_id should be a long int")
-        args = self.args
-        args.extend(["-wid", str(window_id)])
-        self.args = args
+        pass
 
-    def _set_args(self, args):
-        """Set the MPlayer args. Using the args property is recommended.
+    def handle_error(self, error):
+        """This method is meant to be overridden.
+        This method is called when a line is read from stderr.
 
-        @param args: MPlayer args
+        @param error: the line read from stderr
         """
-        if not isinstance(args, (list, tuple)):
-            raise TypeError("args should either be a tuple or list of strings")
-        if args:
-            for arg in args:
-                if not isinstance(arg, basestring):
-                    raise TypeError("args should either be a tuple or list of strings")
-        self.__args = [self.path, "-slave", "-idle", "-really-quiet", "-msglevel", "global=4"]
-        self.__args.extend(args)
-
-    def _get_args(self):
-        return self.__args[6:]
-
-    args = property(_get_args, _set_args)
+        pass
 
 
 class _Channel(asynchat.async_chat):
@@ -170,8 +186,7 @@ class _Channel(asynchat.async_chat):
         self.set_terminator("\r\n\r\n")
 
     def writable(self):
-        """Returning True would cause the CPU usage to jump to ~100%
-        """
+        """Returning True would cause the CPU usage to jump to ~100%"""
         return False
 
     def handle_close(self):
@@ -185,7 +200,6 @@ class _Channel(asynchat.async_chat):
         self.buffer.append(data)
 
     def found_terminator(self):
-        #print "found_terminator"
         cmd = "".join(self.buffer)
         self.buffer = []
         if not cmd or _re_cmd_quit.match(cmd):
@@ -265,7 +279,7 @@ class Server(MPlayer, asyncore.dispatcher):
         self._loop.join(timeout)
 
     def stop(self):
-        if not self.isrunning():
+        if not self.isalive():
             return
         #raise asyncore.ExitNow
         self.handle_close()
@@ -276,7 +290,7 @@ class Server(MPlayer, asyncore.dispatcher):
         return retcode
 
     def start(self):
-        if self.isrunning():
+        if self.isalive():
             return
         retcode = MPlayer.start(self)
         # AssertionError would only happen in __debug__ mode
