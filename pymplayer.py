@@ -4,7 +4,7 @@
 
 __version__ = '0.1.0'
 
-__author__ = 'Darwin Bautista <djclue917@gmail.com>'
+__author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
 
 __copyright__ = """
 Copyright (C) 2007-2008  The MA3X Project (http://bbs.eee.upd.edu.ph)
@@ -68,22 +68,36 @@ class MetaData(object):
 
 
 class MPlayer(object):
-    """MPlayer wrapper for Python
-    Provides the basic interface for sending commands
-    and receiving responses to and from MPlayer.
-    Responsible for starting up MPlayer in slave mode
+    """MPlayer(path='mplayer', args=())
 
-    The handle_data and handle_error methods would
-    only be called if gobject.MainLoop is running.
+    Provides the basic interface for sending commands and receiving
+    responses to and from MPlayer. gobject.MainLoop should be started
+    so that the PIPE buffers wouldn't get full which would "freeze" MPlayer.
+
+    The handle_data and handle_error methods would only get executed
+    if gobject.MainLoop is running.
     """
-    path = "mplayer"
-
-    def __init__(self, args=()):
+    def __init__(self, path='mplayer', args=()):
+        self.path = path
         self.args = args
         self.__subprocess = None
 
     def __del__(self):
+        # Be sure to stop the MPlayer process.
         self.stop()
+
+    def _set_path(self, path):
+        if not isinstance(path, basestring):
+            raise TypeError("path should be a string")
+        self.__path = path
+
+    def _get_path(self):
+        return self.__path
+
+    path = property(_get_path, _set_path, doc="Path to MPlayer")
+
+    def _get_args(self):
+        return self.__args[6:]
 
     def _set_args(self, args):
         if not isinstance(args, (list, tuple)):
@@ -95,40 +109,42 @@ class MPlayer(object):
         self.__args = [self.path, "-slave", "-idle", "-really-quiet", "-msglevel", "global=4"]
         self.__args.extend(args)
 
-    def _get_args(self):
-        return self.__args[6:]
-
     args = property(_get_args, _set_args, doc="MPlayer arguments")
 
     def _handle_data(self, source, condition):
+        # source is stdout
         self.handle_data(source.readline().rstrip())
         return True
 
     def _handle_error(self, source, condition):
+        # source is stderr
         self.handle_error(source.readline().rstrip())
         return True
 
     def start(self):
-        """Starts an MPlayer instance.
-        Returns True on success, False on failure, and None if MPlayer is already running
+        """Start the MPlayer process.
+
+        Returns True on success, False on failure,
+        and None if MPlayer is already running.
         """
         if not self.isalive():
             try:
                 # Start subprocess (line-buffered)
                 self.__subprocess = Popen(args=self.__args, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1)
             except OSError:
-                ret = False
+                retcode = False
             else:
                 self._stdout_watch = gobject.io_add_watch(self.__subprocess.stdout,
                     gobject.IO_IN|gobject.IO_PRI, self._handle_data)
                 self._stderr_watch = gobject.io_add_watch(self.__subprocess.stderr,
                     gobject.IO_IN|gobject.IO_PRI, self._handle_error)
-                ret = True
-            return ret
+                retcode = True
+            return retcode
 
     def stop(self):
-        """Stops a running MPlayer instance
-        Returns the exit status of MPlayer or None if not running
+        """Stop the MPlayer process.
+
+        Returns the exit status of MPlayer or None if not running.
         """
         if self.isalive():
             self.command("quit")
@@ -139,9 +155,12 @@ class MPlayer(object):
             return None
 
     def command(self, cmd):
-        """Send a command to MPlayer
+        """Send a command to MPlayer.
 
-        @param cmd: MPlayer command (see: http://www.mplayerhq.hu/DOCS/tech/slave.txt)
+        @param cmd: valid MPlayer command
+
+        Valid MPlayer commands are documented in:
+        http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
         if not isinstance(cmd, basestring):
             raise TypeError("command must be a string")
@@ -152,6 +171,7 @@ class MPlayer(object):
 
     def isalive(self):
         """Check if MPlayer process is alive.
+
         Returns True if alive, else, returns False
         """
         try:
@@ -161,17 +181,19 @@ class MPlayer(object):
 
     def handle_data(self, data):
         """This method is meant to be overridden.
+
         This method is called when a line is read from stdout.
 
-        @param data: the line read from stdout
+        @param data: the line (str) read from stdout
         """
         pass
 
     def handle_error(self, error):
         """This method is meant to be overridden.
+
         This method is called when a line is read from stderr.
 
-        @param error: the line read from stderr
+        @param error: the line (str) read from stderr
         """
         pass
 
@@ -213,8 +235,7 @@ class _Channel(asynchat.async_chat):
 
 
 class _AsynCoreLoop(Thread):
-    """Just a Thread for running asyncore.loop()
-    """
+    """Just a Thread for running asyncore.loop()"""
     def __init__(self, timeout=30):
         super(_AsynCoreLoop, self).__init__()
         self.timeout = timeout
@@ -232,12 +253,14 @@ class _AsynCoreLoop(Thread):
 # start is ok upon first time, but after stop(), it will not work because the socket is already closed
 #
 class Server(MPlayer, asyncore.dispatcher):
-    """MPlayer Server
+    """Server(path='mplayer', args=(), port=PORT, max_conn=1)
+
+    MPlayer server
     """
-    def __init__(self, args=(), port=PORT, max_conn=1):
+    def __init__(self, path='mplayer', args=(), port=PORT, max_conn=1):
         # asyncore.dispatcher is not a new-style class!
         asyncore.dispatcher.__init__(self)
-        MPlayer.__init__(self, args=args)
+        MPlayer.__init__(self, path=path, args=args)
         self.port = port
         self.max_conn = max_conn
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -249,12 +272,6 @@ class Server(MPlayer, asyncore.dispatcher):
             self.handle_close()
             raise socket.error(msg)
         self.listen(self.max_conn)
-
-    def __del__(self):
-        """this won't ever get called because there will always be a reference in asyncore.socket_map
-        """
-        #self.stop()
-        pass
 
     def writable(self):
         return False
@@ -305,6 +322,10 @@ class Server(MPlayer, asyncore.dispatcher):
 
 
 class Client(asynchat.async_chat):
+    """Client(host, port=pymplayer.PORT)
+
+    MPlayer client
+    """
     def __init__(self, host, port=PORT):
         asynchat.async_chat.__init__(self)
         self.host = host
@@ -338,4 +359,3 @@ class Client(asynchat.async_chat):
             return False
         else:
             return True
-
