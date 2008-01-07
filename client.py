@@ -164,7 +164,7 @@ def main():
     if options.curses and options.command is None:
         end_ui(stdscr)
 
-    client.disconnect()
+    client.close()
 
     try:
         print >> sys.stderr, msg

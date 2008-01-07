@@ -31,12 +31,12 @@ from pymplayer import Server
 
 def main():
     try:
-        server = Server(args=sys.argv[1:], max_conn=2)
+        server = Server(max_conns=2)
     except socket.error, msg:
         sys.exit(msg)
-    server.start()
+    server.mplayer.args = sys.argv[1:]
     try:
-        server.wait()
+        server.start()
     except KeyboardInterrupt:
         pass
 

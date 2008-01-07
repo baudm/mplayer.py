@@ -200,23 +200,25 @@ class MPlayer(object):
 
 class _Channel(asynchat.async_chat):
     """Client -> Server connection"""
-    def __init__(self, mplayer, conn):
-        print "session started"
-        asynchat.async_chat.__init__(self, conn=conn)
+    ac_in_buffer_size = 512
+    ac_out_buffer_size = 0
+
+    def __init__(self, mplayer, conn, map, log):
+        asynchat.async_chat.__init__(self, conn)
+        self.add_channel(map)
+        self.map = map
+        self.log = log
         self.mplayer = mplayer
         self.buffer = []
         self.set_terminator("\r\n\r\n")
 
     def writable(self):
-        """Returning True would cause the CPU usage to jump to ~100%"""
         return False
 
     def handle_close(self):
-        print "session closed"
+        self.del_channel(self.map)
         self.close()
-
-    def handle_error(self):
-        self.handle_close()
+        self.log("Connection closed.")
 
     def collect_incoming_data(self, data):
         self.buffer.append(data)
@@ -229,96 +231,65 @@ class _Channel(asynchat.async_chat):
         elif cmd.lower() == "reload":
             # (Re)Loading a playlist makes MPlayer "jump out" of its XEmbed container
             # Restart MPlayer instead
-            self.mplayer.restart()
+            self.mplayer.stop()
+            self.mplayer.start()
         else:
             self.mplayer.command(cmd)
 
 
-class _AsynCoreLoop(Thread):
-    """Just a Thread for running asyncore.loop()"""
-    def __init__(self, timeout=30):
-        super(_AsynCoreLoop, self).__init__()
-        self.timeout = timeout
-        self.setDaemon(True)
-
-    def run(self):
-        global _asyncore_loop_started
-        if _asyncore_loop_started:
-            raise RuntimeError("asyncore.loop() already started")
-        asyncore.loop(self.timeout)
-        _asyncore_loop_started = True
-
-
-# TODO: fix start/stop
-# start is ok upon first time, but after stop(), it will not work because the socket is already closed
-#
-class Server(MPlayer, asyncore.dispatcher):
-    """Server(path='mplayer', args=(), port=PORT, max_conn=1)
+class Server(asyncore.dispatcher):
+    """Server(host='', port=PORT, max_conns=1)
 
     MPlayer server
     """
-    def __init__(self, path='mplayer', args=(), port=PORT, max_conn=1):
-        # asyncore.dispatcher is not a new-style class!
-        asyncore.dispatcher.__init__(self)
-        MPlayer.__init__(self, path=path, args=args)
+    def __init__(self, host='', port=PORT, max_conns=1):
+        self.host = host
         self.port = port
-        self.max_conn = max_conn
+        self.max_conns = max_conns
+        # For now, do this since properties can't be used
+        self.mplayer = MPlayer()
+        self.socket_map = {}
+        # asyncore.dispatcher is not a new-style class!
+        asyncore.dispatcher.__init__(self, map=self.socket_map)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
-        # FIXME: clean this up!
-        try:
-            self.bind(('', self.port))
-        except socket.error, msg:
-            self.handle_close()
-            raise socket.error(msg)
-        self.listen(self.max_conn)
+        self.bind((self.host, self.port))
+        self.listen(self.max_conns)
 
     def writable(self):
         return False
 
     def handle_close(self):
-        print "server closed"
+        self.log("Server closed.")
         self.close()
 
-    def handle_error(self):
-        self.handle_close()
-
     def handle_accept(self):
-        connection, address = self.accept()
-        if len(asyncore.socket_map) - 1 < self.max_conn:
-            print "accepted connection"
-            _Channel(self, connection)
+        conn, addr = self.accept()
+        if len(self.socket_map) - 1 < self.max_conns:
+            self.log("Connection accepted: %s" % (addr, ))
+            _Channel(self.mplayer, conn=conn, map=self.socket_map, log=self.log)
         else:
-            print "max number of connections reached"
-            connection.close()
-
-    def wait(self, timeout=None):
-        self._loop.join(timeout)
+            self.log("Max number of connections reached.")
+            conn.close()
 
     def stop(self):
-        if not self.isalive():
-            return
-        #raise asyncore.ExitNow
-        self.handle_close()
-        for session in asyncore.socket_map.values():
-            session.handle_close()
-        retcode = MPlayer.stop(self)
-        self.wait()
-        return retcode
+        for channel in self.socket_map.values():
+            channel.handle_close()
+        return self.mplayer.stop()
 
-    def start(self):
-        if self.isalive():
+    def start(self, timeout=2):
+        if self.mplayer.isalive():
             return
-        retcode = MPlayer.start(self)
-        # AssertionError would only happen in __debug__ mode
-        # To be safe when not __debug__
-        self._loop = _AsynCoreLoop(timeout=2)
-        self._loop.start()
-        return retcode
+        self.mplayer.start()
+        self.log("Server started.")
+        asyncore.loop(timeout=timeout, map=self.socket_map)
 
-    def restart(self):
-        MPlayer.stop(self)
-        MPlayer.start(self)
+    def log(self, msg):
+        """This method is meant to be overridden for logging support.
+
+        @param msg: log message
+        """
+        pass
 
 
 class Client(asynchat.async_chat):
@@ -326,10 +297,17 @@ class Client(asynchat.async_chat):
 
     MPlayer client
     """
+    ac_in_buffer_size = 0
+    ac_out_buffer_size = 512
+
     def __init__(self, host, port=PORT):
         asynchat.async_chat.__init__(self)
         self.host = host
         self.port = port
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def readable(self):
+        return False
 
     def handle_connect(self):
         pass
@@ -338,19 +316,13 @@ class Client(asynchat.async_chat):
         self.close()
         raise socket.error("Connection lost")
 
-    def readable(self):
-        return False
-
     def connect(self):
         if self.connected:
             return
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         asynchat.async_chat.connect(self, (self.host, self.port))
-        self._loop = _AsynCoreLoop(timeout=1)
-        self._loop.start()
-
-    def disconnect(self):
-        self.close()
+        t = Thread(target=asyncore.loop, kwargs={'timeout': 1})
+        t.setDaemon(True)
+        t.start()
 
     def send_command(self, cmd):
         self.push("".join([cmd, "\r\n\r\n"]))
