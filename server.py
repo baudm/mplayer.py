@@ -31,7 +31,7 @@ from pymplayer import Server
 
 def main():
     try:
-        server = Server(max_conns=2)
+        server = Server(port=1025, max_conns=2)
     except socket.error, msg:
         sys.exit(msg)
     server.mplayer.args = sys.argv[1:]

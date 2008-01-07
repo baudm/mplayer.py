@@ -37,42 +37,22 @@ import gobject
 __all__ = ['MPlayer', 'Server', 'Client', 'PORT', 'MAX_CMD_LENGTH']
 
 
-_asyncore_loop_started = False
 _re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
 
 
 PORT = 50001
-MAX_CMD_LENGTH = 150
-
-
-class MetaData(object):
-    """use with -identify
-    """
-    video_id = None
-    audio_id = None
-    filename = None
-    demuxer = None
-    video_format = None
-    video_codec = None
-    video_bitrate = None
-    video_width = None
-    video_height = None
-    video_fps = None
-    video_aspect = None
-    audio_format = None
-    audio_codec = None
-    audio_bitrate = None
-    audio_rate = None
-    audio_nch = None
-    length = None
+MAX_CMD_LENGTH = 256
 
 
 class MPlayer(object):
     """MPlayer(path='mplayer', args=())
 
     Provides the basic interface for sending commands and receiving
-    responses to and from MPlayer. gobject.MainLoop should be started
-    so that the PIPE buffers wouldn't get full which would "freeze" MPlayer.
+    responses to and from MPlayer. Take note that MPlayer is always
+    started in slave (-slave) and idle (-idle) modes.
+
+    The MPlayer process would eventually "freeze" if gobject.MainLoop
+    is not running because the PIPE buffers would get full.
 
     The handle_data and handle_error methods would only get executed
     if gobject.MainLoop is running.
@@ -199,15 +179,14 @@ class MPlayer(object):
 
 
 class _Channel(asynchat.async_chat):
-    """Client -> Server connection"""
-    ac_in_buffer_size = 512
+
+    ac_in_buffer_size = MAX_CMD_LENGTH
     ac_out_buffer_size = 0
 
-    def __init__(self, mplayer, conn, map, log):
+    def __init__(self, mplayer, conn, map):
         asynchat.async_chat.__init__(self, conn)
         self.add_channel(map)
         self.map = map
-        self.log = log
         self.mplayer = mplayer
         self.buffer = []
         self.set_terminator("\r\n\r\n")
@@ -218,7 +197,7 @@ class _Channel(asynchat.async_chat):
     def handle_close(self):
         self.del_channel(self.map)
         self.close()
-        self.log("Connection closed.")
+        self.log("Connection closed: %s" % (self.addr, ))
 
     def collect_incoming_data(self, data):
         self.buffer.append(data)
@@ -238,19 +217,24 @@ class _Channel(asynchat.async_chat):
 
 
 class Server(asyncore.dispatcher):
-    """Server(host='', port=PORT, max_conns=1)
+    """Server(host='', port=pymplayer.PORT, max_conns=1)
 
-    MPlayer server
+    The PyMPlayer Server
+
+    The log method can be overridden to provide more sophisticated
+    logging and warning methods.
     """
     def __init__(self, host='', port=PORT, max_conns=1):
+        # Custom socket_map
+        self.socket_map = {}
+        # asyncore.dispatcher is not a new-style class!
+        # Use own socket_map
+        asyncore.dispatcher.__init__(self, map=self.socket_map)
         self.host = host
         self.port = port
         self.max_conns = max_conns
         # For now, do this since properties can't be used
         self.mplayer = MPlayer()
-        self.socket_map = {}
-        # asyncore.dispatcher is not a new-style class!
-        asyncore.dispatcher.__init__(self, map=self.socket_map)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((self.host, self.port))
@@ -267,38 +251,40 @@ class Server(asyncore.dispatcher):
         conn, addr = self.accept()
         if len(self.socket_map) - 1 < self.max_conns:
             self.log("Connection accepted: %s" % (addr, ))
-            _Channel(self.mplayer, conn=conn, map=self.socket_map, log=self.log)
+            # Dispatch connection to _Channel and set channel logger to self.log
+            _Channel(self.mplayer, conn=conn, map=self.socket_map).log = self.log
         else:
             self.log("Max number of connections reached.")
             conn.close()
 
     def stop(self):
+        """Stop the server.
+
+        Closes all the channels found in self.socket_map (including itself)
+        """
         for channel in self.socket_map.values():
             channel.handle_close()
         return self.mplayer.stop()
 
-    def start(self, timeout=2):
+    def start(self, timeout=None):
+        """Start the server.
+
+        Starts the MPlayer process, then enters asyncore.loop (blocking)
+        """
         if self.mplayer.isalive():
             return
         self.mplayer.start()
         self.log("Server started.")
         asyncore.loop(timeout=timeout, map=self.socket_map)
 
-    def log(self, msg):
-        """This method is meant to be overridden for logging support.
-
-        @param msg: log message
-        """
-        pass
-
 
 class Client(asynchat.async_chat):
     """Client(host, port=pymplayer.PORT)
 
-    MPlayer client
+    The PyMPlayer Client
     """
     ac_in_buffer_size = 0
-    ac_out_buffer_size = 512
+    ac_out_buffer_size = MAX_CMD_LENGTH
 
     def __init__(self, host, port=PORT):
         asynchat.async_chat.__init__(self)
@@ -314,17 +300,21 @@ class Client(asynchat.async_chat):
 
     def handle_error(self):
         self.close()
-        raise socket.error("Connection lost")
+        raise socket.error("Connection lost.")
 
     def connect(self):
         if self.connected:
             return
         asynchat.async_chat.connect(self, (self.host, self.port))
-        t = Thread(target=asyncore.loop, kwargs={'timeout': 1})
+        t = Thread(target=asyncore.loop)
         t.setDaemon(True)
         t.start()
 
     def send_command(self, cmd):
+        """Send an MPlayer command to the server
+
+        @param cmd: valid MPlayer command
+        """
         self.push("".join([cmd, "\r\n\r\n"]))
         if _re_cmd_quit.match(cmd):
             self.close()
