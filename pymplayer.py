@@ -52,10 +52,13 @@ class MPlayer(object):
     started in slave (-slave) and idle (-idle) modes.
 
     The MPlayer process would eventually "freeze" if gobject.MainLoop
-    is not running because the PIPE buffers would get full.
+    is not running because the stdout/stderr PIPE buffers would get full.
 
     The handle_data and handle_error methods would only get executed
     if gobject.MainLoop is running.
+
+    @property path: path to MPlayer
+    @property args: MPlayer arguments
     """
     def __init__(self, path='mplayer', args=()):
         self.path = path
