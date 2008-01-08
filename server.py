@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # $Id$
 
-"""MPlayer remote control server"""
+"""pympd - PyMPlayer Server"""
 
 __copyright__ = """
 Copyright (C) 2007-2008  The MA3X Project (http://bbs.eee.upd.edu.ph)
@@ -20,28 +20,32 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
+import sys
+import socket
+from threading import Thread
 try:
-    import sys
-    import socket
+    import gobject
+    from pymplayer import Server
 except ImportError, msg:
-    exit(msg)
-from pymplayer import Server
+    sys.exit(msg)
 
 
 def main():
+    gobject.threads_init()
     try:
         server = Server(port=1025, max_conns=2)
     except socket.error, msg:
         sys.exit(msg)
     server.mplayer.args = sys.argv[1:]
+    t = Thread(target=server.start)
+    t.setDaemon(True)
+    t.start()
     try:
-        server.start()
+        gobject.MainLoop().run()
     except KeyboardInterrupt:
         pass
-
     server.stop()
-    sys.exit()
+    gobject.MainLoop().quit()
 
 
 if __name__ == "__main__":
