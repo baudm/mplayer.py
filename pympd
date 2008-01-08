@@ -22,30 +22,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
 import socket
-from threading import Thread
 try:
-    import gobject
     from pymplayer import Server
 except ImportError, msg:
     sys.exit(msg)
 
 
 def main():
-    gobject.threads_init()
     try:
-        server = Server(port=1025, max_conns=2)
+        server = Server(port=1025, max_conn=2)
     except socket.error, msg:
         sys.exit(msg)
     server.mplayer.args = sys.argv[1:]
-    t = Thread(target=server.start)
-    t.setDaemon(True)
-    t.start()
     try:
-        gobject.MainLoop().run()
+        server.start()
     except KeyboardInterrupt:
-        pass
-    server.stop()
-    gobject.MainLoop().quit()
+        server.stop()
 
 
 if __name__ == "__main__":
