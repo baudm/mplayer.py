@@ -270,8 +270,13 @@ class _Channel(asynchat.async_chat):
         elif cmd.lower() == "reload":
             # (Re)loading a playlist would make MPlayer "jump out" of
             # its XEmbed container, restart the MPlayer process instead.
+            # First, remove stdout and stderr from the map;
+            map(self._map.pop, self.mplayer._map.keys())
+            # then restart the MPlayer process;
             self.mplayer.stop()
             self.mplayer.start()
+            # and finally, add stdout and stderr back to the map.
+            self._map.update(self.mplayer._map)
         else:
             self.mplayer.command(cmd)
 
