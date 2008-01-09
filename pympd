@@ -33,7 +33,7 @@ def main():
         server = Server(port=1025, max_conn=2)
     except socket.error, msg:
         sys.exit(msg)
-    server.mplayer.args = sys.argv[1:]
+    server.args = sys.argv[1:]
     try:
         server.start()
     except KeyboardInterrupt:
