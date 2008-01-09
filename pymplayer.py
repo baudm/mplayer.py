@@ -60,6 +60,7 @@ class _ReadableFile(object):
         # (IMO, this is better than defining all the other asyncore.dispatcher methods)
         return lambda: None
 
+    @staticmethod
     def handle_read_event():
         """
         This method is called by the polling function when
@@ -81,8 +82,8 @@ class MPlayer(object):
     """MPlayer(path='mplayer', args=())
 
     Provides the basic interface for sending commands and receiving
-    responses to and from MPlayer. Take note that MPlayer is always
-    started in slave (-slave) and idle (-idle) modes.
+    responses to and from MPlayer. Take note that MPlayer is ALWAYS
+    started in 'slave', 'idle', and 'quiet' modes.
 
     WARNING:
         The MPlayer process would eventually "freeze" if
@@ -97,8 +98,8 @@ class MPlayer(object):
     def __init__(self, path='mplayer', args=()):
         self.path = path
         self.args = args
-        self.__process = None
         self._map = {}
+        self.__process = None
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -115,25 +116,31 @@ class MPlayer(object):
     path = property(_get_path, _set_path, doc="Path to MPlayer")
 
     def _get_args(self):
-        return self.__args[6:]
+        return self.__args[4:]
 
     def _set_args(self, args):
-        if not isinstance(args, (list, tuple)):
-            raise TypeError("args should either be a tuple or list of strings")
-        if args:
+        if not isinstance(args, (basestring, list, tuple)):
+            raise TypeError("args should either be a string or a tuple or list of strings")
+        if isinstance(args, basestring):
+            args = args.split()
+        elif args:
             for arg in args:
                 if not isinstance(arg, basestring):
                     raise TypeError("args should either be a tuple or list of strings")
-        self.__args = [self.path, "-slave", "-idle", "-really-quiet", "-msglevel", "global=4"]
+        self.__args = [self.path, '-slave', '-idle', '-quiet']
         self.__args.extend(args)
 
     args = property(_get_args, _set_args, doc="MPlayer arguments")
 
     def _handle_data(self):
-        self.handle_data(self.__process.stdout.readline().rstrip())
+        data = self.__process.stdout.readline().rstrip()
+        if data:
+            self.handle_data(data)
 
     def _handle_error(self):
-        self.handle_error(self.__process.stderr.readline().rstrip())
+        error = self.__process.stderr.readline().rstrip()
+        if error:
+            self.handle_error(error)
 
     def poll_output(self, timeout=30.0, use_poll=False):
         """Start asyncore.loop for polling MPlayer's stdout and stderr.
@@ -238,7 +245,8 @@ class MPlayer(object):
         pass
 
 
-class _Channel(asynchat.async_chat):
+class _ClientHandler(asynchat.async_chat):
+    """Handler of Client connections"""
 
     ac_in_buffer_size = MAX_CMD_LENGTH
     ac_out_buffer_size = 0
@@ -296,10 +304,10 @@ class Server(asyncore.dispatcher):
         # Use own socket map
         self._map = {}
         asyncore.dispatcher.__init__(self, map=self._map)
+        self.__mplayer = MPlayer()
         self.host = host
         self.port = port
         self.max_conn = max_conn
-        self.__mplayer = MPlayer()
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((self.host, self.port))
@@ -334,8 +342,8 @@ class Server(asyncore.dispatcher):
         conn, addr = self.accept()
         if len(self._map) - 3 < self.max_conn:
             self.log("Connection accepted: %s" % (addr, ))
-            # Dispatch connection to _Channel and override channel logger
-            _Channel(self.__mplayer, conn=conn, map=self._map).log = self.log
+            # Dispatch connection to a _ClientHandler and override its log method
+            _ClientHandler(self.__mplayer, conn=conn, map=self._map).log = self.log
         else:
             self.log("Max number of connections reached, rejected: %s" % (addr, ))
             conn.close()
