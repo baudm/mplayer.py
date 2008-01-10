@@ -26,9 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
 import socket
-import asynchat
 import asyncore
-from asyncore import loop
+import asynchat
 from subprocess import Popen, PIPE
 
 
@@ -36,10 +35,19 @@ __all__ = ['MPlayer', 'Server', 'Client', 'PORT', 'MAX_CMD_LENGTH']
 
 
 _re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
+try:
+    _socket_map
+except NameError:
+    _socket_map = {}
 
 
 PORT = 50001
 MAX_CMD_LENGTH = 256
+
+
+def loop(timeout=30.0, use_poll=False):
+    """Runs asyncore.loop with a custom map"""
+    asyncore.loop(timeout=timeout, use_poll=use_poll, map=_socket_map)
 
 
 class _ReadableFile(object):
@@ -154,7 +162,7 @@ class MPlayer(object):
         """
         if not self.isalive() or not self._map:
             return
-        loop(timeout=timeout, use_poll=use_poll, map=self._map)
+        asyncore.loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
     def start(self):
         """Start the MPlayer process.
@@ -367,7 +375,7 @@ class Server(asyncore.dispatcher):
         # Include the _ReadableFile instances from self.__mplayer._map
         self._map.update(self.__mplayer._map)
         self.log("Server started.")
-        loop(timeout=timeout, use_poll=use_poll, map=self._map)
+        asyncore.loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
 
 class Client(asynchat.async_chat):
@@ -404,6 +412,10 @@ class Client(asynchat.async_chat):
         if self.socket:
             self.close()
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._map = _socket_map
+        self.add_channel()
+        # We're using a custom map so remove self from asyncore.socket_map.
+        del asyncore.socket_map[self._fileno]
         asynchat.async_chat.connect(self, (host, port))
 
     def send_command(self, cmd):
