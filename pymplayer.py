@@ -51,23 +51,15 @@ class _ReadableFile(object):
     call the handle_read_event method as soon as there is data
     to read.
     """
-    def __init__(self, file, map):
+    def __init__(self, file, map, handler):
         # Add self to map
         map[file.fileno()] = self
+        self.handle_read_event = handler
 
     def __getattr__(self, attr):
         # Always return a callable for non-existent attributes.
         # (IMO, this is better than defining all the other asyncore.dispatcher methods)
         return lambda: None
-
-    @staticmethod
-    def handle_read_event():
-        """
-        This method is called by the polling function when
-        there is data to read. This will eventually be
-        overridden by MPlayer's _handle_data or _handle_error.
-        """
-        pass
 
     @staticmethod
     def readable():
@@ -181,8 +173,8 @@ class MPlayer(object):
             except OSError:
                 retcode = False
             else:
-                _ReadableFile(self.__process.stdout, self._map).handle_read_event = self._handle_data
-                _ReadableFile(self.__process.stderr, self._map).handle_read_event = self._handle_error
+                _ReadableFile(self.__process.stdout, self._map, self._handle_data)
+                _ReadableFile(self.__process.stderr, self._map, self._handle_error)
                 retcode = True
             return retcode
 
@@ -232,7 +224,7 @@ class MPlayer(object):
 
         @param data: the line (str) read from stdout
         """
-        pass
+        return
 
     @staticmethod
     def handle_error(error):
@@ -242,20 +234,23 @@ class MPlayer(object):
 
         @param error: the line (str) read from stderr
         """
-        pass
+        return
 
 
 class _ClientHandler(asynchat.async_chat):
-    """Handler of Client connections"""
+    """Handler for Client connections"""
 
     ac_in_buffer_size = MAX_CMD_LENGTH
     ac_out_buffer_size = 0
 
-    def __init__(self, mplayer, conn, map):
+    def __init__(self, mplayer, conn, map, log):
         asynchat.async_chat.__init__(self, conn)
-        self.add_channel(map)
         self._map = map
+        self.add_channel()
+        # We're using a custom map so remove self from asyncore.socket_map.
+        del asyncore.socket_map[self._fileno]
         self.mplayer = mplayer
+        self.log = log
         self.buffer = []
         self.set_terminator("\r\n\r\n")
 
@@ -277,7 +272,7 @@ class _ClientHandler(asynchat.async_chat):
             self.handle_close()
         elif cmd.lower() == "reload":
             # (Re)loading a playlist would make MPlayer "jump out" of
-            # its XEmbed container, restart the MPlayer process instead.
+            # its XEmbed container, restart the MPlayer process instead:
             # First, remove stdout and stderr from the map;
             map(self._map.pop, self.mplayer._map.keys())
             # then restart the MPlayer process;
@@ -305,12 +300,10 @@ class Server(asyncore.dispatcher):
         self._map = {}
         asyncore.dispatcher.__init__(self, map=self._map)
         self.__mplayer = MPlayer()
-        self.host = host
-        self.port = port
         self.max_conn = max_conn
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
-        self.bind((self.host, self.port))
+        self.bind((host, port))
         self.listen(self.max_conn)
 
     def __del__(self):
@@ -342,8 +335,8 @@ class Server(asyncore.dispatcher):
         conn, addr = self.accept()
         if len(self._map) - 3 < self.max_conn:
             self.log("Connection accepted: %s" % (addr, ))
-            # Dispatch connection to a _ClientHandler and override its log method
-            _ClientHandler(self.__mplayer, conn=conn, map=self._map).log = self.log
+            # Dispatch connection to a _ClientHandler
+            _ClientHandler(self.__mplayer, conn, self._map, self.log)
         else:
             self.log("Max number of connections reached, rejected: %s" % (addr, ))
             conn.close()
@@ -355,8 +348,8 @@ class Server(asyncore.dispatcher):
         """
         for channel in self._map.values():
             channel.handle_close()
-        # The _ReadableFile instances would still remain in self._map
-        # Clear map so that asyncore.loop will terminate
+        # The _ReadableFile instances would still remain in self._map,
+        # clear map so that asyncore.loop will terminate.
         self._map.clear()
         return self.__mplayer.stop()
 
