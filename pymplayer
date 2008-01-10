@@ -24,6 +24,7 @@ __version__ = "$Revision$"
 
 import re
 import sys
+import time
 import socket
 import os.path
 from threading import Thread
@@ -54,7 +55,7 @@ else:
         curses.KEY_END: "seek 100 1"}
 
 
-def start_ui(peername):
+def init_ui(peername):
     stdscr = curses.initscr()
 
     curses.noecho()
@@ -81,7 +82,6 @@ def start_ui(peername):
     stdscr.addstr(8, 38, "\t       end - go to end of track\n")
     stdscr.addstr(9, 38, "\t   page up - next track\n")
     stdscr.addstr(10, 38, "\t page down - previous track\n")
-
     return stdscr
 
 
@@ -94,7 +94,7 @@ def end_ui(stdscr):
 
 def main():
     cl_usage = "%prog [OPTIONS] [COMMAND]"
-    cl_ver = "".join(['%prog ', __version__])
+    cl_ver = "".join(['%prog ', pymplayer.__version__, '+r', __version__.split()[1]])
 
     parser = OptionParser(usage=cl_usage, version=cl_ver)
 
@@ -119,13 +119,21 @@ def main():
     t = Thread(target=pymplayer.loop)
     t.setDaemon(True)
     t.start()
+    if not client.connected:
+        print "Trying to connect..."
+        attempts = 5
+    while not client.connected and attempts:
+        time.sleep(0.5)
+        attempts -= 1
     try:
-        peername = client.getpeername()
+        # Check for connectivity by sending a blank string
+        # (the Server won't respond to it anyway)
+        client.send("")
     except socket.error, msg:
-        sys.exit(msg)
+        sys.exit(msg[1])
 
     if options.curses and options.command is None:
-        stdscr = start_ui(peername)
+        stdscr = init_ui(client.getpeername())
         # Just a string of spaces
         spaces = "         ".join(["         " for x in range(10)])
 
