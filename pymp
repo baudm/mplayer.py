@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # $Id$
 
-"""MPlayer remote control client"""
+"""pymp - PyMPlayer Client"""
 
 __version__ = "$Revision$"
 
@@ -28,9 +28,10 @@ try:
     import sys
     import re
     from optparse import OptionParser
+    from threading import Thread
 except ImportError, msg:
     exit(msg)
-from pymplayer import Client, PORT, MAX_CMD_LENGTH
+from pymplayer import Client, loop, PORT, MAX_CMD_LENGTH
 try:
     import curses
 except ImportError:
@@ -109,8 +110,15 @@ def main():
     if not options.curses and options.command is None:
         parser.error("not using curses but no command specified")
 
-    client = Client(options.host, options.port)
-    client.connect()
+    client = Client()
+    try:
+        client.connect(host=options.host, port=options.port)
+    except socket.gaierror, error:
+        client.close()
+        sys.exit(error[1])
+    t = Thread(target=loop)
+    t.setDaemon(True)
+    t.start()
     try:
         peername = client.getpeername()
     except socket.error, msg:

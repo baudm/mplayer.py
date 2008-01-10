@@ -26,10 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
 import socket
-import asyncore
 import asynchat
+import asyncore
+from asyncore import loop
 from subprocess import Popen, PIPE
-from threading import Thread
 
 
 __all__ = ['MPlayer', 'Server', 'Client', 'PORT', 'MAX_CMD_LENGTH']
@@ -154,7 +154,7 @@ class MPlayer(object):
         """
         if not self.isalive() or not self._map:
             return
-        asyncore.loop(timeout=timeout, use_poll=use_poll, map=self._map)
+        loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
     def start(self):
         """Start the MPlayer process.
@@ -367,22 +367,16 @@ class Server(asyncore.dispatcher):
         # Include the _ReadableFile instances from self.__mplayer._map
         self._map.update(self.__mplayer._map)
         self.log("Server started.")
-        asyncore.loop(timeout=timeout, use_poll=use_poll, map=self._map)
+        loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
 
 class Client(asynchat.async_chat):
-    """Client(host, port=pymplayer.PORT)
+    """Client()
 
     The PyMPlayer Client
     """
     ac_in_buffer_size = 0
     ac_out_buffer_size = MAX_CMD_LENGTH
-
-    def __init__(self, host, port=PORT):
-        asynchat.async_chat.__init__(self)
-        self.host = host
-        self.port = port
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 
     @staticmethod
     def readable():
@@ -390,19 +384,27 @@ class Client(asynchat.async_chat):
 
     @staticmethod
     def handle_connect():
-        pass
+        return
 
     def handle_error(self):
         self.close()
         raise socket.error("Connection lost.")
 
-    def connect(self):
+    def connect(self, host, port):
+        """Connect to a pymplayer.Server
+
+        @param host: host to connect to
+        @param port: port to use
+
+        pymplayer.loop should be called (if not called previously)
+        after calling this method.
+        """
         if self.connected:
             return
-        asynchat.async_chat.connect(self, (self.host, self.port))
-        t = Thread(target=asyncore.loop)
-        t.setDaemon(True)
-        t.start()
+        if self.socket:
+            self.close()
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        asynchat.async_chat.connect(self, (host, port))
 
     def send_command(self, cmd):
         """Send an MPlayer command to the server
