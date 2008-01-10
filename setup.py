@@ -16,5 +16,6 @@ setup(
     url='http://bbs.eee.upd.edu.ph/',
     license='GPL & LGPL',
     py_modules=['pymplayer'],
-    scripts=['pymplayer', 'pymplayerd']
+    scripts=['pymplayer', 'pymplayerd'],
+    platforms=['POSIX']
 )

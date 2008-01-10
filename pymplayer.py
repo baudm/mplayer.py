@@ -35,6 +35,7 @@ MAX_CMD_LENGTH -- maximum length of a command
 """
 
 __version__ = "0.1.1"
+__author__ = "Darwin M. Bautista <djclue917@gmail.com>"
 
 
 import re
