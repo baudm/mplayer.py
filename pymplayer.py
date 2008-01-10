@@ -1,29 +1,40 @@
 # $Id$
+#
+# Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory
+# Copyright (C) 2007-2008  Darwin M. Bautista <djclue917@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""pymplayer - MPlayer wrapper for Python."""
+"""This module provides access to the following objects:
 
-__version__ = "0.1.0"
+Classes:
 
-__author__ = "Darwin M. Bautista <djclue917@gmail.com>"
+MPlayer -- out-of-process wrapper for MPlayer
+Server -- asynchronous server that manages an MPlayer instance
+Client -- client for sending MPlayer commands
 
-__license__ = "LGPL"
+Function:
 
-__copyright__ = """
-Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory (http://eee.upd.edu.ph/cnl/)
+loop() -- asyncore.loop wrapper for use in conjunction with Client
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Constants:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+PORT -- default port used by Client and Server
+MAX_CMD_LENGTH -- maximum length of a command
 """
+
+__version__ = "0.1.1"
 
 
 import re
@@ -48,7 +59,7 @@ MAX_CMD_LENGTH = 256
 
 
 def loop(timeout=30.0, use_poll=False):
-    """Runs asyncore.loop with a custom map"""
+    """asyncore.loop wrapper for use with pymplayer.Client"""
     asyncore.loop(timeout=timeout, use_poll=use_poll, map=_socket_map)
 
 
@@ -67,8 +78,10 @@ class _ReadableFile(object):
         self.handle_read_event = handler
 
     def __getattr__(self, attr):
-        # Always return a callable for non-existent attributes.
-        # (IMO, this is better than defining all the other asyncore.dispatcher methods)
+        # Always return a callable for non-existent attributes
+        # in order to 'fool' asyncore's polling function.
+        # (IMO, this is a better approach than defining all
+        #  the other asyncore.dispatcher methods)
         return lambda: None
 
     @staticmethod
@@ -83,16 +96,15 @@ class _ReadableFile(object):
 class MPlayer(object):
     """MPlayer(path='mplayer', args=())
 
-    Provides the basic interface for sending commands and receiving
-    responses to and from MPlayer. Take note that MPlayer is ALWAYS
-    started in 'slave', 'idle', and 'quiet' modes.
+    An out-of-process wrapper for MPlayer. It provides the basic interface
+    for sending commands and receiving responses to and from MPlayer. Take
+    note that MPlayer is ALWAYS started in 'slave', 'idle', and 'quiet' modes.
 
     WARNING:
-        The MPlayer process would eventually "freeze" if
-        the poll_output method is not called because the
-        stdout/stderr PIPE buffers would get full.
-        Also, the handle_data and handle_error methods
-        would only get executed after poll_output is called.
+      The MPlayer process would eventually "freeze" if the poll_output method
+      is not called because the stdout/stderr PIPE buffers would get full.
+      Also, the handle_data and handle_error methods would only get called,
+      given an I/O event, after the poll_output method is called.
 
     @property path: path to MPlayer
     @property args: MPlayer arguments
@@ -400,7 +412,7 @@ class Client(asynchat.async_chat):
         self.close()
         raise socket.error("Connection lost.")
 
-    def connect(self, host, port):
+    def connect(self, host, port=PORT):
         """Connect to a pymplayer.Server
 
         @param host: host to connect to
