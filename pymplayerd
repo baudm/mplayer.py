@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
 import socket
+import signal
 try:
     from pymplayer import Server
 except ImportError, msg:
@@ -38,6 +39,7 @@ def main():
     except socket.error, msg:
         sys.exit(msg)
     server.args = sys.argv[1:]
+    signal.signal(signal.SIGTERM, lambda s, f: server.stop())
     try:
         server.start()
     except KeyboardInterrupt:
