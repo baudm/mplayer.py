@@ -5,6 +5,8 @@
 
 __author__ = "Darwin M. Bautista <djclue917@gmail.com>"
 
+__license__ = "GPL"
+
 __copyright__ = """
 Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory (http://eee.upd.edu.ph/cnl/)
 

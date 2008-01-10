@@ -2,9 +2,11 @@
 
 """pymplayer - MPlayer wrapper for Python."""
 
-__version__ = '0.1.0'
+__version__ = "0.1.0"
 
-__author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
+__author__ = "Darwin M. Bautista <djclue917@gmail.com>"
+
+__license__ = "LGPL"
 
 __copyright__ = """
 Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory (http://eee.upd.edu.ph/cnl/)
