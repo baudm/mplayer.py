@@ -7,7 +7,7 @@ __version__ = '0.1.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
 
 __copyright__ = """
-Copyright (C) 2007-2008  The MA3X Project (http://bbs.eee.upd.edu.ph)
+Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory (http://eee.upd.edu.ph/cnl/)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +31,7 @@ import asynchat
 from subprocess import Popen, PIPE
 
 
-__all__ = ['MPlayer', 'Server', 'Client', 'PORT', 'MAX_CMD_LENGTH']
+__all__ = ['MPlayer', 'Server', 'Client', 'loop', 'PORT', 'MAX_CMD_LENGTH']
 
 
 _re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)

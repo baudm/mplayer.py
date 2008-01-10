@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # $Id$
 
-"""pymp - PyMPlayer Client"""
+"""PyMPlayer Client"""
 
 __version__ = "$Revision$"
 
+__author__ = "Darwin M. Bautista <djclue917@gmail.com>"
+
 __copyright__ = """
-Copyright (C) 2007-2008  The MA3X Project (http://bbs.eee.upd.edu.ph)
+Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory (http://eee.upd.edu.ph/cnl/)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,15 +25,16 @@ You should have received a copy of the GNU General Public License
 """
 
 
+import re
+import sys
+import socket
+import os.path
+from threading import Thread
 try:
-    import socket
-    import sys
-    import re
     from optparse import OptionParser
-    from threading import Thread
+    import pymplayer
 except ImportError, msg:
-    exit(msg)
-from pymplayer import Client, loop, PORT, MAX_CMD_LENGTH
+    sys.exit(msg)
 try:
     import curses
 except ImportError:
@@ -61,7 +64,7 @@ def start_ui(peername):
     curses.cbreak()
     stdscr.keypad(1)
 
-    stdscr.addstr("".join(['client.py ', __version__, '\n']))
+    stdscr.addstr("".join([os.path.basename(__file__), ' ', pymplayer.__version__, '+r', __version__.split()[1], '\n']))
     stdscr.addstr("Connected to %s at port %d\n" % peername)
 
     stdscr.addstr("\n     Controls:\n")
@@ -101,7 +104,7 @@ def main():
     parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar='"CMD"')
     parser.add_option("-n", "--no-curses", dest="curses", default=True, action="store_false", help="don't use curses interface")
     parser.add_option("-H", "--host", dest="host", default="localhost", help="server to connect to")
-    parser.add_option("-p", "--port", dest="port", default=PORT, type="int", help="server port to connect to")
+    parser.add_option("-p", "--port", dest="port", default=pymplayer.PORT, type="int", help="server port to connect to")
 
     (options, args) = parser.parse_args()
 
@@ -110,13 +113,13 @@ def main():
     if not options.curses and options.command is None:
         parser.error("not using curses but no command specified")
 
-    client = Client()
+    client = pymplayer.Client()
     try:
         client.connect(host=options.host, port=options.port)
     except socket.gaierror, error:
         client.close()
         sys.exit(error[1])
-    t = Thread(target=loop)
+    t = Thread(target=pymplayer.loop)
     t.setDaemon(True)
     t.start()
     try:
@@ -140,7 +143,7 @@ def main():
                 curses.echo()
                 stdscr.addstr(12, 0, "".join(['Command: ', spaces]))
                 try:
-                    cmd = stdscr.getstr(12, 9, MAX_CMD_LENGTH)
+                    cmd = stdscr.getstr(12, 9, pymplayer.MAX_CMD_LENGTH)
                 except KeyboardInterrupt:
                     cmd = ""
                 curses.noecho()
