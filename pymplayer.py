@@ -328,8 +328,6 @@ class Server(asyncore.dispatcher):
         self._map = {}
         asyncore.dispatcher.__init__(self, map=self._map)
         self.__mplayer = MPlayer()
-        self.__mplayer.handle_data = self.log
-        self.__mplayer.handle_error = self.log
         self.max_conn = max_conn
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
