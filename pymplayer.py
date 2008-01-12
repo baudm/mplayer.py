@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""This module provides access to the following objects:
+"""MPlayer out-of-source wrapper and client/server
 
 Classes:
 
@@ -120,13 +120,13 @@ class MPlayer(object):
         # Be sure to stop the MPlayer process.
         self.stop()
 
+    def _get_path(self):
+        return self.__path
+
     def _set_path(self, path):
         if not isinstance(path, basestring):
             raise TypeError("path should be a string")
         self.__path = path
-
-    def _get_path(self):
-        return self.__path
 
     path = property(_get_path, _set_path, doc="Path to MPlayer")
 
@@ -211,8 +211,14 @@ class MPlayer(object):
             # Clear the map so that asyncore.loop will terminate
             self._map.clear()
             return self.__process.wait()
-        else:
-            return None
+
+    def restart(self):
+        """Convenience method for restarting the MPlayer process.
+
+        Restarting means stopping the current process and starting a new one.
+        Returns the return values of the stop and start methods as a 2-tuple.
+        """
+        return self.stop(), self.start()
 
     def command(self, cmd):
         """Send a command to MPlayer.
@@ -224,9 +230,7 @@ class MPlayer(object):
         """
         if not isinstance(cmd, basestring):
             raise TypeError("command must be a string")
-        if not cmd:
-            raise ValueError("zero-length command")
-        if self.isalive():
+        if self.isalive() and cmd:
             self.__process.stdin.write("".join([cmd, '\n']))
 
     def isalive(self):
@@ -294,13 +298,12 @@ class _ClientHandler(asynchat.async_chat):
         if not cmd or _re_cmd_quit.match(cmd):
             self.handle_close()
         elif cmd.lower() == "reload":
-            # (Re)loading a playlist would make MPlayer "jump out" of
-            # its XEmbed container, restart the MPlayer process instead:
+            # (Re)loading a file or a playlist would make MPlayer "jump out"
+            # of its XEmbed container, restart the MPlayer process instead:
             # First, remove stdout and stderr from the map;
             map(self._map.pop, self.mplayer._map.keys())
             # then restart the MPlayer process;
-            self.mplayer.stop()
-            self.mplayer.start()
+            self.mplayer.restart()
             # and finally, add stdout and stderr back to the map.
             self._map.update(self.mplayer._map)
         else:
