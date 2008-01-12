@@ -23,10 +23,10 @@ __version__ = "$Revision$"
 
 
 import re
+import os
 import sys
 import time
 import socket
-import os.path
 from threading import Thread
 try:
     from optparse import OptionParser
