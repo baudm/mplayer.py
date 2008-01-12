@@ -128,7 +128,7 @@ class MPlayer(object):
             raise TypeError("path should be a string")
         self.__path = path
 
-    path = property(_get_path, _set_path, doc="Path to MPlayer")
+    path = property(_get_path, _set_path, doc="Path to MPlayer or its name in PATH")
 
     def _get_args(self):
         return self.__args[3:]
@@ -147,15 +147,37 @@ class MPlayer(object):
 
     args = property(_get_args, _set_args, doc="MPlayer arguments")
 
-    def _handle_data(self):
+    def _handle_data(self, *args):
         data = self.__process.stdout.readline().rstrip()
         if data:
             self.handle_data(data)
+        return True
 
-    def _handle_error(self):
+    def _handle_error(self, *args):
         error = self.__process.stderr.readline().rstrip()
         if error:
             self.handle_error(error)
+        return True
+
+    def setup_handlers(self):
+        """Setup the handlers for stdout and stderr.
+
+        Do not call this method directly because it will be
+        automatically called by the start method.
+
+        You may want to override this method when using PyGTK:
+
+        class GTKMPlayer(pymplayer.MPlayer):
+
+            def setup_handlers(self):
+                gobject.io_add_watch(self.__process.stdout,
+                    gobject.IO_IN|gobject.IO_PRI, self._handle_data)
+                gobject.io_add_watch(self.__process.stderr,
+                    gobject.IO_IN|gobject.IO_PRI, self._handle_error)
+        """
+        if not self._map:
+            _ReadableFile(self.__process.stdout, self._map, self._handle_data)
+            _ReadableFile(self.__process.stderr, self._map, self._handle_error)
 
     def poll_output(self, timeout=30.0, use_poll=False):
         """Start asyncore.loop for polling MPlayer's stdout and stderr.
@@ -198,8 +220,7 @@ class MPlayer(object):
             except OSError:
                 retcode = False
             else:
-                _ReadableFile(self.__process.stdout, self._map, self._handle_data)
-                _ReadableFile(self.__process.stderr, self._map, self._handle_error)
+                self.setup_handlers()
                 retcode = True
             return retcode
 
@@ -218,6 +239,9 @@ class MPlayer(object):
         """Convenience method for restarting the MPlayer process.
 
         Restarting means stopping the current process and starting a new one.
+        That being said, the poll_output method should be called again after
+        calling this method.
+
         Returns the return values of the stop and start methods as a 2-tuple.
         """
         return self.stop(), self.start()
@@ -361,7 +385,7 @@ class Server(asyncore.dispatcher):
 
     def handle_accept(self):
         conn, addr = self.accept()
-        if len(self._map) - 3 < self.max_conn:
+        if len(self._map) - len(self.__mplayer._map) - 1 < self.max_conn:
             self.log("Connection accepted: %s" % (addr, ))
             # Dispatch connection to a _ClientHandler
             _ClientHandler(self.__mplayer, conn, self._map, self.log)
