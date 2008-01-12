@@ -297,10 +297,10 @@ class _ClientHandler(asynchat.async_chat):
 
     def __init__(self, mplayer, conn, map, log):
         asynchat.async_chat.__init__(self, conn)
+        # We're using a custom map so remove self from asyncore.socket_map.
+        asyncore.socket_map.pop(self._fileno)
         self._map = map
         self.add_channel()
-        # We're using a custom map so remove self from asyncore.socket_map.
-        del asyncore.socket_map[self._fileno]
         self.mplayer = mplayer
         self.log = log
         self.buffer = []
@@ -326,7 +326,7 @@ class _ClientHandler(asynchat.async_chat):
             # (Re)loading a file or a playlist would make MPlayer "jump out"
             # of its XEmbed container, restart the MPlayer process instead:
             # First, remove stdout and stderr from the map;
-            map(self._map.pop, self.mplayer._map.keys())
+            map(self._map.pop, self.mplayer._map)
             # then restart the MPlayer process;
             self.mplayer.restart()
             # and finally, add stdout and stderr back to the map.
