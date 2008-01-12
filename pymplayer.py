@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""MPlayer out-of-source wrapper and client/server
+"""Out-of-source wrapper and client/server for MPlayer
 
 Classes:
 
@@ -26,7 +26,7 @@ Client -- client for sending MPlayer commands
 
 Function:
 
-loop() -- asyncore.loop wrapper for use in conjunction with Client
+loop() -- the asyncore.loop function, for use in conjunction with Client
 
 Constants:
 
@@ -42,6 +42,7 @@ import re
 import socket
 import asyncore
 import asynchat
+from asyncore import loop
 from subprocess import Popen, PIPE
 
 
@@ -49,19 +50,10 @@ __all__ = ['MPlayer', 'Server', 'Client', 'loop', 'PORT', 'MAX_CMD_LEN']
 
 
 _re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
-try:
-    _socket_map
-except NameError:
-    _socket_map = {}
 
 
 PORT = 50001
 MAX_CMD_LEN = 256
-
-
-def loop(timeout=30.0, use_poll=False):
-    """asyncore.loop wrapper for use with pymplayer.Client"""
-    asyncore.loop(timeout=timeout, use_poll=use_poll, map=_socket_map)
 
 
 class _ReadableFile(object):
@@ -73,10 +65,10 @@ class _ReadableFile(object):
     call the handle_read_event method as soon as there is data
     to read.
     """
-    def __init__(self, file, map, handler):
+    def __init__(self, map, file, callback):
         # Add self to map
         map[file.fileno()] = self
-        self.handle_read_event = handler
+        self.handle_read_event = callback
 
     def __getattr__(self, attr):
         # Always return a callable for non-existent attributes
@@ -159,34 +151,42 @@ class MPlayer(object):
             self.handle_error(error)
         return True
 
-    def setup_handlers(self):
-        """Setup the handlers for stdout and stderr.
+    def create_handler(self, file, callback):
+        """Create a handler for file.
 
-        Do not call this method directly because it will be
-        automatically called by the start method.
+        Override it this way:
+        PyGTK:
+        self.handles[file] = gobject.io_add_watch(file, gobject.IO_IN|gobject.IO_PRI, callback)
 
-        You may want to override this method when using PyGTK:
-
-        class GTKMPlayer(pymplayer.MPlayer):
-
-            def setup_handlers(self):
-                gobject.io_add_watch(self.__process.stdout,
-                    gobject.IO_IN|gobject.IO_PRI, self._handle_data)
-                gobject.io_add_watch(self.__process.stderr,
-                    gobject.IO_IN|gobject.IO_PRI, self._handle_error)
+        Tkinter:
+        tkinter.createfilehandler(file, tkinter.READABLE, callback)
         """
-        if not self._map:
-            _ReadableFile(self.__process.stdout, self._map, self._handle_data)
-            _ReadableFile(self.__process.stderr, self._map, self._handle_error)
+        _ReadableFile(self._map, file, callback)
+
+    def remove_handler(self, file):
+        """Remove a handler for file.
+
+        Override it this way:
+        PyGTK:
+        gobject.source_remove(self.handles.pop(file))
+
+        Tkinter:
+        tkinter.deletefilehandler(file)
+        """
+        self._map.pop(file.fileno())
 
     def poll_output(self, timeout=30.0, use_poll=False):
-        """Start asyncore.loop for polling MPlayer's stdout and stderr.
+        """Start polling MPlayer's stdout and stderr.
 
         @param timeout=30.0: timeout parameter for select() or poll()
         @param use_poll=False: use poll() instead of select()
 
-        This method will block unless it is called BEFORE MPlayer is STARTED
-        or if the MPlayer process is currently NOT running.
+        This method will block unless it is called BEFORE MPlayer is
+        STARTED or if the MPlayer process is currently NOT running.
+
+        This method need not be called when the create_handler and
+        remove_handler methods are overridden for use with a certain
+        GUI toolkit (e.g. PyGTK, Tkinter).
 
         In a multithreaded app, you may want to spawn a new Thread
         for running this method after calling the start method:
@@ -199,7 +199,7 @@ class MPlayer(object):
         """
         if not self.isalive() or not self._map:
             return
-        asyncore.loop(timeout=timeout, use_poll=use_poll, map=self._map)
+        loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
     def start(self):
         """Start the MPlayer process.
@@ -220,7 +220,8 @@ class MPlayer(object):
             except OSError:
                 retcode = False
             else:
-                self.setup_handlers()
+                self.create_handler(self.__process.stdout, self._handle_data)
+                self.create_handler(self.__process.stderr, self._handle_error)
                 retcode = True
             return retcode
 
@@ -231,8 +232,8 @@ class MPlayer(object):
         """
         if self.isalive():
             self.command("quit")
-            # Clear the map so that asyncore.loop will terminate
-            self._map.clear()
+            self.remove_handler(self.__process.stdout)
+            self.remove_handler(self.__process.stderr)
             return self.__process.wait()
 
     def restart(self):
@@ -411,7 +412,7 @@ class Server(asyncore.dispatcher):
         @param timeout=30.0: timeout parameter for select() or poll()
         @param use_poll=False: use poll() instead of select()
 
-        Starts the MPlayer process, then enters asyncore.loop (blocking)
+        Starts the MPlayer process, then calls asyncore.loop (blocking)
         """
         if self.__mplayer.isalive():
             return
@@ -419,7 +420,7 @@ class Server(asyncore.dispatcher):
         # Include the _ReadableFile instances from self.__mplayer._map
         self._map.update(self.__mplayer._map)
         self.log("Server started.")
-        asyncore.loop(timeout=timeout, use_poll=use_poll, map=self._map)
+        loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
 
 class Client(asynchat.async_chat):
@@ -456,10 +457,6 @@ class Client(asynchat.async_chat):
         if self.socket:
             self.close()
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._map = _socket_map
-        self.add_channel()
-        # We're using a custom map so remove self from asyncore.socket_map.
-        del asyncore.socket_map[self._fileno]
         asynchat.async_chat.connect(self, (host, port))
 
     def send_command(self, cmd):
