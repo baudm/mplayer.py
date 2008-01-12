@@ -126,10 +126,8 @@ class MPlayer(object):
         return self.__args[3:]
 
     def _set_args(self, args):
-        if not isinstance(args, (basestring, list, tuple)):
-            raise TypeError("args should either be a string or a tuple or list of strings")
-        if isinstance(args, basestring):
-            args = args.split()
+        if not isinstance(args, (list, tuple)):
+            raise TypeError("args should either be a tuple or list of strings")
         elif args:
             for arg in args:
                 if not isinstance(arg, basestring):
