@@ -13,9 +13,21 @@ setup(
     long_description='MPlayer wrapper for Python',
     author='Darwin M. Bautista',
     author_email='djclue917@gmail.com',
-    url='http://bbs.eee.upd.edu.ph/',
+    url='http://unplug.eee.upd.edu.ph/pymplayer/',
     license='GPL & LGPL',
     py_modules=['pymplayer'],
     scripts=['pymplayer', 'pymplayerd'],
-    platforms=['POSIX']
+    platforms=['POSIX'],
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Environment :: X11 Applications',
+        'Intended Audience :: Developers',
+        'Intended Audience :: End Users/Desktop',
+        'License :: OSI Approved :: GNU General Public License (GPL)',
+        'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',
+        'Natural Language :: English',
+        'Operating System :: POSIX',
+        'Topic :: Internet',
+        'Topic :: Multimedia :: Video :: Display',
+        'Topic :: Software Development :: Libraries :: Python Modules']
 )
