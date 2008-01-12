@@ -131,7 +131,7 @@ class MPlayer(object):
     path = property(_get_path, _set_path, doc="Path to MPlayer")
 
     def _get_args(self):
-        return self.__args[4:]
+        return self.__args[3:]
 
     def _set_args(self, args):
         if not isinstance(args, (basestring, list, tuple)):
@@ -142,7 +142,7 @@ class MPlayer(object):
             for arg in args:
                 if not isinstance(arg, basestring):
                     raise TypeError("args should either be a tuple or list of strings")
-        self.__args = [self.path, '-slave', '-idle', '-quiet']
+        self.__args = ['-slave', '-idle', '-quiet']
         self.__args.extend(args)
 
     args = property(_get_args, _set_args, doc="MPlayer arguments")
@@ -190,9 +190,11 @@ class MPlayer(object):
             after calling this method.
         """
         if not self.isalive():
+            args = [self.path]
+            args.extend(self.__args)
             try:
                 # Start subprocess (line-buffered)
-                self.__process = Popen(args=self.__args, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1)
+                self.__process = Popen(args=args, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1)
             except OSError:
                 retcode = False
             else:
@@ -326,6 +328,8 @@ class Server(asyncore.dispatcher):
         self._map = {}
         asyncore.dispatcher.__init__(self, map=self._map)
         self.__mplayer = MPlayer()
+        self.__mplayer.handle_data = self.log
+        self.__mplayer.handle_error = self.log
         self.max_conn = max_conn
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
