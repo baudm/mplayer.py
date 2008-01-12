@@ -31,7 +31,7 @@ loop() -- asyncore.loop wrapper for use in conjunction with Client
 Constants:
 
 PORT -- default port used by Client and Server
-MAX_CMD_LENGTH -- maximum length of a command
+MAX_CMD_LEN -- maximum length of a command
 """
 
 __version__ = "0.1.1"
@@ -45,7 +45,7 @@ import asynchat
 from subprocess import Popen, PIPE
 
 
-__all__ = ['MPlayer', 'Server', 'Client', 'loop', 'PORT', 'MAX_CMD_LENGTH']
+__all__ = ['MPlayer', 'Server', 'Client', 'loop', 'PORT', 'MAX_CMD_LEN']
 
 
 _re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
@@ -56,7 +56,7 @@ except NameError:
 
 
 PORT = 50001
-MAX_CMD_LENGTH = 256
+MAX_CMD_LEN = 256
 
 
 def loop(timeout=30.0, use_poll=False):
@@ -267,7 +267,7 @@ class MPlayer(object):
 class _ClientHandler(asynchat.async_chat):
     """Handler for Client connections"""
 
-    ac_in_buffer_size = MAX_CMD_LENGTH
+    ac_in_buffer_size = MAX_CMD_LEN
     ac_out_buffer_size = 0
 
     def __init__(self, mplayer, conn, map, log):
@@ -402,7 +402,7 @@ class Client(asynchat.async_chat):
     The PyMPlayer Client
     """
     ac_in_buffer_size = 0
-    ac_out_buffer_size = MAX_CMD_LENGTH
+    ac_out_buffer_size = MAX_CMD_LEN
 
     @staticmethod
     def readable():

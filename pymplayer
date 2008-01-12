@@ -148,7 +148,7 @@ def main():
                 curses.echo()
                 stdscr.addstr(12, 0, "".join(['Command: ', spaces]))
                 try:
-                    cmd = stdscr.getstr(12, 9, pymplayer.MAX_CMD_LENGTH)
+                    cmd = stdscr.getstr(12, 9, pymplayer.MAX_CMD_LEN)
                 except KeyboardInterrupt:
                     cmd = ""
                 curses.noecho()
