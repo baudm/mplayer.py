@@ -49,9 +49,6 @@ from subprocess import Popen, PIPE
 __all__ = ['MPlayer', 'Server', 'Client', 'loop', 'PORT', 'MAX_CMD_LEN']
 
 
-_re_cmd_quit = re.compile(r'^(qu?|qui?|quit?)( ?| .*)$', re.IGNORECASE)
-
-
 PORT = 50001
 MAX_CMD_LEN = 256
 
@@ -107,6 +104,7 @@ class MPlayer(object):
     def __init__(self, path='mplayer', args=()):
         self.path = path
         self.args = args
+        self._paused = False
         self._map = {}
         self.__process = None
 
@@ -267,8 +265,11 @@ class MPlayer(object):
         """
         if not isinstance(cmd, basestring):
             raise TypeError("command must be a string")
-        if self.isalive() and cmd:
-            self.__process.stdin.write("".join([cmd, '\n']))
+        if self.isalive() and len(cmd) > 2:
+            if not self._paused:
+                self.__process.stdin.write("".join([cmd, '\n']))
+            if "pause".startswith(cmd.split()[0].lower()):
+                self._paused = not self._paused
 
     def isalive(self):
         """Check if MPlayer process is alive.
@@ -307,7 +308,7 @@ class _ClientHandler(asynchat.async_chat):
     """Handler for Client connections"""
 
     ac_in_buffer_size = MAX_CMD_LEN
-    ac_out_buffer_size = 0
+    ac_out_buffer_size = MAX_CMD_LEN
 
     def __init__(self, mplayer, conn, map, log):
         asynchat.async_chat.__init__(self, conn)
@@ -316,16 +317,22 @@ class _ClientHandler(asynchat.async_chat):
         self._map = map
         self.add_channel()
         self.mplayer = mplayer
+        self.mplayer_handle_data = mplayer.handle_data
+        def handle_data(data):
+            self.handle_data(data)
+            self.mplayer_handle_data(data)
+        self.mplayer.handle_data = handle_data
         self.log = log
         self.buffer = []
         self.set_terminator("\r\n\r\n")
 
-    @staticmethod
-    def writable():
-        return False
+    def handle_data(self, data):
+        if data.startswith('ANS_'):
+            self.push("".join([data, "\r\n"]))
 
     def handle_close(self):
         self.close()
+        self.mplayer.handle_data = self.mplayer_handle_data
         self.log("Connection closed: %s" % (self.addr, ))
 
     def collect_incoming_data(self, data):
@@ -334,7 +341,7 @@ class _ClientHandler(asynchat.async_chat):
     def found_terminator(self):
         cmd = "".join(self.buffer)
         self.buffer = []
-        if not cmd or _re_cmd_quit.match(cmd):
+        if not cmd or "quit".startswith(cmd.split()[0].lower()):
             self.handle_close()
         elif cmd.lower() == "reload":
             # (Re)loading a file or a playlist would make MPlayer "jump out"
@@ -440,12 +447,13 @@ class Client(asynchat.async_chat):
 
     The PyMPlayer Client
     """
-    ac_in_buffer_size = 0
+    ac_in_buffer_size = MAX_CMD_LEN
     ac_out_buffer_size = MAX_CMD_LEN
 
-    @staticmethod
-    def readable():
-        return False
+    def __init__(self):
+        asynchat.async_chat.__init__(self)
+        self.buffer = []
+        self.set_terminator("\r\n")
 
     @staticmethod
     def handle_connect():
@@ -454,6 +462,17 @@ class Client(asynchat.async_chat):
     def handle_error(self):
         self.close()
         raise socket.error("Connection lost.")
+
+    def collect_incoming_data(self, data):
+        self.buffer.append(data)
+
+    def found_terminator(self):
+        data = "".join(self.buffer)
+        self.buffer = []
+        self.handle_data(data)
+
+    def handle_data(self, data):
+        self.log(data)
 
     def connect(self, host, port=PORT):
         """Connect to a pymplayer.Server
@@ -480,7 +499,7 @@ class Client(asynchat.async_chat):
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
         self.push("".join([cmd, "\r\n\r\n"]))
-        if _re_cmd_quit.match(cmd):
+        if "quit".startswith(cmd.split()[0].lower()):
             self.close()
             return False
         else:
