@@ -91,7 +91,7 @@ class MPlayer(object):
 
     An out-of-process wrapper for MPlayer. It provides the basic interface
     for sending commands and receiving responses to and from MPlayer. Take
-    note that MPlayer is ALWAYS started in 'slave', 'idle', and 'quiet' modes.
+    note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
 
     The MPlayer process would eventually "freeze" if the poll_output method
     is not called because the stdout/stderr PIPE buffers would get full.
@@ -101,7 +101,7 @@ class MPlayer(object):
     A different 'I/O watcher' can be used by overriding the create_handler
     and remove_handler methods.
 
-    @property path: path to MPlayer or its name in PATH
+    @property path: path to MPlayer or name of executable as found in PATH
     @property args: MPlayer arguments
     """
     def __init__(self, path='mplayer', args=()):
@@ -122,7 +122,7 @@ class MPlayer(object):
             raise TypeError("path should be a string")
         self.__path = path
 
-    path = property(_get_path, _set_path, doc="Path to MPlayer or its name in PATH")
+    path = property(_get_path, _set_path, doc="path to MPlayer or name of executable as found in PATH")
 
     def _get_args(self):
         return self.__args[3:]
@@ -352,8 +352,8 @@ class _ClientHandler(asynchat.async_chat):
 class Server(asyncore.dispatcher):
     """Server(host='', port=pymplayer.PORT, max_conn=1)
 
-    Although this class isn't a subclass of MPlayer, most of
-    the MPlayer API and all MPlayer properties are exposed via
+    Although this class isn't a subclass of MPlayer, all of MPlayer's
+    methods (except poll_output) and properties are exposed via
     the __getattr__ method. The MPlayer properties function and
     behave properly via some __getattr__ and __setattr__ magic.
 
@@ -375,7 +375,7 @@ class Server(asyncore.dispatcher):
         self.stop()
 
     def __getattr__(self, attr):
-        # Expose MPlayer API (except poll_output) and properties
+        # Expose the MPlayer methods (except poll_output) and properties
         if hasattr(self.__mplayer, attr) and attr != 'poll_output':
             return getattr(self.__mplayer, attr)
         else:
@@ -475,6 +475,9 @@ class Client(asynchat.async_chat):
         """Send an MPlayer command to the server
 
         @param cmd: valid MPlayer command
+
+        Valid MPlayer commands are documented in:
+        http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
         self.push("".join([cmd, "\r\n\r\n"]))
         if _re_cmd_quit.match(cmd):
