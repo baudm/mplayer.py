@@ -34,10 +34,13 @@ class GTKClient(object):
         self.client.send_command('pt_step -1')
 
     def pause(self, *args):
+        status = self.statusbar.get_text()
         if self.paused:
             self.timer = gobject.timeout_add(1000, self.query)
+            self.statusbar.set_text(status.rstrip(' [PAUSED]'))
         else:
             gobject.source_remove(self.timer)
+            self.statusbar.set_text("".join([status, ' [PAUSED]']))
         self.client.send_command('pause')
         self.paused = not self.paused
 
