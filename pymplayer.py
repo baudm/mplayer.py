@@ -65,10 +65,10 @@ class _ReadableFile(object):
     call the handle_read_event method as soon as there is data
     to read.
     """
-    def __init__(self, map, file, callback):
+    def __init__(self, map, file, handler):
         # Add self to map
         map[file.fileno()] = self
-        self.handle_read_event = callback
+        self.handle_read_event = handler
 
     def __getattr__(self, attr):
         # Always return a callable for non-existent attributes
@@ -93,13 +93,15 @@ class MPlayer(object):
     for sending commands and receiving responses to and from MPlayer. Take
     note that MPlayer is ALWAYS started in 'slave', 'idle', and 'quiet' modes.
 
-    WARNING:
-      The MPlayer process would eventually "freeze" if the poll_output method
-      is not called because the stdout/stderr PIPE buffers would get full.
-      Also, the handle_data and handle_error methods would only get called,
-      given an I/O event, after the poll_output method is called.
+    The MPlayer process would eventually "freeze" if the poll_output method
+    is not called because the stdout/stderr PIPE buffers would get full.
+    Also, the handle_data and handle_error methods would only get called,
+    given an I/O event, after the poll_output method is called.
 
-    @property path: path to MPlayer
+    A different 'I/O watcher' can be used by overriding the create_handler
+    and remove_handler methods.
+
+    @property path: path to MPlayer or its name in PATH
     @property args: MPlayer arguments
     """
     def __init__(self, path='mplayer', args=()):
@@ -141,19 +143,25 @@ class MPlayer(object):
         data = self.__process.stdout.readline().rstrip()
         if data:
             self.handle_data(data)
+        # gobject.io_add_watch compatibility
         return True
 
     def _handle_error(self, *args):
         error = self.__process.stderr.readline().rstrip()
         if error:
             self.handle_error(error)
+        # gobject.io_add_watch compatibility
         return True
 
     def create_handler(self, file, callback):
         """Create a handler for file.
 
-        Override it this way:
-        PyGTK:
+        @param file: file-like object
+        @param callback: function to be called when data can be read from file
+
+        This method may be overridden like so:
+
+        PyGTK/PyGObject:
         self.handles[file] = gobject.io_add_watch(file, gobject.IO_IN|gobject.IO_PRI, callback)
 
         Tkinter:
@@ -164,14 +172,20 @@ class MPlayer(object):
     def remove_handler(self, file):
         """Remove a handler for file.
 
-        Override it this way:
-        PyGTK:
+        @param file: file-like object
+
+        This method may be overridden like so:
+
+        PyGTK/PyGObject:
         gobject.source_remove(self.handles.pop(file))
 
         Tkinter:
         tkinter.deletefilehandler(file)
         """
-        self._map.pop(file.fileno())
+        # Clear the map so that asyncore.loop will terminate.
+        # This will be called twice, one of stdout and one for
+        # stderr, but that doesn't actually matter.
+        self._map.clear()
 
     def poll_output(self, timeout=30.0, use_poll=False):
         """Start polling MPlayer's stdout and stderr.
@@ -179,10 +193,10 @@ class MPlayer(object):
         @param timeout=30.0: timeout parameter for select() or poll()
         @param use_poll=False: use poll() instead of select()
 
-        This method will block unless it is called BEFORE MPlayer is
-        STARTED or if the MPlayer process is currently NOT running.
+        This method will block unless it is called before MPlayer is
+        started or if the MPlayer process is currently not running.
 
-        This method need not be called when the create_handler and
+        This method need not be called when the create_handler and/or
         remove_handler methods are overridden for use with a certain
         GUI toolkit (e.g. PyGTK, Tkinter).
 
@@ -195,6 +209,8 @@ class MPlayer(object):
         thread.setDaemon(True)
         thread.start()
         """
+        # Don't call asyncore.loop if MPlayer isn't running
+        # or if the create_handler method was overridden.
         if not self.isalive() or not self._map:
             return
         loop(timeout=timeout, use_poll=use_poll, map=self._map)
@@ -204,10 +220,6 @@ class MPlayer(object):
 
         Returns True on success, False on failure,
         and None if MPlayer is already running.
-
-        WARNING:
-            Don't forget to run the poll_output method
-            after calling this method.
         """
         if not self.isalive():
             args = [self.path]
@@ -237,9 +249,9 @@ class MPlayer(object):
     def restart(self):
         """Convenience method for restarting the MPlayer process.
 
-        Restarting means stopping the current process and starting a new one.
-        That being said, the poll_output method should be called again after
-        calling this method.
+        Restarting MPlayer means stopping the current process and
+        starting a new one which means that the poll_output method
+        will finish and return and will need to be called again.
 
         Returns the return values of the stop and start methods as a 2-tuple.
         """
@@ -261,7 +273,7 @@ class MPlayer(object):
     def isalive(self):
         """Check if MPlayer process is alive.
 
-        Returns True if alive, else, returns False
+        Returns True if alive, else, returns False.
         """
         try:
             return (self.__process.poll() is None)
@@ -270,21 +282,23 @@ class MPlayer(object):
 
     @staticmethod
     def handle_data(data):
-        """This method is meant to be overridden.
+        """Handle the data read from stdout.
 
-        This method is called when a line is read from stdout.
+        This method is meant to be overridden.
+        It will be called for each readline() from stdout.
 
-        @param data: the line (str) read from stdout
+        @param data: the line read from stdout
         """
         return
 
     @staticmethod
-    def handle_error(error):
-        """This method is meant to be overridden.
+    def handle_error(data):
+        """Handle the data read from stderr.
 
-        This method is called when a line is read from stderr.
+        This method is meant to be overridden.
+        It will be called for each readline() from stderr.
 
-        @param error: the line (str) read from stderr
+        @param data: the line read from stderr
         """
         return
 
