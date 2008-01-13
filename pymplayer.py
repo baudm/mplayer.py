@@ -266,10 +266,11 @@ class MPlayer(object):
         if not isinstance(cmd, basestring):
             raise TypeError("command must be a string")
         if self.isalive() and len(cmd) > 2:
+            if self._paused and "pause".startswith(cmd.split()[0].lower()):
+                self._paused = not self._paused
+                self.__process.stdin.write('pause')
             if not self._paused:
                 self.__process.stdin.write("".join([cmd, '\n']))
-            if "pause".startswith(cmd.split()[0].lower()):
-                self._paused = not self._paused
 
     def isalive(self):
         """Check if MPlayer process is alive.
