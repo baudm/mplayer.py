@@ -20,13 +20,17 @@ setup(
     platforms=['POSIX'],
     classifiers=[
         'Development Status :: 4 - Beta',
+        'Environment :: Console :: Curses',
+        'Environment :: No Input/Output (Daemon)',
         'Environment :: X11 Applications',
+        'Environment :: X11 Applications :: Gnome',
+        'Environment :: X11 Applications :: GTK',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',
         'Natural Language :: English',
-        'Operating System :: POSIX',
+        'Operating System :: POSIX :: Linux',
         'Topic :: Internet',
         'Topic :: Multimedia :: Video :: Display',
         'Topic :: Software Development :: Libraries :: Python Modules']
