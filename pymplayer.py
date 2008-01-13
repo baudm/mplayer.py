@@ -16,11 +16,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Out-of-source wrapper and client/server for MPlayer
+"""Thin, out-of-source wrapper and client/server for MPlayer
 
 Classes:
 
-MPlayer -- out-of-process wrapper for MPlayer
+MPlayer -- thin, out-of-process wrapper for MPlayer
 Server -- asynchronous server that manages an MPlayer instance
 Client -- client for sending MPlayer commands
 
@@ -34,7 +34,7 @@ PORT -- default port used by Client and Server
 MAX_CMD_LEN -- maximum length of a command
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 __author__ = "Darwin M. Bautista <djclue917@gmail.com>"
 
 

@@ -9,8 +9,7 @@ from pymplayer import __version__
 setup(
     name='PyMPlayer',
     version=__version__,
-    description='MPlayer wrapper for Python',
-    long_description='MPlayer wrapper for Python',
+    description='Thin, out-of-source wrapper and client/server for MPlayer',
     author='Darwin M. Bautista',
     author_email='djclue917@gmail.com',
     url='http://unplug.eee.upd.edu.ph/pymplayer/',
