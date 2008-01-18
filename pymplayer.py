@@ -68,8 +68,8 @@ class _ReadableFile(object):
         self.handle_read_event = handler
 
     def __getattr__(self, attr):
-        # Always return a callable for non-existent attributes
-        # in order to 'fool' asyncore's polling function.
+        # Always return a callable for non-existent attributes and
+        # methods in order to 'fool' asyncore's polling function.
         # (IMO, this is a better approach than defining all
         #  the other asyncore.dispatcher methods)
         return lambda: None
@@ -208,9 +208,8 @@ class MPlayer(object):
         """
         # Don't call asyncore.loop if MPlayer isn't running
         # or if the create_handler method was overridden.
-        if not self.isalive() or not self._map:
-            return
-        loop(timeout=timeout, use_poll=use_poll, map=self._map)
+        if self.isalive() and self._map:
+            loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
     def start(self):
         """Start the MPlayer process.
@@ -222,7 +221,7 @@ class MPlayer(object):
             args = [self.path]
             args.extend(self.__args)
             try:
-                # Start subprocess (line-buffered)
+                # Start the MPlayer process (line-buffered)
                 self.__process = Popen(args=args, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1)
             except OSError:
                 retcode = False
@@ -304,7 +303,7 @@ class _ClientHandler(asynchat.async_chat):
     """Handler for Client connections"""
 
     ac_in_buffer_size = MAX_CMD_LEN
-    ac_out_buffer_size = MAX_CMD_LEN
+    ac_out_buffer_size = 512
 
     def __init__(self, mplayer, conn, map, log):
         asynchat.async_chat.__init__(self, conn)
@@ -443,7 +442,7 @@ class Client(asynchat.async_chat):
 
     The PyMPlayer Client
     """
-    ac_in_buffer_size = MAX_CMD_LEN
+    ac_in_buffer_size = 512
     ac_out_buffer_size = MAX_CMD_LEN
 
     def __init__(self):
