@@ -12,28 +12,52 @@ from threading import Thread
 class GTKClient(object):
 
     def __init__(self):
-        self.paused = False
-        self.time_length = None
-        self.client = pymplayer.Client()
-        self.client.handle_data = self.handle_data
+        self.client = None
         self.wTree = gtk.glade.XML('client.glade')
         self.statusbar = self.wTree.get_widget('statusbar')
         self.progress_bar = self.wTree.get_widget('progressbar')
         self.wTree.get_widget('window').show_all()
         self.wTree.signal_autoconnect(self)
-        self.client.connect('', 50001)
-        self.timer = gobject.timeout_add(1000, self.query)
-        self.query_per_file()
 
     def quit(self, *args):
-        self.client.close()
-        gobject.source_remove(self.timer)
+        self.disconnect()
         gtk.main_quit()
 
+    def connect(self, *args):
+        if self.client is not None:
+            return
+        self.client = pymplayer.Client()
+        self.client.handle_data = self.handle_data
+        self.client.connect('', 50001)
+        t = Thread(target=pymplayer.loop)
+        t.setDaemon(True)
+        t.start()
+        self.timer = gobject.timeout_add(1000, self.query)
+        self.paused = False
+        self.time_length = None
+        self.query_per_file()
+
+    def disconnect(self, *args):
+        if self.client is None:
+            return
+        self.client.send_command('quit')
+        self.statusbar.set_text("")
+        self.progress_bar.set_text("")
+        self.progress_bar.set_fraction(0.0)
+        gobject.source_remove(self.timer)
+        self.client = None
+
+    def refresh(self, *args):
+        if self.client is not None:
+            self.client.send_command('reload')
+
     def previous(self, *args):
-        self.client.send_command('pt_step -1')
+        if self.client is not None:
+            self.client.send_command('pt_step -1')
 
     def pause(self, *args):
+        if self.client is None:
+            return
         status = self.statusbar.get_text()
         if self.paused:
             self.timer = gobject.timeout_add(1000, self.query)
@@ -45,11 +69,13 @@ class GTKClient(object):
         self.paused = not self.paused
 
     def next(self, *args):
-        self.client.send_command('pt_step +1')
+        if self.client is not None:
+            self.client.send_command('pt_step +1')
 
     def query_per_file(self):
-        self.client.send_command('get_file_name')
-        self.client.send_command('get_time_length')
+        if self.client is not None:
+            self.client.send_command('get_file_name')
+            self.client.send_command('get_time_length')
 
     def query(self):
         self.client.send_command('get_time_pos')
@@ -82,9 +108,7 @@ class GTKClient(object):
             self.progress_bar.set_fraction(time/self.time_length)
 
 
-gobject.threads_init()
-g = GTKClient()
-t = Thread(target=pymplayer.loop)
-t.setDaemon(True)
-t.start()
-gtk.main()
+if __name__ == "__main__":
+    gtk.gdk.threads_init()
+    GTKClient()
+    gtk.main()
