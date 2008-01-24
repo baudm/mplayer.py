@@ -13,7 +13,7 @@ class GTKClient(object):
 
     def __init__(self):
         self.client = None
-        self.wTree = gtk.glade.XML('client.glade')
+        self.wTree = gtk.glade.XML('gtkclient.glade')
         self.statusbar = self.wTree.get_widget('statusbar')
         self.progress_bar = self.wTree.get_widget('progressbar')
         self.wTree.get_widget('window').show_all()
