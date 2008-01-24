@@ -15,7 +15,6 @@ setup(
     url='http://unplug.eee.upd.edu.ph/pymplayer/',
     license='GPL & LGPL',
     py_modules=['pymplayer'],
-    scripts=['pymplayer', 'pymplayerd'],
     platforms=['POSIX'],
     classifiers=[
         'Development Status :: 4 - Beta',
