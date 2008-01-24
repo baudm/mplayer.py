@@ -1,0 +1,66 @@
+PyMPlayer: A thin, out-of-source wrapper and client/server for MPlayer written in Python
+
+PyMPlayer provides a class for easily using MPlayer in Python. It also contains two
+other classes, namely Client and Server, to easily create client/server applications
+using the MPlayer class.
+
+* Requirements
+
+    - MPlayer >= 1.0rc1  http://www.mplayerhq.hu/
+    - Python >= 2.5      http://www.python.org/
+
+  Optional
+
+    - GTK+ >= 2.12    http://www.gtk.org/
+    - PyGTK >= 2.12   http://www.pygtk.org/
+
+  The GTK-based PyMPlayer client (gtkclient.py) in the examples requires
+  the optional dependencies listed above.
+
+* Installation
+
+    To install (having made sure that the dependencies are installed and
+    working) do (as root normally):
+
+        python setup.py install
+
+    (You can optionally provide a prefix using the following form,
+    but if you do remember to setup PYTHONPATH accordingly)
+
+        python setup.py install [--prefix=<prefix>]
+
+* Documentation
+
+    The pydoc-generated documentation (HTML) is included in doc/.
+    It serves as an API reference. You can also browse the online version at:
+
+        http://unplug.eee.upd.edu.ph/pymplayer/
+
+* Directory Layout
+
+    examples/
+
+        Contains a number of examples, most of which are referenced in
+        the documentation.
+
+    doc/
+
+        Contains pydoc-generated HTML documentation for PyMPlayer.
+
+* Copyright and Licensing
+
+    The PyMPlayer module (pymplayer.py) is released under the terms of LGPLv3.
+    See COPYING for the full license.
+
+    The Python programs in examples/ are all released under the terms of GPLv3.
+    See examples/COPYING for the full license.
+
+    All the code (Python programs) and related data (Glade file) are owned by Darwin M. Bautista and
+    the University of the Philippines Electrical and Electronics Engineering Computer Networks Laboratory.
+
+* Contact info:
+
+    URL and download: http://pypi.python.org/pypi/PyMPlayer/
+
+    Author and Maintainer: Darwin M. Bautista <djclue917@gmail.com>
+
