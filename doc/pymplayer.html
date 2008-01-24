@@ -1,0 +1,468 @@
+
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module pymplayer</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>pymplayer</strong></big></big> (version 0.2.0)</font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a></font></td></tr></table>
+    <p><tt>Thin,&nbsp;out-of-source&nbsp;wrapper&nbsp;and&nbsp;client/server&nbsp;for&nbsp;<a href="#MPlayer">MPlayer</a><br>
+&nbsp;<br>
+Classes:<br>
+&nbsp;<br>
+<a href="#MPlayer">MPlayer</a>&nbsp;--&nbsp;thin,&nbsp;out-of-process&nbsp;wrapper&nbsp;for&nbsp;<a href="#MPlayer">MPlayer</a><br>
+<a href="#Server">Server</a>&nbsp;--&nbsp;asynchronous&nbsp;server&nbsp;that&nbsp;manages&nbsp;an&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;instance<br>
+<a href="#Client">Client</a>&nbsp;--&nbsp;client&nbsp;for&nbsp;sending&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;commands<br>
+&nbsp;<br>
+Function:<br>
+&nbsp;<br>
+<a href="#-loop">loop</a>()&nbsp;--&nbsp;the&nbsp;asyncore.loop&nbsp;function,&nbsp;for&nbsp;use&nbsp;in&nbsp;conjunction&nbsp;with&nbsp;<a href="#Client">Client</a><br>
+&nbsp;<br>
+Constants:<br>
+&nbsp;<br>
+PORT&nbsp;--&nbsp;default&nbsp;port&nbsp;used&nbsp;by&nbsp;<a href="#Client">Client</a>&nbsp;and&nbsp;<a href="#Server">Server</a><br>
+MAX_CMD_LEN&nbsp;--&nbsp;maximum&nbsp;length&nbsp;of&nbsp;a&nbsp;command</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#fffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="http://docs.python.org/lib/module-asynchat.html">asynchat</a><br>
+</td><td width="25%" valign=top><a href="http://docs.python.org/lib/module-asyncore.html">asyncore</a><br>
+</td><td width="25%" valign=top><a href="http://docs.python.org/lib/module-re.html">re</a><br>
+</td><td width="25%" valign=top><a href="http://docs.python.org/lib/module-socket.html">socket</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="http://docs.python.org/lib/module-builtin.html">__builtin__.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="#MPlayer">MPlayer</a>
+</font></dt></dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="http://docs.python.org/lib/module-asynchat.html">asynchat.async_chat</a>(<a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a>)
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="#Client">Client</a>
+</font></dt></dl>
+</dd>
+<dt><font face="helvetica, arial"><a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="#Server">Server</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Client">class <strong>Client</strong></a>(<a href="http://docs.python.org/lib/module-asynchat.html">asynchat.async_chat</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#Client">Client</a>()<br>
+&nbsp;<br>
+The&nbsp;PyMPlayer&nbsp;<a href="#Client">Client</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%"><dl><dt>Method resolution order:</dt>
+<dd><a href="#Client">Client</a></dd>
+<dd><a href="http://docs.python.org/lib/module-asynchat.html">asynchat.async_chat</a></dd>
+<dd><a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a></dd>
+</dl>
+<hr>
+Methods defined here:<br>
+<dl><dt><a name="Client-connect"><strong>connect</strong></a>(self, host, port<font color="#909090">=50001</font>)</dt><dd><tt>Connect&nbsp;to&nbsp;a&nbsp;pymplayer.<a href="#Server">Server</a><br>
+&nbsp;<br>
+@param&nbsp;host:&nbsp;host&nbsp;to&nbsp;connect&nbsp;to<br>
+@param&nbsp;port:&nbsp;port&nbsp;to&nbsp;use<br>
+&nbsp;<br>
+pymplayer.loop&nbsp;should&nbsp;be&nbsp;called&nbsp;(if&nbsp;not&nbsp;called&nbsp;previously)<br>
+after&nbsp;calling&nbsp;this&nbsp;method.</tt></dd></dl>
+
+<dl><dt><a name="Client-handle_error"><strong>handle_error</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-send_command"><strong>send_command</strong></a>(self, cmd)</dt><dd><tt>Send&nbsp;an&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;command&nbsp;to&nbsp;the&nbsp;server<br>
+&nbsp;<br>
+@param&nbsp;cmd:&nbsp;valid&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;command<br>
+&nbsp;<br>
+Valid&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;commands&nbsp;are&nbsp;documented&nbsp;in:<br>
+<a href="http://www.mplayerhq.hu/DOCS/tech/slave.txt">http://www.mplayerhq.hu/DOCS/tech/slave.txt</a></tt></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="Client-handle_connect"><strong>handle_connect</strong></a>()</dt></dl>
+
+<dl><dt><a name="Client-readable"><strong>readable</strong></a>()</dt></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>ac_in_buffer_size</strong> = 0</dl>
+
+<dl><dt><strong>ac_out_buffer_size</strong> = 256</dl>
+
+<hr>
+Methods inherited from <a href="http://docs.python.org/lib/module-asynchat.html">asynchat.async_chat</a>:<br>
+<dl><dt><a name="Client-__init__"><strong>__init__</strong></a>(self, conn<font color="#909090">=None</font>)</dt></dl>
+
+<dl><dt><a name="Client-close_when_done"><strong>close_when_done</strong></a>(self)</dt><dd><tt>automatically&nbsp;close&nbsp;this&nbsp;channel&nbsp;once&nbsp;the&nbsp;outgoing&nbsp;queue&nbsp;is&nbsp;empty</tt></dd></dl>
+
+<dl><dt><a name="Client-collect_incoming_data"><strong>collect_incoming_data</strong></a>(self, data)</dt></dl>
+
+<dl><dt><a name="Client-discard_buffers"><strong>discard_buffers</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-found_terminator"><strong>found_terminator</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-get_terminator"><strong>get_terminator</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-handle_close"><strong>handle_close</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-handle_read"><strong>handle_read</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-handle_write"><strong>handle_write</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-initiate_send"><strong>initiate_send</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-push"><strong>push</strong></a>(self, data)</dt></dl>
+
+<dl><dt><a name="Client-push_with_producer"><strong>push_with_producer</strong></a>(self, producer)</dt></dl>
+
+<dl><dt><a name="Client-refill_buffer"><strong>refill_buffer</strong></a>(self)</dt><dd><tt>#&nbsp;refill&nbsp;the&nbsp;outgoing&nbsp;buffer&nbsp;by&nbsp;calling&nbsp;the&nbsp;more()&nbsp;method<br>
+#&nbsp;of&nbsp;the&nbsp;first&nbsp;producer&nbsp;in&nbsp;the&nbsp;queue</tt></dd></dl>
+
+<dl><dt><a name="Client-set_terminator"><strong>set_terminator</strong></a>(self, term)</dt><dd><tt>Set&nbsp;the&nbsp;input&nbsp;delimiter.&nbsp;&nbsp;Can&nbsp;be&nbsp;a&nbsp;fixed&nbsp;string&nbsp;of&nbsp;any&nbsp;length,&nbsp;an&nbsp;integer,&nbsp;or&nbsp;None</tt></dd></dl>
+
+<dl><dt><a name="Client-writable"><strong>writable</strong></a>(self)</dt><dd><tt>predicate&nbsp;for&nbsp;inclusion&nbsp;in&nbsp;the&nbsp;writable&nbsp;for&nbsp;select()</tt></dd></dl>
+
+<hr>
+Methods inherited from <a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a>:<br>
+<dl><dt><a name="Client-__getattr__"><strong>__getattr__</strong></a>(self, attr)</dt><dd><tt>#&nbsp;cheap&nbsp;inheritance,&nbsp;used&nbsp;to&nbsp;pass&nbsp;all&nbsp;other&nbsp;attribute<br>
+#&nbsp;references&nbsp;to&nbsp;the&nbsp;underlying&nbsp;socket&nbsp;<a href="http://docs.python.org/lib/module-builtin.html">object</a>.</tt></dd></dl>
+
+<dl><dt><a name="Client-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-accept"><strong>accept</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-add_channel"><strong>add_channel</strong></a>(self, map<font color="#909090">=None</font>)</dt></dl>
+
+<dl><dt><a name="Client-bind"><strong>bind</strong></a>(self, addr)</dt></dl>
+
+<dl><dt><a name="Client-close"><strong>close</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-create_socket"><strong>create_socket</strong></a>(self, family, type)</dt></dl>
+
+<dl><dt><a name="Client-del_channel"><strong>del_channel</strong></a>(self, map<font color="#909090">=None</font>)</dt></dl>
+
+<dl><dt><a name="Client-handle_accept"><strong>handle_accept</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-handle_expt"><strong>handle_expt</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-handle_expt_event"><strong>handle_expt_event</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-handle_read_event"><strong>handle_read_event</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-handle_write_event"><strong>handle_write_event</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-listen"><strong>listen</strong></a>(self, num)</dt></dl>
+
+<dl><dt><a name="Client-log"><strong>log</strong></a>(self, message)</dt></dl>
+
+<dl><dt><a name="Client-log_info"><strong>log_info</strong></a>(self, message, type<font color="#909090">='info'</font>)</dt></dl>
+
+<dl><dt><a name="Client-recv"><strong>recv</strong></a>(self, buffer_size)</dt></dl>
+
+<dl><dt><a name="Client-send"><strong>send</strong></a>(self, data)</dt></dl>
+
+<dl><dt><a name="Client-set_reuse_addr"><strong>set_reuse_addr</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Client-set_socket"><strong>set_socket</strong></a>(self, sock, map<font color="#909090">=None</font>)</dt></dl>
+
+<hr>
+Data and other attributes inherited from <a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a>:<br>
+<dl><dt><strong>accepting</strong> = False</dl>
+
+<dl><dt><strong>addr</strong> = None</dl>
+
+<dl><dt><strong>closing</strong> = False</dl>
+
+<dl><dt><strong>connected</strong> = False</dl>
+
+<dl><dt><strong>debug</strong> = False</dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="MPlayer">class <strong>MPlayer</strong></a>(<a href="http://docs.python.org/lib/module-builtin.html">__builtin__.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#MPlayer">MPlayer</a>(path='mplayer',&nbsp;args=())<br>
+&nbsp;<br>
+An&nbsp;out-of-process&nbsp;wrapper&nbsp;for&nbsp;<a href="#MPlayer">MPlayer</a>.&nbsp;It&nbsp;provides&nbsp;the&nbsp;basic&nbsp;interface<br>
+for&nbsp;sending&nbsp;commands&nbsp;and&nbsp;receiving&nbsp;responses&nbsp;to&nbsp;and&nbsp;from&nbsp;<a href="#MPlayer">MPlayer</a>.&nbsp;Take<br>
+note&nbsp;that&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;is&nbsp;always&nbsp;started&nbsp;in&nbsp;'slave',&nbsp;'idle',&nbsp;and&nbsp;'quiet'&nbsp;modes.<br>
+&nbsp;<br>
+The&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;process&nbsp;would&nbsp;eventually&nbsp;"freeze"&nbsp;if&nbsp;the&nbsp;poll_output&nbsp;method<br>
+is&nbsp;not&nbsp;called&nbsp;because&nbsp;the&nbsp;stdout/stderr&nbsp;PIPE&nbsp;buffers&nbsp;would&nbsp;get&nbsp;full.<br>
+Also,&nbsp;the&nbsp;handle_data&nbsp;and&nbsp;handle_error&nbsp;methods&nbsp;would&nbsp;only&nbsp;get&nbsp;called,<br>
+given&nbsp;an&nbsp;I/O&nbsp;event,&nbsp;after&nbsp;the&nbsp;poll_output&nbsp;method&nbsp;is&nbsp;called.<br>
+&nbsp;<br>
+A&nbsp;different&nbsp;'I/O&nbsp;watcher'&nbsp;can&nbsp;be&nbsp;used&nbsp;by&nbsp;overriding&nbsp;the&nbsp;create_handler<br>
+and&nbsp;remove_handler&nbsp;methods.<br>
+&nbsp;<br>
+@property&nbsp;path:&nbsp;path&nbsp;to&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;or&nbsp;name&nbsp;of&nbsp;executable&nbsp;as&nbsp;found&nbsp;in&nbsp;PATH<br>
+@property&nbsp;args:&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;arguments<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="MPlayer-__del__"><strong>__del__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="MPlayer-__init__"><strong>__init__</strong></a>(self, path<font color="#909090">='mplayer'</font>, args<font color="#909090">=()</font>)</dt></dl>
+
+<dl><dt><a name="MPlayer-command"><strong>command</strong></a>(self, cmd)</dt><dd><tt>Send&nbsp;a&nbsp;command&nbsp;to&nbsp;<a href="#MPlayer">MPlayer</a>.<br>
+&nbsp;<br>
+@param&nbsp;cmd:&nbsp;valid&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;command<br>
+&nbsp;<br>
+Valid&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;commands&nbsp;are&nbsp;documented&nbsp;in:<br>
+<a href="http://www.mplayerhq.hu/DOCS/tech/slave.txt">http://www.mplayerhq.hu/DOCS/tech/slave.txt</a></tt></dd></dl>
+
+<dl><dt><a name="MPlayer-create_handler"><strong>create_handler</strong></a>(self, file, callback)</dt><dd><tt>Create&nbsp;a&nbsp;handler&nbsp;for&nbsp;file.<br>
+&nbsp;<br>
+@param&nbsp;file:&nbsp;file-like&nbsp;<a href="http://docs.python.org/lib/module-builtin.html">object</a><br>
+@param&nbsp;callback:&nbsp;function&nbsp;to&nbsp;be&nbsp;called&nbsp;when&nbsp;data&nbsp;can&nbsp;be&nbsp;read&nbsp;from&nbsp;file<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;may&nbsp;be&nbsp;overridden&nbsp;like&nbsp;so:<br>
+&nbsp;<br>
+PyGTK/PyGObject:<br>
+self.<strong>handles</strong>[file]&nbsp;=&nbsp;gobject.io_add_watch(file,&nbsp;gobject.IO_IN|gobject.IO_PRI,&nbsp;callback)<br>
+&nbsp;<br>
+Tkinter:<br>
+tkinter.createfilehandler(file,&nbsp;tkinter.READABLE,&nbsp;callback)</tt></dd></dl>
+
+<dl><dt><a name="MPlayer-isalive"><strong>isalive</strong></a>(self)</dt><dd><tt>Check&nbsp;if&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;process&nbsp;is&nbsp;alive.<br>
+&nbsp;<br>
+Returns&nbsp;True&nbsp;if&nbsp;alive,&nbsp;else,&nbsp;returns&nbsp;False.</tt></dd></dl>
+
+<dl><dt><a name="MPlayer-poll_output"><strong>poll_output</strong></a>(self, timeout<font color="#909090">=30.0</font>, use_poll<font color="#909090">=False</font>)</dt><dd><tt>Start&nbsp;polling&nbsp;<a href="#MPlayer">MPlayer</a>'s&nbsp;stdout&nbsp;and&nbsp;stderr.<br>
+&nbsp;<br>
+@param&nbsp;timeout=30.0:&nbsp;timeout&nbsp;parameter&nbsp;for&nbsp;select()&nbsp;or&nbsp;poll()<br>
+@param&nbsp;use_poll=False:&nbsp;use&nbsp;poll()&nbsp;instead&nbsp;of&nbsp;select()<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;will&nbsp;block&nbsp;unless&nbsp;it&nbsp;is&nbsp;called&nbsp;before&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;is<br>
+started&nbsp;or&nbsp;if&nbsp;the&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;process&nbsp;is&nbsp;currently&nbsp;not&nbsp;running.<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;need&nbsp;not&nbsp;be&nbsp;called&nbsp;when&nbsp;the&nbsp;create_handler&nbsp;and/or<br>
+remove_handler&nbsp;methods&nbsp;are&nbsp;overridden&nbsp;for&nbsp;use&nbsp;with&nbsp;a&nbsp;certain<br>
+GUI&nbsp;toolkit&nbsp;(e.g.&nbsp;PyGTK,&nbsp;Tkinter).<br>
+&nbsp;<br>
+In&nbsp;a&nbsp;multithreaded&nbsp;app,&nbsp;you&nbsp;may&nbsp;want&nbsp;to&nbsp;spawn&nbsp;a&nbsp;new&nbsp;Thread<br>
+for&nbsp;running&nbsp;this&nbsp;method&nbsp;after&nbsp;calling&nbsp;the&nbsp;start&nbsp;method:<br>
+&nbsp;<br>
+mplayer&nbsp;=&nbsp;<a href="#MPlayer">MPlayer</a>()<br>
+mplayer.<a href="#MPlayer-start">start</a>()<br>
+thread&nbsp;=&nbsp;threading.Thread(target=mplayer.poll_output)<br>
+thread.setDaemon(True)<br>
+thread.<a href="#MPlayer-start">start</a>()</tt></dd></dl>
+
+<dl><dt><a name="MPlayer-remove_handler"><strong>remove_handler</strong></a>(self, file)</dt><dd><tt>Remove&nbsp;a&nbsp;handler&nbsp;for&nbsp;file.<br>
+&nbsp;<br>
+@param&nbsp;file:&nbsp;file-like&nbsp;<a href="http://docs.python.org/lib/module-builtin.html">object</a><br>
+&nbsp;<br>
+This&nbsp;method&nbsp;may&nbsp;be&nbsp;overridden&nbsp;like&nbsp;so:<br>
+&nbsp;<br>
+PyGTK/PyGObject:<br>
+gobject.source_remove(self.<strong>handles</strong>.pop(file))<br>
+&nbsp;<br>
+Tkinter:<br>
+tkinter.deletefilehandler(file)</tt></dd></dl>
+
+<dl><dt><a name="MPlayer-restart"><strong>restart</strong></a>(self)</dt><dd><tt>Convenience&nbsp;method&nbsp;for&nbsp;restarting&nbsp;the&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;process.<br>
+&nbsp;<br>
+Restarting&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;means&nbsp;stopping&nbsp;the&nbsp;current&nbsp;process&nbsp;and<br>
+starting&nbsp;a&nbsp;new&nbsp;one&nbsp;which&nbsp;means&nbsp;that&nbsp;the&nbsp;poll_output&nbsp;method<br>
+will&nbsp;finish&nbsp;and&nbsp;return&nbsp;and&nbsp;will&nbsp;need&nbsp;to&nbsp;be&nbsp;called&nbsp;again.<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;return&nbsp;values&nbsp;of&nbsp;the&nbsp;stop&nbsp;and&nbsp;start&nbsp;methods&nbsp;as&nbsp;a&nbsp;2-tuple.</tt></dd></dl>
+
+<dl><dt><a name="MPlayer-start"><strong>start</strong></a>(self)</dt><dd><tt>Start&nbsp;the&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;process.<br>
+&nbsp;<br>
+Returns&nbsp;True&nbsp;on&nbsp;success,&nbsp;False&nbsp;on&nbsp;failure,<br>
+and&nbsp;None&nbsp;if&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;is&nbsp;already&nbsp;running.</tt></dd></dl>
+
+<dl><dt><a name="MPlayer-stop"><strong>stop</strong></a>(self)</dt><dd><tt>Stop&nbsp;the&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;process.<br>
+&nbsp;<br>
+Returns&nbsp;the&nbsp;exit&nbsp;status&nbsp;of&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;or&nbsp;None&nbsp;if&nbsp;not&nbsp;running.</tt></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="MPlayer-handle_data"><strong>handle_data</strong></a>(data)</dt><dd><tt>Handle&nbsp;the&nbsp;data&nbsp;read&nbsp;from&nbsp;stdout.<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;is&nbsp;meant&nbsp;to&nbsp;be&nbsp;overridden.<br>
+It&nbsp;will&nbsp;be&nbsp;called&nbsp;for&nbsp;each&nbsp;readline()&nbsp;from&nbsp;stdout.<br>
+&nbsp;<br>
+@param&nbsp;data:&nbsp;the&nbsp;line&nbsp;read&nbsp;from&nbsp;stdout</tt></dd></dl>
+
+<dl><dt><a name="MPlayer-handle_error"><strong>handle_error</strong></a>(data)</dt><dd><tt>Handle&nbsp;the&nbsp;data&nbsp;read&nbsp;from&nbsp;stderr.<br>
+&nbsp;<br>
+This&nbsp;method&nbsp;is&nbsp;meant&nbsp;to&nbsp;be&nbsp;overridden.<br>
+It&nbsp;will&nbsp;be&nbsp;called&nbsp;for&nbsp;each&nbsp;readline()&nbsp;from&nbsp;stderr.<br>
+&nbsp;<br>
+@param&nbsp;data:&nbsp;the&nbsp;line&nbsp;read&nbsp;from&nbsp;stderr</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>args</strong></dt>
+<dd><tt>MPlayer&nbsp;arguments</tt></dd>
+</dl>
+<dl><dt><strong>path</strong></dt>
+<dd><tt>path&nbsp;to&nbsp;MPlayer&nbsp;or&nbsp;name&nbsp;of&nbsp;executable&nbsp;as&nbsp;found&nbsp;in&nbsp;PATH</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="Server">class <strong>Server</strong></a>(<a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#Server">Server</a>(host='',&nbsp;port=pymplayer.PORT,&nbsp;max_conn=1)<br>
+&nbsp;<br>
+Although&nbsp;this&nbsp;class&nbsp;isn't&nbsp;a&nbsp;subclass&nbsp;of&nbsp;<a href="#MPlayer">MPlayer</a>,&nbsp;all&nbsp;of&nbsp;<a href="#MPlayer">MPlayer</a>'s<br>
+methods&nbsp;(except&nbsp;poll_output)&nbsp;and&nbsp;properties&nbsp;are&nbsp;exposed&nbsp;via<br>
+the&nbsp;__getattr__&nbsp;method.&nbsp;The&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;properties&nbsp;function&nbsp;and<br>
+behave&nbsp;properly&nbsp;via&nbsp;some&nbsp;__getattr__&nbsp;and&nbsp;__setattr__&nbsp;magic.<br>
+&nbsp;<br>
+The&nbsp;log&nbsp;method&nbsp;can&nbsp;be&nbsp;overridden&nbsp;to&nbsp;provide&nbsp;more&nbsp;sophisticated<br>
+logging&nbsp;and&nbsp;warning&nbsp;methods.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="Server-__del__"><strong>__del__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-__getattr__"><strong>__getattr__</strong></a>(self, attr)</dt></dl>
+
+<dl><dt><a name="Server-__init__"><strong>__init__</strong></a>(self, host<font color="#909090">=''</font>, port<font color="#909090">=50001</font>, max_conn<font color="#909090">=1</font>)</dt></dl>
+
+<dl><dt><a name="Server-__setattr__"><strong>__setattr__</strong></a>(self, attr, value)</dt></dl>
+
+<dl><dt><a name="Server-handle_accept"><strong>handle_accept</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_close"><strong>handle_close</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-start"><strong>start</strong></a>(self, timeout<font color="#909090">=30.0</font>, use_poll<font color="#909090">=False</font>)</dt><dd><tt>Start&nbsp;the&nbsp;server.<br>
+&nbsp;<br>
+@param&nbsp;timeout=30.0:&nbsp;timeout&nbsp;parameter&nbsp;for&nbsp;select()&nbsp;or&nbsp;poll()<br>
+@param&nbsp;use_poll=False:&nbsp;use&nbsp;poll()&nbsp;instead&nbsp;of&nbsp;select()<br>
+&nbsp;<br>
+Starts&nbsp;the&nbsp;<a href="#MPlayer">MPlayer</a>&nbsp;process,&nbsp;then&nbsp;calls&nbsp;asyncore.loop&nbsp;(blocking)</tt></dd></dl>
+
+<dl><dt><a name="Server-stop"><strong>stop</strong></a>(self)</dt><dd><tt>Stop&nbsp;the&nbsp;server.<br>
+&nbsp;<br>
+Closes&nbsp;all&nbsp;the&nbsp;channels&nbsp;found&nbsp;in&nbsp;self.<strong>_map</strong>&nbsp;(including&nbsp;itself)</tt></dd></dl>
+
+<hr>
+Static methods defined here:<br>
+<dl><dt><a name="Server-writable"><strong>writable</strong></a>()</dt></dl>
+
+<hr>
+Methods inherited from <a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a>:<br>
+<dl><dt><a name="Server-__repr__"><strong>__repr__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-accept"><strong>accept</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-add_channel"><strong>add_channel</strong></a>(self, map<font color="#909090">=None</font>)</dt></dl>
+
+<dl><dt><a name="Server-bind"><strong>bind</strong></a>(self, addr)</dt></dl>
+
+<dl><dt><a name="Server-close"><strong>close</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-connect"><strong>connect</strong></a>(self, address)</dt></dl>
+
+<dl><dt><a name="Server-create_socket"><strong>create_socket</strong></a>(self, family, type)</dt></dl>
+
+<dl><dt><a name="Server-del_channel"><strong>del_channel</strong></a>(self, map<font color="#909090">=None</font>)</dt></dl>
+
+<dl><dt><a name="Server-handle_connect"><strong>handle_connect</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_error"><strong>handle_error</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_expt"><strong>handle_expt</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_expt_event"><strong>handle_expt_event</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_read"><strong>handle_read</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_read_event"><strong>handle_read_event</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_write"><strong>handle_write</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-handle_write_event"><strong>handle_write_event</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-listen"><strong>listen</strong></a>(self, num)</dt></dl>
+
+<dl><dt><a name="Server-log"><strong>log</strong></a>(self, message)</dt></dl>
+
+<dl><dt><a name="Server-log_info"><strong>log_info</strong></a>(self, message, type<font color="#909090">='info'</font>)</dt></dl>
+
+<dl><dt><a name="Server-readable"><strong>readable</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-recv"><strong>recv</strong></a>(self, buffer_size)</dt></dl>
+
+<dl><dt><a name="Server-send"><strong>send</strong></a>(self, data)</dt></dl>
+
+<dl><dt><a name="Server-set_reuse_addr"><strong>set_reuse_addr</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Server-set_socket"><strong>set_socket</strong></a>(self, sock, map<font color="#909090">=None</font>)</dt></dl>
+
+<hr>
+Data and other attributes inherited from <a href="http://docs.python.org/lib/module-asyncore.html">asyncore.dispatcher</a>:<br>
+<dl><dt><strong>accepting</strong> = False</dl>
+
+<dl><dt><strong>addr</strong> = None</dl>
+
+<dl><dt><strong>closing</strong> = False</dl>
+
+<dl><dt><strong>connected</strong> = False</dl>
+
+<dl><dt><strong>debug</strong> = False</dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-loop"><strong>loop</strong></a>(timeout<font color="#909090">=30.0</font>, use_poll<font color="#909090">=False</font>, map<font color="#909090">=None</font>, count<font color="#909090">=None</font>)</dt></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>MAX_CMD_LEN</strong> = 256<br>
+<strong>PORT</strong> = 50001<br>
+<strong>__all__</strong> = ['MPlayer', 'Server', 'Client', 'loop', 'PORT', 'MAX_CMD_LEN']<br>
+<strong>__author__</strong> = 'Darwin M. Bautista &lt;djclue917 ? gmail : com&gt;'<br>
+<strong>__version__</strong> = '0.2.0'</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#7799ee">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Author</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#7799ee"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Darwin&nbsp;M.&nbsp;Bautista&nbsp;&lt;djclue917 ? gmail : com&gt;</td></tr></table>
+</body></html>
