@@ -41,7 +41,14 @@ import asynchat
 from subprocess import Popen, PIPE
 
 
-__all__ = ['MPlayer', 'Server', 'Client', 'loop', 'PORT', 'MAX_CMD_LEN']
+__all__ = [
+    'MPlayer',
+    'Server',
+    'Client',
+    'loop',
+    'PORT',
+    'MAX_CMD_LEN'
+    ]
 
 __version__ = '0.3.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
@@ -50,31 +57,32 @@ __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
 PORT = 50001
 MAX_CMD_LEN = 256
 
-
+# For convenience
 loop = asyncore.loop
 
 
 class MPlayer(object):
-    """MPlayer(path='mplayer', args=())
+    """MPlayer(executable='mplayer', args=())
 
-An out-of-process wrapper for MPlayer. It provides the basic interface
-for sending commands and receiving responses to and from MPlayer. Take
-note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
+    An out-of-process wrapper for MPlayer. It provides the basic interface
+    for sending commands and receiving responses to and from MPlayer. Take
+    note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
 
-The MPlayer process would eventually "freeze" if the poll_output method
-is not called because the stdout/stderr PIPE buffers would get full.
-Also, the handle_data and handle_error methods would only get called,
-given an I/O event, after the poll_output method is called.
+    The MPlayer process would eventually "freeze" if the poll_output method
+    is not called because the stdout/stderr PIPE buffers would get full.
+    Also, the handle_data and handle_error methods would only get called,
+    given an I/O event, after the poll_output method is called.
 
-A different 'I/O watcher' can be used by overriding the create_handler
-and remove_handler methods.
+    A different 'I/O watcher' can be used by overriding the create_handler
+    and remove_handler methods.
 
-@property path: path to MPlayer or name of executable as found in PATH
-@property args: MPlayer arguments
+    @property executable: path to or filename of the MPlayer executable
+    @property args: MPlayer arguments
 
-"""
-    def __init__(self, path='mplayer', args=()):
-        self.path = path
+    """
+
+    def __init__(self, executable='mplayer', args=()):
+        self.executable = executable
         self.args = args
         self._map = {}
         self._process = None
@@ -83,21 +91,27 @@ and remove_handler methods.
         # Be sure to stop the MPlayer process.
         self.stop()
 
-    def _get_path(self):
-        return self._path
+    def _get_executable(self):
+        return self._executable
 
-    def _set_path(self, path):
-        if not isinstance(path, basestring):
-            raise TypeError("path should be a string")
-        self._path = path
+    def _set_executable(self, executable):
+        #############
+        # FIXME: don't be too strict, accept str()-able objects
+        #######
+        if not isinstance(executable, basestring):
+            raise TypeError("executable should be a string")
+        self._executable = executable
 
-    path = property(_get_path, _set_path,
-        doc="path to MPlayer or name of executable as found in PATH")
+    executable = property(_get_executable, _set_executable,
+        doc="path to or filename of the MPlayer executable")
 
     def _get_args(self):
         return self._args[3:]
 
     def _set_args(self, args):
+        ############
+        # FIXME: see comment on _set_executable method
+        ############
         if not isinstance(args, (list, tuple)):
             raise TypeError("args should either be a tuple or list of strings")
         elif args:
@@ -126,34 +140,34 @@ and remove_handler methods.
     def create_handler(self, file, callback):
         """Create a handler for file.
 
-@param file: file-like object
-@param callback: function to be called when data can be read from file
+        @param file: file-like object
+        @param callback: function to be called when data can be read from file
 
-This method may be overridden like so:
+        This method may be overridden like so:
 
-PyGTK/PyGObject:
-self.handles[file] = gobject.io_add_watch(file, gobject.IO_IN|gobject.IO_PRI, callback)
+        PyGTK/PyGObject:
+        self.handles[file] = gobject.io_add_watch(file, gobject.IO_IN|gobject.IO_PRI, callback)
 
-Tkinter:
-tkinter.createfilehandler(file, tkinter.READABLE, callback)
+        Tkinter:
+        tkinter.createfilehandler(file, tkinter.READABLE, callback)
 
-"""
+        """
         _ReadableFile(self._map, file, callback)
 
     def remove_handler(self, file):
         """Remove a handler for file.
 
-@param file: file-like object
+        @param file: file-like object
 
-This method may be overridden like so:
+        This method may be overridden like so:
 
-PyGTK/PyGObject:
-gobject.source_remove(self.handles.pop(file))
+        PyGTK/PyGObject:
+        gobject.source_remove(self.handles.pop(file))
 
-Tkinter:
-tkinter.deletefilehandler(file)
+        Tkinter:
+        tkinter.deletefilehandler(file)
 
-"""
+        """
         # Clear the map so that asyncore.loop will terminate.
         # This will be called twice, one of stdout and one for
         # stderr, but that doesn't actually matter.
@@ -162,26 +176,26 @@ tkinter.deletefilehandler(file)
     def poll_output(self, timeout=30.0, use_poll=False):
         """Start polling MPlayer's stdout and stderr.
 
-@param timeout=30.0: timeout parameter for select() or poll()
-@param use_poll=False: use poll() instead of select()
+        @param timeout=30.0: timeout parameter for select() or poll()
+        @param use_poll=False: use poll() instead of select()
 
-This method will block unless it is called before MPlayer is
-started or if the MPlayer process is currently not running.
+        This method will block unless it is called before MPlayer is
+        started or if the MPlayer process is currently not running.
 
-This method need not be called when the create_handler and/or
-remove_handler methods are overridden for use with a certain
-GUI toolkit (e.g. PyGTK, Tkinter).
+        This method need not be called when the create_handler and/or
+        remove_handler methods are overridden for use with a certain
+        GUI toolkit (e.g. PyGTK, Tkinter).
 
-In a multithreaded app, you may want to spawn a new Thread
-for running this method after calling the start method:
+        In a multithreaded app, you may want to spawn a new Thread
+        for running this method after calling the start method:
 
-mplayer = MPlayer()
-mplayer.start()
-thread = threading.Thread(target=mplayer.poll_output)
-thread.setDaemon(True)
-thread.start()
+        mplayer = MPlayer()
+        mplayer.start()
+        thread = threading.Thread(target=mplayer.poll_output)
+        thread.setDaemon(True)
+        thread.start()
 
-"""
+        """
         # Don't call asyncore.loop if MPlayer isn't running
         # or if the create_handler method was overridden.
         if self.isalive() and self._map:
@@ -190,12 +204,12 @@ thread.start()
     def start(self):
         """Start the MPlayer process.
 
-Returns True on success, False on failure,
-and None if MPlayer is already running.
+        Returns True on success, False on failure,
+        and None if MPlayer is already running.
 
-"""
+        """
         if not self.isalive():
-            args = [self.path]
+            args = [self.executable]
             args.extend(self._args)
             try:
                 # Start the MPlayer process (line-buffered)
@@ -211,9 +225,9 @@ and None if MPlayer is already running.
     def stop(self):
         """Stop the MPlayer process.
 
-Returns the exit status of MPlayer or None if not running.
+        Returns the exit status of MPlayer or None if not running.
 
-"""
+        """
         if self.isalive():
             self.command("quit")
             self.remove_handler(self._process.stdout)
@@ -223,24 +237,24 @@ Returns the exit status of MPlayer or None if not running.
     def restart(self):
         """Convenience method for restarting the MPlayer process.
 
-Restarting MPlayer means stopping the current process and
-starting a new one which means that the poll_output method
-will finish and return and will need to be called again.
+        Restarting MPlayer means stopping the current process and
+        starting a new one which means that the poll_output method
+        will finish and return and will need to be called again.
 
-Returns the return values of the stop and start methods as a 2-tuple.
+        Returns the return values of the stop and start methods as a 2-tuple.
 
-"""
+        """
         return self.stop(), self.start()
 
     def command(self, cmd):
         """Send a command to MPlayer.
 
-@param cmd: valid MPlayer command
+        @param cmd: valid MPlayer command
 
-Valid MPlayer commands are documented in:
-http://www.mplayerhq.hu/DOCS/tech/slave.txt
+        Valid MPlayer commands are documented in:
+        http://www.mplayerhq.hu/DOCS/tech/slave.txt
 
-"""
+        """
         if not isinstance(cmd, basestring):
             raise TypeError("command must be a string")
         if self.isalive() and cmd:
@@ -249,9 +263,9 @@ http://www.mplayerhq.hu/DOCS/tech/slave.txt
     def isalive(self):
         """Check if MPlayer process is alive.
 
-Returns True if alive, else, returns False.
+        Returns True if alive, else, returns False.
 
-"""
+        """
         try:
             return (self._process.poll() is None)
         except AttributeError:
@@ -261,43 +275,49 @@ Returns True if alive, else, returns False.
     def handle_data(data):
         """Handle the data read from stdout.
 
-This method is meant to be overridden.
-It will be called for each readline() from stdout.
+        This method is meant to be overridden.
+        It will be called for each readline() from stdout.
 
-@param data: the line read from stdout
+        @param data: the line read from stdout
 
-"""
+        """
         return
 
     @staticmethod
     def handle_error(data):
         """Handle the data read from stderr.
 
-This method is meant to be overridden.
-It will be called for each readline() from stderr.
+        This method is meant to be overridden.
+        It will be called for each readline() from stderr.
 
-@param data: the line read from stderr
+        @param data: the line read from stderr
 
-"""
+        """
         return
 
 
 class Server(asyncore.dispatcher):
     """Server(host='', port=pymplayer.PORT, max_conn=1)
 
-Although this class isn't a subclass of MPlayer, all of MPlayer's
-methods (except poll_output) and properties are exposed via
-the __getattr__ method. The MPlayer properties function and
-behave properly via some __getattr__ and __setattr__ magic.
+    Although this class isn't a subclass of MPlayer, all of MPlayer's
+    methods (except poll_output) and properties are exposed via
+    the __getattr__ method. The MPlayer properties function and
+    behave properly via some __getattr__ and __setattr__ magic.
 
-The log method can be overridden to provide more sophisticated
-logging and warning methods.
+    The log method can be overridden to provide more sophisticated
+    logging and warning methods.
 
-"""
+    """
+
     def __init__(self, host='', port=PORT, max_conn=1):
         # Use own socket map
         self._map = {}
         asyncore.dispatcher.__init__(self, map=self._map)
+        #####################
+        # TODO: remove reference to self in self._map to avoid circular dependency
+        # Probably add a 'dummy' instance to self._map so that the loop won't terminate prematurely
+        self._map.clear()
+        ##########
         self._mplayer = MPlayer()
         self.max_conn = max_conn
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -317,7 +337,7 @@ logging and warning methods.
 
     def __setattr__(self, attr, value):
         # Make the MPlayer properties behave properly
-        if attr not in ('args', 'path'):
+        if attr not in ('args', 'executable'):
             self.__dict__[attr] = value
         else:
             setattr(self._mplayer, attr, value)
@@ -343,9 +363,9 @@ logging and warning methods.
     def stop(self):
         """Stop the server.
 
-Closes all the channels found in self._map (including itself)
+        Closes all the channels found in self._map (including itself)
 
-"""
+        """
         for channel in self._map.values():
             channel.handle_close()
         # The _ReadableFile instances would still remain in self._map,
@@ -356,27 +376,32 @@ Closes all the channels found in self._map (including itself)
     def start(self, timeout=30.0, use_poll=False):
         """Start the server.
 
-@param timeout=30.0: timeout parameter for select() or poll()
-@param use_poll=False: use poll() instead of select()
+        @param timeout=30.0: timeout parameter for select() or poll()
+        @param use_poll=False: use poll() instead of select()
 
-Starts the MPlayer process, then calls asyncore.loop (blocking)
+        Starts the MPlayer process, then calls asyncore.loop (blocking)
 
-"""
+        """
         if self._mplayer.isalive():
             return
         self._mplayer.start()
         # Include the _ReadableFile instances from self._mplayer._map
         self._map.update(self._mplayer._map)
         self.log("Server started.")
+        #############
+        # FIXME: make loop a class method
+        # Or probably give an option to use asyncore.socket_map
+        ########
         loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
 
 class Client(asynchat.async_chat):
     """Client()
 
-The PyMPlayer Client
+    The PyMPlayer Client
 
-"""
+    """
+
     ac_in_buffer_size = 512
     ac_out_buffer_size = MAX_CMD_LEN
 
@@ -407,13 +432,13 @@ The PyMPlayer Client
     def connect(self, host, port=PORT):
         """Connect to a pymplayer.Server
 
-@param host: host to connect to
-@param port: port to use
+        @param host: host to connect to
+        @param port: port to use
 
-pymplayer.loop should be called (if not called previously)
-after calling this method.
+        pymplayer.loop should be called (if not called previously)
+        after calling this method.
 
-"""
+        """
         if self.connected:
             return
         if self.socket:
@@ -424,12 +449,12 @@ after calling this method.
     def send_command(self, cmd):
         """Send an MPlayer command to the server
 
-@param cmd: valid MPlayer command
+        @param cmd: valid MPlayer command
 
-Valid MPlayer commands are documented in:
-http://www.mplayerhq.hu/DOCS/tech/slave.txt
+        Valid MPlayer commands are documented in:
+        http://www.mplayerhq.hu/DOCS/tech/slave.txt
 
-"""
+        """
         self.push("".join([cmd, "\r\n\r\n"]))
         if "quit".startswith(cmd.split()[0].lower()):
             self.close()
@@ -441,13 +466,14 @@ http://www.mplayerhq.hu/DOCS/tech/slave.txt
 class _ReadableFile(object):
     """Imitates a readable asyncore.dispatcher class.
 
-This class serves as a wrapper for stdout and stderr
-so that the polling function of asyncore can check them
-for any pending I/O events. The polling function will
-call the handle_read_event method as soon as there is data
-to read.
+    This class serves as a wrapper for stdout and stderr
+    so that the polling function of asyncore can check them
+    for any pending I/O events. The polling function will
+    call the handle_read_event method as soon as there is data
+    to read.
 
-"""
+    """
+
     def __init__(self, map_, file, handler):
         # Add self to map
         map_[file.fileno()] = self
