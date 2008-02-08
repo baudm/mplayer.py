@@ -62,7 +62,7 @@ loop = asyncore.loop
 
 
 class MPlayer(object):
-    """MPlayer(executable='mplayer', args=())
+    """MPlayer(args=())
 
     An out-of-process wrapper for MPlayer. It provides the basic interface
     for sending commands and receiving responses to and from MPlayer. Take
@@ -76,13 +76,14 @@ class MPlayer(object):
     A different 'I/O watcher' can be used by overriding the create_handler
     and remove_handler methods.
 
-    @property executable: path to or filename of the MPlayer executable
+    @class attribute bin: path to or filename of the MPlayer executable
     @property args: MPlayer arguments
 
     """
 
-    def __init__(self, executable='mplayer', args=()):
-        self.executable = executable
+    bin = 'mplayer'
+
+    def __init__(self, args=()):
         self.args = args
         self._map = {}
         self._process = None
@@ -90,20 +91,6 @@ class MPlayer(object):
     def __del__(self):
         # Be sure to stop the MPlayer process.
         self.stop()
-
-    def _get_executable(self):
-        return self._executable
-
-    def _set_executable(self, executable):
-        #############
-        # FIXME: don't be too strict, accept str()-able objects
-        #######
-        if not isinstance(executable, basestring):
-            raise TypeError("executable should be a string")
-        self._executable = executable
-
-    executable = property(_get_executable, _set_executable,
-        doc="path to or filename of the MPlayer executable")
 
     def _get_args(self):
         return self._args[3:]
@@ -209,7 +196,7 @@ class MPlayer(object):
 
         """
         if not self.isalive():
-            args = [self.executable]
+            args = [self.__class__.bin]
             args.extend(self._args)
             try:
                 # Start the MPlayer process (line-buffered)
