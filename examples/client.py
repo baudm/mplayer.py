@@ -22,7 +22,6 @@
 __version__ = "$Revision$"
 
 
-import re
 import os
 import sys
 import time
