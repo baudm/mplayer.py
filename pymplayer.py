@@ -278,7 +278,6 @@ class MPlayer(object):
         @param data: the line read from stdout
 
         """
-        return
 
     @staticmethod
     def handle_error(data):
@@ -290,7 +289,6 @@ class MPlayer(object):
         @param data: the line read from stderr
 
         """
-        return
 
 
 class Server(asyncore.dispatcher):
@@ -309,10 +307,9 @@ class Server(asyncore.dispatcher):
     def __init__(self, host='', port=PORT, max_conn=1):
         # Use own socket map
         self._map = {}
-        asyncore.dispatcher.__init__(self, map=self._map)
         # TODO: remove reference to self in self._map to avoid circular reference.
         # Probably move the socket map out of self?
-        self._map.clear()
+        asyncore.dispatcher.__init__(self, map=self._map)
         self._mplayer = MPlayer()
         self.max_conn = max_conn
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -383,10 +380,8 @@ class Server(asyncore.dispatcher):
         # Include the _ReadableFile instances from self._mplayer._map
         self._map.update(self._mplayer._map)
         self.log("Server started.")
-        #############
-        # FIXME: make loop a class method
-        # Or probably give an option to use asyncore.socket_map
-        ########
+        # FIXME: make loop a class method or probably
+        # give an option to use asyncore.socket_map.
         loop(timeout=timeout, use_poll=use_poll, map=self._map)
 
 
@@ -530,8 +525,8 @@ class _ClientHandler(asynchat.async_chat):
         if not cmd or "quit".startswith(cmd.split()[0].lower()):
             self.handle_close()
         elif cmd.lower() == "reload":
-            # (Re)loading a file or a playlist would make MPlayer "jump out"
-            # of its XEmbed container, restart the MPlayer process instead:
+            # Using the 'loadfile' or 'loadlist' commands causes MPlayer
+            # to destroy the window of its container, restart the process instead:
             # First, remove stdout and stderr from the map;
             map(self._map.pop, self.mplayer._map)
             # then restart the MPlayer process;
