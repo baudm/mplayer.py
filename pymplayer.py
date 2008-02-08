@@ -35,6 +35,7 @@ MAX_CMD_LEN -- maximum length of a command
 
 """
 
+import time
 import socket
 import asyncore
 import asynchat
@@ -87,6 +88,7 @@ class MPlayer(object):
         self.args = args
         self._map = {}
         self._process = None
+        self._response = None
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -109,6 +111,8 @@ class MPlayer(object):
 
     def _handle_data(self, *args):
         data = self._process.stdout.readline().rstrip()
+        if data.startswith('ANS_'):
+            self._response = data.split('=')[1].strip("'").strip('"')
         if data:
             self.handle_data(data)
         # gobject.io_add_watch compatibility
@@ -229,19 +233,26 @@ class MPlayer(object):
         """
         return self.stop(), self.start()
 
-    def command(self, cmd):
+    def command(self, *args):
         """Send a command to MPlayer.
 
-        @param cmd: valid MPlayer command
+        @params: command, arg1, arg2...
+
+        Returns the output if command is a valid get_* command.
+        Else, None is returned.
 
         Valid MPlayer commands are documented in:
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
 
         """
-        if not isinstance(cmd, basestring):
-            raise TypeError("command must be a string")
+        cmd = " ".join(map(str, args))
         if self.isalive() and cmd:
             self._process.stdin.write("".join([cmd, '\n']))
+            if cmd.lower().startswith('get_'):
+                time.sleep(0.1)
+                response = self._response
+                self._response = None
+                return response
 
     def isalive(self):
         """Check if MPlayer process is alive.
