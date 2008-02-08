@@ -36,7 +36,6 @@ MAX_CMD_LEN -- maximum length of a command
 """
 
 import socket
-import select
 import asyncore
 import asynchat
 from subprocess import Popen, PIPE
@@ -92,20 +91,11 @@ class MPlayer(object):
     def __del__(self):
         # Be sure to stop the MPlayer process.
         self.stop()
-        
-    def _readlines(self):
-        ret = []
-        while any(select.select([self._process.stdout.fileno()], [], [], 0.6)):
-            ret.append(self._process.stdout.readline())
-        return ret
 
     def _get_args(self):
         return self._args[3:]
 
     def _set_args(self, args):
-        ############
-        # FIXME: see comment on _set_executable method
-        ############
         if not isinstance(args, (list, tuple)):
             raise TypeError("args should either be a tuple or list of strings")
         elif args:
@@ -163,9 +153,7 @@ class MPlayer(object):
 
         """
         # Clear the map so that asyncore.loop will terminate.
-        # This will be called twice, one of stdout and one for
-        # stderr, but that doesn't actually matter.
-        self._map.clear()
+        self._map.pop(file)
 
     def poll_output(self, timeout=30.0, use_poll=False):
         """Start polling MPlayer's stdout and stderr.
@@ -211,10 +199,9 @@ class MPlayer(object):
             except OSError:
                 return False
             else:
-                #self.create_handler(self._process.stdout, self._handle_data)
-                #self.create_handler(self._process.stderr, self._handle_error)
-                return self._readlines()
-            #return retcode
+                self.create_handler(self._process.stdout, self._handle_data)
+                self.create_handler(self._process.stderr, self._handle_error)
+                return True
 
     def stop(self):
         """Stop the MPlayer process.
@@ -253,10 +240,6 @@ class MPlayer(object):
             raise TypeError("command must be a string")
         if self.isalive() and cmd:
             self._process.stdin.write("".join([cmd, '\n']))
-            if cmd.lower().startswith('get_'):
-                for line in self._readlines():
-                    if line.startswith('ANS_'):
-                        return line.rstrip().split('=')[1].strip("'").strip('"')
 
     def isalive(self):
         """Check if MPlayer process is alive.
@@ -311,11 +294,9 @@ class Server(asyncore.dispatcher):
         # Use own socket map
         self._map = {}
         asyncore.dispatcher.__init__(self, map=self._map)
-        #####################
-        # TODO: remove reference to self in self._map to avoid circular dependency
-        # Probably add a 'dummy' instance to self._map so that the loop won't terminate prematurely
+        # TODO: remove reference to self in self._map to avoid circular reference.
+        # Probably move the socket map out of self?
         self._map.clear()
-        ##########
         self._mplayer = MPlayer()
         self.max_conn = max_conn
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -334,11 +315,11 @@ class Server(asyncore.dispatcher):
             raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
 
     def __setattr__(self, attr, value):
-        # Make the MPlayer properties behave properly
-        if attr not in ('args', 'executable'):
+        # Make the MPlayer 'args' property behave properly
+        if attr != 'args':
             self.__dict__[attr] = value
         else:
-            setattr(self._mplayer, attr, value)
+            self._mplayer.args = value
 
     @staticmethod
     def writable():
