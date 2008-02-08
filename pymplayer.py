@@ -36,6 +36,7 @@ MAX_CMD_LEN -- maximum length of a command
 """
 
 import socket
+import select
 import asyncore
 import asynchat
 from subprocess import Popen, PIPE
@@ -91,6 +92,12 @@ class MPlayer(object):
     def __del__(self):
         # Be sure to stop the MPlayer process.
         self.stop()
+        
+    def _readlines(self):
+        ret = []
+        while any(select.select([self._process.stdout.fileno()], [], [], 0.6)):
+            ret.append(self._process.stdout.readline())
+        return ret
 
     def _get_args(self):
         return self._args[3:]
@@ -202,12 +209,12 @@ class MPlayer(object):
                 # Start the MPlayer process (line-buffered)
                 self._process = Popen(args=args, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1)
             except OSError:
-                retcode = False
+                return False
             else:
-                self.create_handler(self._process.stdout, self._handle_data)
-                self.create_handler(self._process.stderr, self._handle_error)
-                retcode = True
-            return retcode
+                #self.create_handler(self._process.stdout, self._handle_data)
+                #self.create_handler(self._process.stderr, self._handle_error)
+                return self._readlines()
+            #return retcode
 
     def stop(self):
         """Stop the MPlayer process.
@@ -246,6 +253,10 @@ class MPlayer(object):
             raise TypeError("command must be a string")
         if self.isalive() and cmd:
             self._process.stdin.write("".join([cmd, '\n']))
+            if cmd.lower().startswith('get_'):
+                for line in self._readlines():
+                    if line.startswith('ANS_'):
+                        return line.rstrip().split('=')[1].strip("'").strip('"')
 
     def isalive(self):
         """Check if MPlayer process is alive.
