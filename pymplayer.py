@@ -153,7 +153,9 @@ class MPlayer(object):
 
         """
         # Clear the map so that asyncore.loop will terminate.
-        self._map.pop(file)
+        # This will be called twice, one of stdout and one for
+        # stderr, but that doesn't actually matter.
+        self._map.clear()
 
     def poll_output(self, timeout=30.0, use_poll=False):
         """Start polling MPlayer's stdout and stderr.
