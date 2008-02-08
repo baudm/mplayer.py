@@ -535,3 +535,15 @@ class _ClientHandler(asynchat.async_chat):
             self._map.update(self.mplayer._map)
         else:
             self.mplayer.command(cmd)
+
+
+if __name__ == "__main__":
+    import sys
+
+    player = MPlayer()
+    player.args = sys.argv[1:]
+    player.start()
+    try:
+        player.poll_output()
+    except KeyboardInterrupt:
+        player.stop()
