@@ -49,18 +49,23 @@ using the MPlayer class.
 
 * Copyright and Licensing
 
-    The PyMPlayer module (pymplayer.py) is released under the terms of LGPLv3.
+    The PyMPlayer module (pymplayer.py) is released under the terms of LGPL 3.
     See COPYING for the full license.
 
-    The Python programs in examples/ are all released under the terms of GPLv3.
+    The Python programs in examples/ are all released under the terms of GPL 3.
     See examples/COPYING for the full license.
 
-    All the code (Python programs) and related data (Glade file) are owned by Darwin M. Bautista and
-    the University of the Philippines Electrical and Electronics Engineering Computer Networks Laboratory.
+    All the code (Python module and programs) and related data (Glade file) are
+    Copyright (C) 2007-2008 Darwin M. Bautista and the University of the Philippines
+    Electrical and Electronics Engineering Computer Networks Laboratory (UP EEE CNL).
 
-* Contact info:
+    The GPL and LGPL licenses are Copyright (C) Free Software Foundation.
+
+* Contact Info
 
     URL and download: http://pypi.python.org/pypi/PyMPlayer/
 
     Author and Maintainer: Darwin M. Bautista <djclue917@gmail.com>
 
+
+(This file is based on Kiwi's README)
