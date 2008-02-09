@@ -233,11 +233,11 @@ class MPlayer(object):
         """
         return self.stop(), self.start()
 
-    def command(self, cmd, *args):
+    def command(self, cmd, timeout=0.1):
         """Send a command to MPlayer.
 
-        @param cmd: valid MPlayer command
-        @param args: command arguments
+        @param cmd: command string
+        @param timeout: time to wait before returning command output
 
         Returns the output if command is a valid get_* command.
         Else, None is returned.
@@ -248,11 +248,10 @@ class MPlayer(object):
         """
         if not isinstance(cmd, basestring):
             raise TypeError("command must be a string")
-        cmd = " ".join([cmd] + map(str, args))
         if self.isalive() and cmd:
             self._process.stdin.write("".join([cmd, '\n']))
             if cmd.lower().startswith('get_'):
-                time.sleep(0.1)
+                time.sleep(timeout)
                 response = self._response
                 self._response = None
                 return response
