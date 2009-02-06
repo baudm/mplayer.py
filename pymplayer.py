@@ -30,6 +30,7 @@ Client -- client for sending MPlayer commands
 import socket
 import asyncore
 import asynchat
+from time import sleep
 from subprocess import Popen, PIPE
 
 
@@ -62,8 +63,8 @@ class MPlayer(object):
     def __init__(self, args=()):
         self.args = args
         self._process = None
-        self._stdout = _File()
-        self._stderr = _File()
+        self._stdout = _file()
+        self._stderr = _file()
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -170,6 +171,22 @@ class MPlayer(object):
         if self.isalive() and cmd:
             self._process.stdin.write(''.join([cmd, '\n']))
 
+    def query(self, cmd, timeout=0.1):
+        if cmd.lower().startswith('get_'):
+            self._stdout._query_in_progress = True
+            self.command(cmd)
+            sleep(timeout)
+            try:
+                response = self._process.stdout.readline().rstrip()
+            except IOError:
+                return None
+            if response.startswith('ANS_'):
+                response = response.split('=')[1].strip("'").strip('"')
+            else:
+                response = None
+            self._stdout._query_in_progress = False
+            return response
+
 
 class Server(asyncore.dispatcher):
     """Server(mplayer, port, host='', max_conn=1)
@@ -228,6 +245,9 @@ class Client(asynchat.async_chat):
 
     """
 
+    ac_in_buffer_size = 512
+    ac_out_buffer_size = 512
+
     def __init__(self):
         asynchat.async_chat.__init__(self)
         self.buffer = []
@@ -279,6 +299,9 @@ class Client(asynchat.async_chat):
 class _ClientHandler(asynchat.async_chat):
     """Handler for Client connections"""
 
+    ac_in_buffer_size = 512
+    ac_out_buffer_size = 512
+
     def __init__(self, connections, mplayer, conn, log):
         asynchat.async_chat.__init__(self, conn)
         self.add_channel(connections)
@@ -318,35 +341,7 @@ class _ClientHandler(asynchat.async_chat):
             self.push(''.join([data, '\r\n']))
 
 
-class _ReadableFile(object):
-    """Imitates a readable asyncore.dispatcher class.
-
-    This class serves as a wrapper for MPlayer's stdout and stderr
-    so that we can piggyback on asyncore.loop for polling stdout/stderr
-    for pending I/O events and for calling the specified callback function.
-
-    """
-
-    def __init__(self, fileno, callback):
-        # Add self to asyncore.socket_map
-        asyncore.socket_map[fileno] = self
-        self.handle_read_event = callback
-
-    def __getattr__(self, attr):
-        # Always return a callable for non-existent attributes and
-        # methods in order to 'fool' asyncore's polling function.
-        return lambda: None
-
-    @staticmethod
-    def readable():
-        return True
-
-    @staticmethod
-    def writable():
-        return False
-
-
-class _File(object):
+class _file(object):
     """Wrapper for stdout and stderr
 
     Exposes the fileno() and readline() methods
@@ -356,14 +351,16 @@ class _File(object):
     def __init__(self):
         self._callbacks = {}
         self._file = None
+        self._query_in_progress = False
 
     def _set_file(self, file):
         self._unset_file()
         self._file = file
-        _ReadableFile(file.fileno(), self.readline)
+        # create file_dispatcher instance and override handle_read method
+        asyncore.file_dispatcher(file.fileno()).handle_read = self.readline
 
     def _unset_file(self):
-        if self._file is not None:
+        if self._file is not None and asyncore.socket_map.has_key(self._file.fileno()):
             del asyncore.socket_map[self._file.fileno()]
         self._file = None
 
@@ -372,8 +369,11 @@ class _File(object):
             return self._file.fileno()
 
     def readline(self):
-        if self._file is not None:
-            data = self._file.readline().rstrip()
+        if self._file is not None and not self._query_in_progress:
+            try:
+                data = self._file.readline().rstrip()
+            except IOError:
+                return None
             for handler in self._callbacks.values():
                 if callable(handler):
                     handler(data)
