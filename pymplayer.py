@@ -359,7 +359,7 @@ class _file(object):
         self._unset_file()
         self._file = file
         # create file_dispatcher instance and override handle_read method
-        asyncore.file_dispatcher(file.fileno()).handle_read = self.readline
+        asyncore.file_dispatcher(file.fileno()).handle_read = self.callback
 
     def _unset_file(self):
         if self._file is not None and asyncore.socket_map.has_key(self._file.fileno()):
@@ -375,13 +375,31 @@ class _file(object):
             try:
                 data = self._file.readline().rstrip()
             except IOError:
-                return None
-            for handler in self._callbacks.values():
-                if callable(handler):
-                    handler(data)
-                else:
-                    del self._callbacks[id(handler)]
+                data = None
             return data
+
+    def callback(self, *args):
+        """Callback for use with other loops (GTK, Tkinter, Qt)
+
+        m.stdout.add_handler(handle_player_data)
+        m.start()
+
+        fd = m.stdout.fileno()
+        cb = m.stdout.callback
+
+        gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
+        tkinter.createfilehandler(fd, tkinter.READABLE, cb)
+
+        """
+        data = self.readline()
+        if data is None:
+            return True
+        for handler in self._callbacks.values():
+            if callable(handler):
+                handler(data)
+            else:
+                del self._callbacks[id(handler)]
+        return True
 
     def add_handler(self, callback):
         cid = id(callback)
