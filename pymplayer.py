@@ -375,16 +375,19 @@ class _File(object):
         if self._file is not None:
             data = self._file.readline().rstrip()
             for handler in self._callbacks.values():
-                handler(data)
+                if callable(handler):
+                    handler(data)
+                else:
+                    del self._callbacks[id(handler)]
             return data
 
     def add_handler(self, callback):
-        uid = hash(callback)
-        self._callbacks[uid] = callback
-        return uid
+        cid = id(callback)
+        self._callbacks[cid] = callback
+        return cid
 
-    def remove_handler(self, uid):
-        del self._callbacks[uid]
+    def remove_handler(self, cid):
+        del self._callbacks[cid]
 
 
 if __name__ == '__main__':
