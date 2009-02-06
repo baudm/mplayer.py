@@ -26,23 +26,39 @@ MPlayer -- thin, out-of-process wrapper for MPlayer
 Server -- asynchronous server that manages an MPlayer instance
 Client -- client for sending MPlayer commands
 
+Function:
+
+loop() -- the asyncore.loop function, provided here for convenience
+
+Constants:
+
+PIPE -- subprocess.PIPE, provided here for convenience
+STDOUT -- subprocess.STDOUT, provided here for convenience
+
 """
 
 import socket
 import asyncore
 import asynchat
 from time import sleep
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 
 
 __all__ = [
     'MPlayer',
     'Server',
-    'Client'
+    'Client',
+    'loop',
+    'PIPE',
+    'STDOUT'
     ]
 
 __version__ = '0.4.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
+
+
+# For convenience
+loop = asyncore.loop
 
 
 class MPlayer(object):
@@ -112,8 +128,8 @@ class MPlayer(object):
             args = [self.__class__.executable]
             args.extend(self._args)
             # Force PIPE if callbacks were added
-            stdout_ = (PIPE if len(self._stdout._callbacks) > 0 else stdout)
-            stderr_ = (PIPE if len(self._stderr._callbacks) > 0 else stderr)
+            stdout_ = (PIPE if self._stdout._callbacks else stdout)
+            stderr_ = (PIPE if self._stderr._callbacks else stderr)
             try:
                 # Start the MPlayer process (line-buffered)
                 self._process = Popen(args=args, stdin=PIPE, stdout=stdout_, stderr=stderr_, bufsize=1)
@@ -424,4 +440,4 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGTERM, lambda s, f: player.stop())
     signal.signal(signal.SIGINT, lambda s, f: player.stop())
-    asyncore.loop()
+    loop()

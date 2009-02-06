@@ -25,7 +25,6 @@ pygtk.require('2.0')
 import gtk.glade
 import gobject
 import pymplayer
-import asyncore
 from threading import Thread
 
 
@@ -49,7 +48,7 @@ class GTKClient(object):
         self.client = pymplayer.Client()
         self.client.handle_data = self.handle_data
         self.client.connect(('', 1025))
-        t = Thread(target=asyncore.loop)
+        t = Thread(target=pymplayer.loop)
         t.setDaemon(True)
         t.start()
         self.timer = gobject.timeout_add(1000, self.query)

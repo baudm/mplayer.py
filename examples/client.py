@@ -26,7 +26,6 @@ __version__ = "$Revision$"
 import os
 import sys
 import socket
-import asyncore
 from time import sleep
 from threading import Thread
 from optparse import OptionParser
@@ -119,7 +118,7 @@ def main():
     except socket.gaierror, error:
         client.close()
         sys.exit(error[1])
-    t = Thread(target=asyncore.loop)
+    t = Thread(target=pymplayer.loop)
     t.setDaemon(True)
     t.start()
     if not client.connected:

@@ -23,17 +23,13 @@
 import sys
 import socket
 import signal
-import asyncore
-try:
-    from pymplayer import MPlayer, Server
-except ImportError, msg:
-    sys.exit(msg)
+import pymplayer
 
 
 def main():
-    player = MPlayer()
+    player = pymplayer.MPlayer()
     try:
-        server = Server(player, 1025)
+        server = pymplayer.Server(player, 1025)
     except socket.error, msg:
         sys.exit(msg)
 
@@ -50,7 +46,7 @@ def main():
 
     signal.signal(signal.SIGTERM, term)
     signal.signal(signal.SIGINT, term)
-    asyncore.loop()
+    pymplayer.loop()
 
 
 if __name__ == '__main__':
