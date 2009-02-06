@@ -25,15 +25,12 @@ __version__ = "$Revision$"
 
 import os
 import sys
-import time
 import socket
 import asyncore
+from time import sleep
 from threading import Thread
-try:
-    from optparse import OptionParser
-    import pymplayer
-except ImportError, msg:
-    sys.exit(msg)
+from optparse import OptionParser
+import pymplayer
 try:
     import curses
 except ImportError:
@@ -129,7 +126,7 @@ def main():
         print "Trying to connect..."
         attempts = 5
     while not client.connected and attempts:
-        time.sleep(0.5)
+        sleep(0.5)
         attempts -= 1
     try:
         # Check for connectivity by sending a blank string

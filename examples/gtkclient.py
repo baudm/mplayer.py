@@ -20,16 +20,13 @@
 
 """GTK-based PyMPlayer Client"""
 
-try:
-    import pygtk
-    pygtk.require('2.0')
-    import gtk.glade
-    import gobject
-    import pymplayer
-    import asyncore
-    from threading import Thread
-except ImportError, msg:
-    exit(msg)
+import pygtk
+pygtk.require('2.0')
+import gtk.glade
+import gobject
+import pymplayer
+import asyncore
+from threading import Thread
 
 
 class GTKClient(object):
@@ -127,11 +124,11 @@ class GTKClient(object):
         if self.time_length is not None:
             minutes1, seconds1 = int(time / 60), int(time % 60)
             minutes2, seconds2 = int(self.time_length / 60), int(self.time_length % 60)
-            self.progress_bar.set_text("%d:%02d / %d:%02d" % (minutes1, seconds1, minutes2, seconds2))
+            self.progress_bar.set_text('%d:%02d / %d:%02d' % (minutes1, seconds1, minutes2, seconds2))
             self.progress_bar.set_fraction(time/self.time_length)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     gtk.gdk.threads_init()
     GTKClient()
     gtk.main()

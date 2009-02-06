@@ -49,11 +49,9 @@ def main():
         player.stop()
 
     signal.signal(signal.SIGTERM, term)
-    try:
-        asyncore.loop()
-    except KeyboardInterrupt:
-        term()
+    signal.signal(signal.SIGINT, term)
+    asyncore.loop()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
