@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # $Id$
 #
@@ -51,14 +52,14 @@ class MPlayer(object):
     for sending commands and receiving responses to and from MPlayer. Take
     note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
 
-    @class attribute bin: path to or filename of the MPlayer executable
+    @class attribute executable: path to or filename of the MPlayer executable
     @property args: MPlayer arguments
     @property stdout: process' stdout (read-only)
     @property stderr: process' stderr (read-only)
 
     """
 
-    bin = 'mplayer'
+    executable = 'mplayer'
 
     def __init__(self, args=()):
         self.args = args
@@ -84,14 +85,15 @@ class MPlayer(object):
         return self._args[3:]
 
     def _set_args(self, args):
-        if not isinstance(args, (list, tuple)):
-            raise TypeError('args should either be a tuple or list of strings')
-        elif args:
-            for arg in args:
-                if not isinstance(arg, basestring):
-                    raise TypeError('args should either be a tuple or list of strings')
-        self._args = ['-slave', '-idle', '-quiet']
-        self._args.extend(args)
+        _args = ['-slave', '-idle', '-quiet']
+        try:
+            _args.extend(args)
+        except TypeError:
+            raise TypeError('args should be an iterable')
+        for i in range(3, len(_args)):
+            if not isinstance(_args[i], basestring):
+                _args[i] = str(_args[i])
+        self._args = _args
 
     args = property(_get_args, _set_args, doc='MPlayer arguments')
 
@@ -107,7 +109,7 @@ class MPlayer(object):
 
         """
         if not self.isalive():
-            args = [self.__class__.bin]
+            args = [self.__class__.executable]
             args.extend(self._args)
             # Force PIPE if callbacks were added
             stdout_ = (PIPE if len(self._stdout._callbacks) > 0 else stdout)
@@ -403,7 +405,5 @@ if __name__ == '__main__':
     player.start()
 
     signal.signal(signal.SIGTERM, lambda s, f: player.stop())
-    try:
-        asyncore.loop()
-    except KeyboardInterrupt:
-        player.stop()
+    signal.signal(signal.SIGINT, lambda s, f: player.stop())
+    asyncore.loop()
