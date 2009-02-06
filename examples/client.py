@@ -118,7 +118,7 @@ def main():
 
     client = pymplayer.Client()
     try:
-        client.connect(host=options.host, port=options.port)
+        client.connect((options.host, options.port))
     except socket.gaierror, error:
         client.close()
         sys.exit(error[1])

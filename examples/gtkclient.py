@@ -51,7 +51,7 @@ class GTKClient(object):
             return
         self.client = pymplayer.Client()
         self.client.handle_data = self.handle_data
-        self.client.connect('', 1025)
+        self.client.connect(('', 1025))
         t = Thread(target=asyncore.loop)
         t.setDaemon(True)
         t.start()

@@ -97,8 +97,12 @@ class MPlayer(object):
     def start(self, stdout=None, stderr=None):
         """Start the MPlayer process.
 
-        Returns True on success, False on failure,
-        and None if MPlayer is already running.
+        @param stdout: subprocess.PIPE | None
+        @param stderr: subprocess.PIPE | subprocess.STDOUT | None
+
+        Returns True on success, False on failure, and None if MPlayer is
+        already running. stdout/stderr will be PIPEd regardless of the
+        passed parameters if handlers were added to them.
 
         """
         if not self.isalive():
@@ -136,10 +140,6 @@ class MPlayer(object):
     def restart(self):
         """Convenience method for restarting the MPlayer process.
 
-        Restarting MPlayer means stopping the current process and
-        starting a new one which means that the poll_output method
-        will finish and return and will need to be called again.
-
         Returns the return values of the stop and start methods as a 2-tuple.
 
         """
@@ -160,10 +160,6 @@ class MPlayer(object):
         """Send a command to MPlayer.
 
         @param cmd: command string
-        @param timeout: time to wait before returning command output
-
-        Returns the output if command is a valid get_* command.
-        Else, None is returned.
 
         Valid MPlayer commands are documented in:
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
@@ -197,8 +193,7 @@ class Server(asyncore.dispatcher):
     def __del__(self):
         self.stop()
 
-    @staticmethod
-    def writable():
+    def writable(self):
         return False
 
     def handle_close(self):
@@ -218,7 +213,7 @@ class Server(asyncore.dispatcher):
     def stop(self):
         """Stop the server.
 
-        Closes all the channels found in self._map (including itself)
+        Closes all the channels (_ClientHandler) spawned by the Server
 
         """
         for channel in self._channels.values():
@@ -238,8 +233,7 @@ class Client(asynchat.async_chat):
         self.buffer = []
         self.set_terminator('\r\n')
 
-    @staticmethod
-    def handle_connect():
+    def handle_connect(self):
         return
 
     def handle_error(self):
@@ -257,16 +251,7 @@ class Client(asynchat.async_chat):
     def handle_data(self, data):
         self.log(data)
 
-    def connect(self, host, port):
-        """Connect to a pymplayer.Server
-
-        @param host: host to connect to
-        @param port: port to use
-
-        pymplayer.loop should be called (if not called previously)
-        after calling this method.
-
-        """
+    def connect(self, (host, port)):
         if self.connected:
             return
         if self.socket:
@@ -289,38 +274,6 @@ class Client(asynchat.async_chat):
             return False
         else:
             return True
-
-
-class _ReadableFile(object):
-    """Imitates a readable asyncore.dispatcher class.
-
-    This class serves as a wrapper for stdout and stderr
-    so that the polling function of asyncore can check them
-    for any pending I/O events. The polling function will
-    call the handle_read_event method as soon as there is data
-    to read.
-
-    """
-
-    def __init__(self, map_, fileno, handler):
-        # Add self to map
-        map_[fileno] = self
-        self.handle_read_event = handler
-
-    def __getattr__(self, attr):
-        # Always return a callable for non-existent attributes and
-        # methods in order to 'fool' asyncore's polling function.
-        # (IMO, this is a better approach than defining all
-        #  the other asyncore.dispatcher methods)
-        return lambda: None
-
-    @staticmethod
-    def readable():
-        return True
-
-    @staticmethod
-    def writable():
-        return False
 
 
 class _ClientHandler(asynchat.async_chat):
@@ -365,6 +318,34 @@ class _ClientHandler(asynchat.async_chat):
             self.push(''.join([data, '\r\n']))
 
 
+class _ReadableFile(object):
+    """Imitates a readable asyncore.dispatcher class.
+
+    This class serves as a wrapper for MPlayer's stdout and stderr
+    so that we can piggyback on asyncore.loop for polling stdout/stderr
+    for pending I/O events and for calling the specified callback function.
+
+    """
+
+    def __init__(self, fileno, callback):
+        # Add self to asyncore.socket_map
+        asyncore.socket_map[fileno] = self
+        self.handle_read_event = callback
+
+    def __getattr__(self, attr):
+        # Always return a callable for non-existent attributes and
+        # methods in order to 'fool' asyncore's polling function.
+        return lambda: None
+
+    @staticmethod
+    def readable():
+        return True
+
+    @staticmethod
+    def writable():
+        return False
+
+
 class _File(object):
     """Wrapper for stdout and stderr
 
@@ -379,7 +360,7 @@ class _File(object):
     def _set_file(self, file):
         self._unset_file()
         self._file = file
-        _ReadableFile(asyncore.socket_map, file.fileno(), self.readline)
+        _ReadableFile(file.fileno(), self.readline)
 
     def _unset_file(self):
         if self._file is not None:
