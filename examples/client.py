@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # $Id$
 #
-# Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory
-# Copyright (C) 2007-2008  Darwin M. Bautista <djclue917@gmail.com>
+# Copyright (C) 2007-2008  UP EEEI Computer Networks Laboratory
+# Copyright (C) 2007-2009  Darwin M. Bautista <djclue917@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +27,7 @@ import os
 import sys
 import time
 import socket
+import asyncore
 from threading import Thread
 try:
     from optparse import OptionParser
@@ -52,6 +54,9 @@ else:
         curses.KEY_DOWN: "volume -2",
         curses.KEY_HOME: "seek 0 1",
         curses.KEY_END: "seek 100 1"}
+
+
+MAX_CMD_LEN = 256
 
 
 def init_ui(peername):
@@ -100,12 +105,14 @@ def main():
     parser.add_option("-c", "--command", dest="command", help="send CMD to the MPlayer server", metavar='"CMD"')
     parser.add_option("-n", "--no-curses", dest="curses", default=True, action="store_false", help="don't use curses interface")
     parser.add_option("-H", "--host", dest="host", default="localhost", help="server to connect to")
-    parser.add_option("-p", "--port", dest="port", default=pymplayer.PORT, type="int", help="server port to connect to")
+    parser.add_option("-p", "--port", dest="port", type="int", help="server port to connect to")
 
     (options, args) = parser.parse_args()
 
     if curses is None:
         options.curses = False
+    if not options.port:
+        parser.error("specify port")
     if not options.curses and options.command is None:
         parser.error("not using curses but no command specified")
 
@@ -115,7 +122,7 @@ def main():
     except socket.gaierror, error:
         client.close()
         sys.exit(error[1])
-    t = Thread(target=pymplayer.loop)
+    t = Thread(target=asyncore.loop)
     t.setDaemon(True)
     t.start()
     if not client.connected:
@@ -147,7 +154,7 @@ def main():
                 curses.echo()
                 stdscr.addstr(12, 0, "".join(['Command: ', spaces]))
                 try:
-                    cmd = stdscr.getstr(12, 9, pymplayer.MAX_CMD_LEN)
+                    cmd = stdscr.getstr(12, 9, MAX_CMD_LEN)
                 except KeyboardInterrupt:
                     cmd = ""
                 curses.noecho()

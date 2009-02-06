@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # $Id$
 #
-# Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory
-# Copyright (C) 2007-2008  Darwin M. Bautista <djclue917@gmail.com>
+# Copyright (C) 2007-2008  UP EEEI Computer Networks Laboratory
+# Copyright (C) 2007-2009  Darwin M. Bautista <djclue917@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,23 +23,36 @@
 import sys
 import socket
 import signal
+import asyncore
 try:
-    from pymplayer import Server
+    from pymplayer import MPlayer, Server
 except ImportError, msg:
     sys.exit(msg)
 
 
 def main():
+    player = MPlayer()
     try:
-        server = Server(port=1025, max_conn=2)
+        server = Server(player, 1025)
     except socket.error, msg:
         sys.exit(msg)
-    server.args = sys.argv[1:]
-    signal.signal(signal.SIGTERM, lambda s, f: server.stop())
-    try:
-        server.start()
-    except KeyboardInterrupt:
+
+    def handle_data(data):
+        print 'mplayer: ', data
+
+    player.args = sys.argv[1:]
+    player.stdout.add_handler(handle_data)
+    player.start()
+
+    def term(*args):
         server.stop()
+        player.stop()
+
+    signal.signal(signal.SIGTERM, term)
+    try:
+        asyncore.loop()
+    except KeyboardInterrupt:
+        term()
 
 
 if __name__ == "__main__":

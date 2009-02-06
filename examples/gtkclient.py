@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # $Id$
 #
-# Copyright (C) 2007-2008  UP EEE Computer Networks Laboratory
-# Copyright (C) 2007-2008  Darwin M. Bautista <djclue917@gmail.com>
+# Copyright (C) 2007-2008  UP EEEI Computer Networks Laboratory
+# Copyright (C) 2007-2009  Darwin M. Bautista <djclue917@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +26,7 @@ try:
     import gtk.glade
     import gobject
     import pymplayer
+    import asyncore
     from threading import Thread
 except ImportError, msg:
     exit(msg)
@@ -49,8 +51,8 @@ class GTKClient(object):
             return
         self.client = pymplayer.Client()
         self.client.handle_data = self.handle_data
-        self.client.connect('', 50001)
-        t = Thread(target=pymplayer.loop)
+        self.client.connect('', 1025)
+        t = Thread(target=asyncore.loop)
         t.setDaemon(True)
         t.start()
         self.timer = gobject.timeout_add(1000, self.query)
