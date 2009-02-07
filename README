@@ -56,8 +56,9 @@ using the MPlayer class.
     See examples/COPYING for the full license.
 
     All the code (Python module and programs) and related data (Glade file) are
-    Copyright (C) 2007-2008 Darwin M. Bautista and the University of the Philippines
-    Electrical and Electronics Engineering Computer Networks Laboratory (UP EEE CNL).
+    Copyright (C) 2007-2008  University of the Philippines, Electrical and
+    Electronics Engineering Institute, Computer Networks Laboratory (UP EEEI CNL).
+    Copyright (C) 2007-2009  Darwin M. Bautista.
 
     The GPL and LGPL licenses are Copyright (C) Free Software Foundation.
 
@@ -68,4 +69,4 @@ using the MPlayer class.
     Author and Maintainer: Darwin M. Bautista <djclue917@gmail.com>
 
 
-(This file is based on Kiwi's README)
+(This file was based on Kiwi's README)
