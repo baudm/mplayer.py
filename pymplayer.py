@@ -90,12 +90,12 @@ class MPlayer(object):
     def _get_stdout(self):
         return self._stdout
 
-    stdout = property(fget=_get_stdout)
+    stdout = property(fget=_get_stdout, doc='stdout of the MPlayer process')
 
     def _get_stderr(self):
         return self._stderr
 
-    stderr = property(fget=_get_stderr)
+    stderr = property(fget=_get_stderr, doc='stderr of the MPlayer process')
 
     def _get_args(self):
         return self._args[3:]
