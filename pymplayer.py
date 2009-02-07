@@ -174,9 +174,9 @@ class MPlayer(object):
         Returns True if alive, else, returns False.
 
         """
-        try:
+        if self._process is not None:
             return (self._process.poll() is None)
-        except AttributeError:
+        else:
             return False
 
     def command(self, cmd):
