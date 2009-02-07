@@ -119,7 +119,7 @@ class MPlayer(object):
         @param stdout: subprocess.PIPE | None
         @param stderr: subprocess.PIPE | subprocess.STDOUT | None
 
-        Returns True on success, False on failure, and None if MPlayer is
+        Returns True on success, False on failure, or None if MPlayer is
         already running. stdout/stderr will be PIPEd regardless of the
         passed parameters if handlers were added to them.
 
@@ -127,19 +127,21 @@ class MPlayer(object):
         if not self.isalive():
             args = [self.__class__.executable]
             args.extend(self._args)
-            # Force PIPE if callbacks were added
-            stdout_ = (PIPE if self._stdout._callbacks else stdout)
-            stderr_ = (PIPE if self._stderr._callbacks else stderr)
+            # Force PIPE if handlers were added
+            if self._stdout._callbacks:
+                stdout = PIPE
+            if self._stderr._callbacks:
+                stderr = PIPE
             try:
                 # Start the MPlayer process (line-buffered)
-                self._process = Popen(args=args, stdin=PIPE, stdout=stdout_, stderr=stderr_, bufsize=1)
+                self._process = Popen(args, bufsize=1, stdin=PIPE, stdout=stdout, stderr=stderr)
             except OSError:
                 return False
             else:
                 if self._process.stdout is not None:
-                    self._stdout._set_file(self._process.stdout)
+                    self._stdout._bind(self._process.stdout)
                 if self._process.stderr is not None:
-                    self._stderr._set_file(self._process.stderr)
+                    self._stderr._bind(self._process.stderr)
                 return True
 
     def stop(self):
@@ -149,12 +151,10 @@ class MPlayer(object):
 
         """
         if self.isalive():
-            self._stdout._unset_file()
-            self._stderr._unset_file()
+            self._stdout._unbind()
+            self._stderr._unbind()
             self.command('quit')
-            process = self._process
-            self._process = None
-            return process.wait()
+            return self._process.wait()
 
     def restart(self):
         """Convenience method for restarting the MPlayer process.
@@ -187,7 +187,7 @@ class MPlayer(object):
         if not isinstance(cmd, basestring):
             raise TypeError('command must be a string')
         if self.isalive() and cmd:
-            self._process.stdin.write(''.join([cmd, '\n']))
+            self._process.stdin.writelines([cmd, '\n'])
 
     def query(self, cmd, timeout=0.1):
         if cmd.lower().startswith('get_'):
@@ -232,8 +232,12 @@ class Server(asyncore.dispatcher):
         return False
 
     def handle_close(self):
+        for channel in self._channels.values():
+            channel.handle_close()
         self.close()
         self.log('Server closed.')
+
+    stop = handle_close
 
     def handle_accept(self):
         conn, addr = self.accept()
@@ -244,16 +248,6 @@ class Server(asyncore.dispatcher):
         else:
             self.log('Max number of connections reached, rejected: %s' % (addr, ))
             conn.close()
-
-    def stop(self):
-        """Stop the server.
-
-        Closes all the channels (_ClientHandler) spawned by the Server
-
-        """
-        for channel in self._channels.values():
-            channel.handle_close()
-        self.handle_close()
 
 
 class Client(asynchat.async_chat):
@@ -371,13 +365,13 @@ class _file(object):
         self._file = None
         self._query_in_progress = False
 
-    def _set_file(self, file):
-        self._unset_file()
+    def _bind(self, file):
+        self._unbind()
         self._file = file
         # create file_dispatcher instance and override handle_read method
         asyncore.file_dispatcher(file.fileno()).handle_read = self.callback
 
-    def _unset_file(self):
+    def _unbind(self):
         if self._file is not None and asyncore.socket_map.has_key(self._file.fileno()):
             del asyncore.socket_map[self._file.fileno()]
         self._file = None
@@ -395,7 +389,7 @@ class _file(object):
             return data
 
     def callback(self, *args):
-        """Callback for use with other loops (GTK, Tkinter, Qt)
+        """Callback for use with event loops of other frameworks
 
         m.stdout.add_handler(handle_player_data)
         m.start()
@@ -417,13 +411,20 @@ class _file(object):
                 del self._callbacks[id(handler)]
         return True
 
-    def add_handler(self, callback):
-        cid = id(callback)
-        self._callbacks[cid] = callback
-        return cid
+    def add_handler(self, handler):
+        if not callable(handler):
+            raise TypeError('handler should be callable')
+        hid = id(handler)
+        self._callbacks[hid] = handler
+        return hid
 
-    def remove_handler(self, cid):
-        del self._callbacks[cid]
+    def remove_handler(self, hid):
+        try:
+            del self._callbacks[hid]
+        except KeyError:
+            return False
+        else:
+            return True
 
 
 if __name__ == '__main__':
