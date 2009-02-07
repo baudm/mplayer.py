@@ -191,9 +191,22 @@ class MPlayer(object):
         if not isinstance(cmd, basestring):
             raise TypeError('command must be a string')
         if self.isalive() and cmd:
+            if cmd.lower().startswith('quit'):
+                self._stdout._unbind()
+                self._stderr._unbind()
             self._process.stdin.writelines([cmd, '\n'])
 
     def query(self, cmd, timeout=0.1):
+        """Send a query to MPlayer. Result is returned, if there is.
+
+        A running event loop (asyncore.loop, GTK, etc.) is needed for this
+        function to work as expected. The reason is that MPlayer's stdout
+        contains other data that need to be read as soon as they appear so
+        as not to interfere with the data resulting from queries.
+
+        WARNING: This function is not thread-safe. You might want to implement
+                 a locking mechanism to ensure that you get the correct result
+        """
         if cmd.lower().startswith('get_'):
             self._stdout._query_in_progress = True
             self.command(cmd)
@@ -202,11 +215,11 @@ class MPlayer(object):
                 response = self._process.stdout.readline().rstrip()
             except IOError:
                 return None
+            self._stdout._query_in_progress = False
             if response.startswith('ANS_'):
                 response = response.split('=')[1].strip("'").strip('"')
             else:
                 response = None
-            self._stdout._query_in_progress = False
             return response
 
 
