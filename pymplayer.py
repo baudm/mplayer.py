@@ -207,7 +207,7 @@ class MPlayer(object):
         WARNING: This function is not thread-safe. You might want to implement
                  a locking mechanism to ensure that you get the correct result
         """
-        if cmd.lower().startswith('get_'):
+        if self._process.stdout is not None and cmd.lower().startswith('get_'):
             self._stdout._query_in_progress = True
             self.command(cmd)
             sleep(timeout)
