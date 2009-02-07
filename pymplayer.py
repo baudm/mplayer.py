@@ -124,6 +124,10 @@ class MPlayer(object):
         passed parameters if handlers were added to them.
 
         """
+        if stdout not in (PIPE, None):
+            raise ValueError('stdout should either be PIPE or None')
+        if stderr not in (PIPE, STDOUT, None):
+            raise ValueError('stderr should be one of PIPE, STDOUT, or None')
         if not self.isalive():
             args = [self.__class__.executable]
             args.extend(self._args)
