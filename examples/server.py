@@ -38,11 +38,11 @@ def main():
 
     player.args = sys.argv[1:]
     player.stdout.add_handler(handle_data)
-    player.start()
+    player.run()
 
     def term(*args):
         server.stop()
-        player.stop()
+        player.quit()
 
     signal.signal(signal.SIGTERM, term)
     signal.signal(signal.SIGINT, term)
