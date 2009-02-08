@@ -142,12 +142,10 @@ class MPlayer(object):
             return False
         types = {'integer': int, 'float': float, 'string': basestring}
         for line in mplayer.communicate()[0].split('\n'):
-            if not line:
+            if not line or line.startswith('quit') or line.startswith('get_property'):
                 continue
             args = line.lower().split()
             name = args.pop(0)
-            if name in ('quit', 'get_property', 'set_property'):
-                continue
             if not name.startswith('get_'):
                 required = 0
                 for arg in args:
@@ -178,6 +176,13 @@ class MPlayer(object):
             scope = {}
             exec code.strip() in globals(), scope
             setattr(cls, name, scope[name])
+        # Just manually define get_property
+        def get_property(self, name, timeout=0.1):
+            """get_property(name, timeout=0.1)"""
+            if not isinstance(name, basestring):
+                raise TypeError('property name should be a string')
+            return self.query(' '.join(['get_property', name]), timeout)
+        setattr(cls, 'get_property', get_property)
         return True
 
     def start(self, stdout=None, stderr=None):
@@ -289,18 +294,6 @@ class MPlayer(object):
             else:
                 response = None
             return response
-
-    def get_property(self, name, timeout=0.1):
-        """get_property(name, timeout=0.1)"""
-        if not isinstance(name, basestring):
-            raise TypeError('property name should be a string')
-        return self.query(' '.join(['get_property', name]), timeout)
-
-    def set_property(self, name, value):
-        """set_property(name, value)"""
-        if not isinstance(name, basestring):
-            raise TypeError('property name should be a string')
-        self.command('set_property', name, value)
 
 
 class Server(asyncore.dispatcher):
