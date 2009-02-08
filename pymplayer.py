@@ -137,9 +137,13 @@ class MPlayer(object):
         Generate methods based on the available commands. The generated
         methods check the number and type of the passed parameters.
         """
-        types = {'Integer': int, 'Float': float, 'String': basestring}
         args = [cls.executable, '-input', 'cmdlist', '-really-quiet']
-        for line in Popen(args, stdout=PIPE).communicate()[0].split('\n'):
+        try:
+            mplayer = Popen(args, bufsize=1, stdout=PIPE)
+        except OSError:
+            return
+        types = {'Integer': int, 'Float': float, 'String': basestring}
+        for line in mplayer.communicate()[0].split('\n'):
             if not line or line.startswith('quit'):
                 continue
             args = line.split()
