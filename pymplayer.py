@@ -193,15 +193,17 @@ class MPlayer(object):
     def query(self, cmd, timeout=0.1):
         """Send a query to MPlayer. Result is returned, if there is.
 
-        A running event loop (asyncore.loop, gtk.main, etc.) is needed for this
-        function to work as expected. The reason is that MPlayer's stdout
-        contains other data that need to be read as soon as they appear so
-        as not to interfere with the data resulting from queries.
+        query() will first consume all data in stdout before proceeding.
+        This is to ensure that it'll get the response from the command
+        given and not just some random data.
 
         WARNING: This function is not thread-safe. You might want to implement
                  a locking mechanism to ensure that you get the correct result
         """
         if self._process.stdout is not None and cmd.lower().startswith('get_'):
+            # Consume all data in stdout before proceeding
+            while self._stdout.readline() is not None:
+                pass
             self._stdout._query_in_progress = True
             self.command(cmd)
             sleep(timeout)
