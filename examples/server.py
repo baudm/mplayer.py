@@ -38,7 +38,7 @@ def main():
 
     player.args = sys.argv[1:]
     player.stdout.add_handler(handle_data)
-    player.run()
+    player.start()
 
     def term(*args):
         server.stop()
