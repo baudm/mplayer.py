@@ -87,6 +87,21 @@ class MPlayer(object):
         # Be sure to stop the MPlayer process.
         self.quit()
 
+    @staticmethod
+    def _check_command_args(name, types, min_argc, max_argc, args):
+        argc = len(args)
+        if not min_argc and argc:
+            raise TypeError('%s() takes no arguments (%d given)' % (name, argc + 1))
+        if argc < min_argc:
+            raise TypeError('%s() takes at least %d arguments (%d given)' % (name, min_argc + 1, argc + 1))
+        if min_argc == max_argc and argc != max_argc:
+            raise TypeError('%s() takes exactly %d arguments (%d given)' % (name, max_argc + 1, argc + 1))
+        if argc > max_argc:
+            raise TypeError('%s() takes at most %d arguments (%d given)' % (name, max_argc + 1, argc + 1))
+        for i in xrange(argc):
+            if not isinstance(args[i], types[i]):
+                raise TypeError('%s() argument %d should be %s' % (name, i + 1, types[i].__name__.replace('base', '')))
+
     def _get_args(self):
         return self._args[3:]
 
@@ -112,6 +127,58 @@ class MPlayer(object):
     def stderr(self):
         """stderr of the MPlayer process"""
         return self._stderr
+
+    @classmethod
+    def introspect(cls):
+        types = {'Integer': int, 'Float': float, 'String': basestring}
+        args = [cls.executable, '-input', 'cmdlist', '-really-quiet']
+        for line in Popen(args, stdout=PIPE).communicate()[0].split('\n'):
+            if not line or line.startswith('quit'):
+                continue
+            args = line.split()
+            name = args.pop(0)
+            if not name.startswith('get_'):
+                required = 0
+                for arg in args:
+                    if not arg.startswith('['):
+                        required += 1
+                arg_types = [types[arg.lstrip('[').rstrip(']')] for arg in args]
+                code = '''
+                def %(name)s(self, *args):
+                    """%(name)s(%(args)s)"""
+                    try:
+                        self._check_command_args('%(name)s', %(types)s, %(min)d, %(max)d, args)
+                    except TypeError, msg:
+                        raise TypeError(msg)
+                    return self.command('%(name)s', *args)
+                ''' % dict(
+                    name = name,
+                    args = ', '.join(args),
+                    min = required,
+                    max = len(args),
+                    types = str([t.__name__ for t in arg_types]).replace("'", '')
+                )
+            elif not name.startswith('get_property'):
+                code = '''
+                def %(name)s(self, timeout=0.1):
+                    """%(name)s(timeout=0.1)"""
+                    try:
+                        return self.query('%(name)s', timeout)
+                    except TypeError, msg:
+                        raise TypeError(msg)
+                ''' % dict(name = name)
+            else:
+                code = '''
+                def get_property(self, property, timeout=0.1):
+                    """get_property(property, timeout=0.1)"""
+                    try:
+                        return self.query(' '.join(['get_property', property]), timeout)
+                    except TypeError, msg:
+                        raise TypeError(msg)
+                '''
+            scope = {}
+            exec code.strip() in globals(), scope
+            setattr(cls, name, scope[name])
 
     def start(self, stdout=None, stderr=None):
         """Start the MPlayer process.
