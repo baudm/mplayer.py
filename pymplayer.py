@@ -113,7 +113,7 @@ class MPlayer(object):
         """stderr of the MPlayer process"""
         return self._stderr
 
-    def run(self, stdout=None, stderr=None):
+    def start(self, stdout=None, stderr=None):
         """Start the MPlayer process.
 
         @param stdout: subprocess.PIPE | None
@@ -148,7 +148,7 @@ class MPlayer(object):
                     self._stderr._attach(self._process.stderr)
                 return True
 
-    def quit(self):
+    def quit(self, retcode=0):
         """Stop the MPlayer process.
 
         Returns the exit status of MPlayer or None if not running.
@@ -157,7 +157,7 @@ class MPlayer(object):
         if self.is_alive():
             self._stdout._detach()
             self._stderr._detach()
-            self._process.stdin.write('quit\n')
+            self._process.stdin.write('quit %d\n' % (retcode, ))
             return self._process.wait()
 
     def is_alive(self):
