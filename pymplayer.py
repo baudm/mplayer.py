@@ -140,11 +140,11 @@ class MPlayer(object):
             mplayer = Popen(args, bufsize=1, stdout=PIPE)
         except OSError:
             return False
-        types = {'Integer': int, 'Float': float, 'String': basestring}
+        types = {'integer': int, 'float': float, 'string': basestring}
         for line in mplayer.communicate()[0].split('\n'):
             if not line:
                 continue
-            args = line.split()
+            args = line.lower().split()
             name = args.pop(0)
             if name in ('quit', 'get_property', 'set_property'):
                 continue
