@@ -171,7 +171,7 @@ class MPlayer(object):
         else:
             return False
 
-    def command(self, cmd):
+    def command(self, cmd, *args):
         """Send a command to MPlayer.
 
         @param cmd: command string
@@ -185,7 +185,10 @@ class MPlayer(object):
         if cmd.lower().startswith('quit'):
             raise ValueError('use the quit() method instead')
         if self.is_alive() and cmd:
-            self._process.stdin.writelines([cmd, '\n'])
+            command = [cmd]
+            command.extend([str(arg) for arg in args])
+            command.append('\n')
+            self._process.stdin.write(' '.join(command))
 
     def query(self, cmd, timeout=0.1):
         """Send a query to MPlayer. Result is returned, if there is.
