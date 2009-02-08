@@ -139,7 +139,7 @@ class MPlayer(object):
         try:
             mplayer = Popen(args, bufsize=1, stdout=PIPE)
         except OSError:
-            return
+            return False
         types = {'Integer': int, 'Float': float, 'String': basestring}
         for line in mplayer.communicate()[0].split('\n'):
             if not line:
@@ -178,6 +178,7 @@ class MPlayer(object):
             scope = {}
             exec code.strip() in globals(), scope
             setattr(cls, name, scope[name])
+        return True
 
     def start(self, stdout=None, stderr=None):
         """Start the MPlayer process.
