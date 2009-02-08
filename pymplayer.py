@@ -441,7 +441,8 @@ class _ClientHandler(asynchat.async_chat):
             self.handle_close()
         elif data.lower() == 'reload':
             # then restart the MPlayer process;
-            self.mplayer.restart()
+            self.mplayer.quit()
+            self.mplayer.start()
         else:
             self.mplayer.command(data)
 
