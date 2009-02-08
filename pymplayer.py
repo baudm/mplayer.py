@@ -130,6 +130,11 @@ class MPlayer(object):
 
     @classmethod
     def introspect(cls):
+        """Introspect the MPlayer binary
+
+        Generate methods based on the available commands. The generated
+        methods check the number and type of the passed parameters.
+        """
         types = {'Integer': int, 'Float': float, 'String': basestring}
         args = [cls.executable, '-input', 'cmdlist', '-really-quiet']
         for line in Popen(args, stdout=PIPE).communicate()[0].split('\n'):
@@ -142,21 +147,21 @@ class MPlayer(object):
                 for arg in args:
                     if not arg.startswith('['):
                         required += 1
-                arg_types = [types[arg.lstrip('[').rstrip(']')] for arg in args]
+                arg_types = str([types[arg.strip('[]')].__name__ for arg in args]).replace("'", '')
                 code = '''
                 def %(name)s(self, *args):
                     """%(name)s(%(args)s)"""
                     try:
-                        self._check_command_args('%(name)s', %(types)s, %(min)d, %(max)d, args)
+                        self._check_command_args('%(name)s', %(types)s, %(min_argc)d, %(max_argc)d, args)
                     except TypeError, msg:
                         raise TypeError(msg)
                     return self.command('%(name)s', *args)
                 ''' % dict(
                     name = name,
                     args = ', '.join(args),
-                    min = required,
-                    max = len(args),
-                    types = str([t.__name__ for t in arg_types]).replace("'", '')
+                    min_argc = required,
+                    max_argc = len(args),
+                    types = arg_types
                 )
             elif not name.startswith('get_property'):
                 code = '''
@@ -280,7 +285,7 @@ class MPlayer(object):
                 return None
             self._stdout._query_in_progress = False
             if response.startswith('ANS_'):
-                response = response.split('=')[1].strip("'").strip('"')
+                response = response.split('=')[1].strip('\'"')
             else:
                 response = None
             return response
