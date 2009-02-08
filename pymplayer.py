@@ -157,7 +157,7 @@ class MPlayer(object):
         if self.is_alive():
             self._stdout._detach()
             self._stderr._detach()
-            self.command('quit')
+            self._process.stdin.write('quit\n')
             return self._process.wait()
 
     def is_alive(self):
@@ -182,10 +182,9 @@ class MPlayer(object):
         """
         if not isinstance(cmd, basestring):
             raise TypeError('command must be a string')
+        if cmd.lower().startswith('quit'):
+            raise ValueError('use the quit() method instead')
         if self.is_alive() and cmd:
-            if cmd.lower().startswith('quit'):
-                self._stdout._detach()
-                self._stderr._detach()
             self._process.stdin.writelines([cmd, '\n'])
 
     def query(self, cmd, timeout=0.1):
