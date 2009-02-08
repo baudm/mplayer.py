@@ -90,8 +90,6 @@ class MPlayer(object):
     @staticmethod
     def _check_command_args(name, types, min_argc, max_argc, args):
         argc = len(args) + 1
-        min_argc += 1
-        max_argc += 1
         if not min_argc and argc:
             raise TypeError('%s() takes no arguments (%d given)' % (name, argc))
         if argc < min_argc:
@@ -144,10 +142,12 @@ class MPlayer(object):
             return
         types = {'Integer': int, 'Float': float, 'String': basestring}
         for line in mplayer.communicate()[0].split('\n'):
-            if not line or line.startswith('quit'):
+            if not line:
                 continue
             args = line.split()
             name = args.pop(0)
+            if name in ('quit', 'get_property', 'set_property'):
+                continue
             if not name.startswith('get_'):
                 required = 0
                 for arg in args:
@@ -163,13 +163,10 @@ class MPlayer(object):
                         raise TypeError(msg)
                     return self.command('%(name)s', *args)
                 ''' % dict(
-                    name = name,
-                    args = ', '.join(args),
-                    min_argc = required,
-                    max_argc = len(args),
-                    types = arg_types
+                    name = name, args = ', '.join(args), min_argc = required + 1,
+                    max_argc = len(args) + 1, types = arg_types
                 )
-            elif not name.startswith('get_property'):
+            else:
                 code = '''
                 def %(name)s(self, timeout=0.1):
                     """%(name)s(timeout=0.1)"""
@@ -178,15 +175,6 @@ class MPlayer(object):
                     except TypeError, msg:
                         raise TypeError(msg)
                 ''' % dict(name = name)
-            else:
-                code = '''
-                def get_property(self, property, timeout=0.1):
-                    """get_property(property, timeout=0.1)"""
-                    try:
-                        return self.query(' '.join(['get_property', property]), timeout)
-                    except TypeError, msg:
-                        raise TypeError(msg)
-                '''
             scope = {}
             exec code.strip() in globals(), scope
             setattr(cls, name, scope[name])
@@ -300,6 +288,18 @@ class MPlayer(object):
             else:
                 response = None
             return response
+
+    def get_property(self, name, timeout=0.1):
+        """get_property(name, timeout=0.1)"""
+        if not isinstance(name, basestring):
+            raise TypeError('property name should be a string')
+        return self.query(' '.join(['get_property', name]), timeout)
+
+    def set_property(self, name, value):
+        """set_property(name, value)"""
+        if not isinstance(name, basestring):
+            raise TypeError('property name should be a string')
+        self.command('set_property', name, value)
 
 
 class Server(asyncore.dispatcher):
