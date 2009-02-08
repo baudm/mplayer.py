@@ -89,16 +89,18 @@ class MPlayer(object):
 
     @staticmethod
     def _check_command_args(name, types, min_argc, max_argc, args):
-        argc = len(args)
+        argc = len(args) + 1
+        min_argc += 1
+        max_argc += 1
         if not min_argc and argc:
-            raise TypeError('%s() takes no arguments (%d given)' % (name, argc + 1))
+            raise TypeError('%s() takes no arguments (%d given)' % (name, argc))
         if argc < min_argc:
-            raise TypeError('%s() takes at least %d arguments (%d given)' % (name, min_argc + 1, argc + 1))
+            raise TypeError('%s() takes at least %d arguments (%d given)' % (name, min_argc, argc))
         if min_argc == max_argc and argc != max_argc:
-            raise TypeError('%s() takes exactly %d arguments (%d given)' % (name, max_argc + 1, argc + 1))
+            raise TypeError('%s() takes exactly %d arguments (%d given)' % (name, max_argc, argc))
         if argc > max_argc:
-            raise TypeError('%s() takes at most %d arguments (%d given)' % (name, max_argc + 1, argc + 1))
-        for i in xrange(argc):
+            raise TypeError('%s() takes at most %d arguments (%d given)' % (name, max_argc, argc))
+        for i in xrange(argc - 1):
             if not isinstance(args[i], types[i]):
                 raise TypeError('%s() argument %d should be %s' % (name, i + 1, types[i].__name__.replace('base', '')))
 
@@ -283,7 +285,8 @@ class MPlayer(object):
                 response = self._process.stdout.readline().rstrip()
             except IOError:
                 return None
-            self._stdout._query_in_progress = False
+            finally:
+                self._stdout._query_in_progress = False
             if response.startswith('ANS_'):
                 response = response.split('=')[1].strip('\'"')
             else:
