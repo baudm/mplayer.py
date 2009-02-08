@@ -245,26 +245,26 @@ class MPlayer(object):
         else:
             return False
 
-    def command(self, cmd, *args):
+    def command(self, name, *args):
         """Send a command to MPlayer.
 
-        @param cmd: command string
+        @param name: command string
 
         Valid MPlayer commands are documented in:
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
 
         """
-        if not isinstance(cmd, basestring):
-            raise TypeError('command must be a string')
-        if cmd.lower().startswith('quit'):
+        if not isinstance(name, basestring):
+            raise TypeError('command name should be a string')
+        if name.lower().startswith('quit'):
             raise ValueError('use the quit() method instead')
-        if self.is_alive() and cmd:
-            command = [cmd]
+        if self.is_alive() and name:
+            command = [name]
             command.extend([str(arg) for arg in args])
             command.append('\n')
             self._process.stdin.write(' '.join(command))
 
-    def query(self, cmd, timeout=0.1):
+    def query(self, name, timeout=0.1):
         """Send a query to MPlayer. Result is returned, if there is.
 
         query() will first consume all data in stdout before proceeding.
@@ -274,14 +274,16 @@ class MPlayer(object):
         WARNING: This function is not thread-safe. You might want to implement
                  a locking mechanism to ensure that you get the correct result
         """
-        if self._process.stdout is not None and cmd.lower().startswith('get_'):
+        if not isinstance(timeout, (int, float)):
+            raise TypeError('timeout should either be int or float')
+        if self._stdout._file is not None and name.lower().startswith('get_'):
             self._stdout._query_in_progress = True
             # Consume all data in stdout before proceeding
             try:
                 self._process.stdout.read()
             except IOError:
                 pass
-            self.command(cmd)
+            self.command(name)
             sleep(timeout)
             try:
                 response = self._process.stdout.readline().rstrip()
