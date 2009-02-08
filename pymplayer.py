@@ -87,16 +87,6 @@ class MPlayer(object):
         # Be sure to stop the MPlayer process.
         self.quit()
 
-    def _get_stdout(self):
-        return self._stdout
-
-    stdout = property(fget=_get_stdout, doc='stdout of the MPlayer process')
-
-    def _get_stderr(self):
-        return self._stderr
-
-    stderr = property(fget=_get_stderr, doc='stderr of the MPlayer process')
-
     def _get_args(self):
         return self._args[3:]
 
@@ -111,7 +101,17 @@ class MPlayer(object):
                 _args[i] = str(_args[i])
         self._args = _args
 
-    args = property(_get_args, _set_args, doc='MPlayer arguments')
+    args = property(_get_args, _set_args, doc='list of MPlayer arguments')
+
+    @property
+    def stdout(self):
+        """stdout of the MPlayer process"""
+        return self._stdout
+
+    @property
+    def stderr(self):
+        """stderr of the MPlayer process"""
+        return self._stderr
 
     def run(self, stdout=None, stderr=None):
         """Start the MPlayer process.
