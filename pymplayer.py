@@ -276,7 +276,9 @@ class MPlayer(object):
         """
         if self._process.stdout is not None and cmd.lower().startswith('get_'):
             # Consume all data in stdout before proceeding
-            while self._stdout.readline() is not None:
+            try:
+                self._process.stdout.read()
+            except IOError:
                 pass
             self._stdout._query_in_progress = True
             self.command(cmd)
