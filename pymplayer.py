@@ -275,12 +275,12 @@ class MPlayer(object):
                  a locking mechanism to ensure that you get the correct result
         """
         if self._process.stdout is not None and cmd.lower().startswith('get_'):
+            self._stdout._query_in_progress = True
             # Consume all data in stdout before proceeding
             try:
                 self._process.stdout.read()
             except IOError:
                 pass
-            self._stdout._query_in_progress = True
             self.command(cmd)
             sleep(timeout)
             try:
