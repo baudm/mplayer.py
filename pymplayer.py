@@ -449,6 +449,8 @@ class _ClientHandler(asynchat.async_chat):
 class _file_dispatcher(asyncore.file_dispatcher):
 
     def __init__(self, fd, callback):
+        # This is intended. We don't want asyncore.file_dispatcher.__init__()
+        # to make fd non-blocking since it causes problems with MPlayer.
         asyncore.dispatcher.__init__(self)
         self.connected = True
         self.set_file(fd)
@@ -503,7 +505,7 @@ class _file(object):
         """
         if self._query_in_progress:
             return True
-        data = self._file.readline()
+        data = self._file.readline().rstrip()
         if not data:
             return True
         for subscriber in self._subscribers:
