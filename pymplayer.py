@@ -182,7 +182,7 @@ class MPlayer(object):
             if not isinstance(name, basestring):
                 raise TypeError('property name should be a string')
             return self.query(' '.join(['get_property', name]), timeout)
-        setattr(cls, 'get_property', get_property)
+        cls.get_property = get_property
         return True
 
     def start(self, stdout=None, stderr=None):
@@ -193,7 +193,7 @@ class MPlayer(object):
 
         Returns True on success, False on failure, or None if MPlayer is
         already running. stdout/stderr will be PIPEd regardless of the
-        passed parameters if handlers were added to them.
+        passed parameters if subscribers were added to them.
 
         """
         if stdout not in (PIPE, None):
@@ -203,10 +203,10 @@ class MPlayer(object):
         if not self.is_alive():
             args = [self.__class__.executable]
             args.extend(self._args)
-            # Force PIPE if handlers were added
-            if self._stdout._handlers:
+            # Force PIPE if subscribers were added
+            if self._stdout._subscribers:
                 stdout = PIPE
-            if self._stderr._handlers:
+            if self._stderr._subscribers:
                 stderr = PIPE
             try:
                 # Start the MPlayer process (line-buffered)
@@ -215,9 +215,9 @@ class MPlayer(object):
                 return False
             else:
                 if self._process.stdout is not None:
-                    self._stdout._attach(self._process.stdout)
+                    self._stdout._bind(self._process.stdout)
                 if self._process.stderr is not None:
-                    self._stderr._attach(self._process.stderr)
+                    self._stderr._bind(self._process.stderr)
                 return True
 
     def quit(self, retcode=0):
@@ -227,8 +227,8 @@ class MPlayer(object):
 
         """
         if self.is_alive():
-            self._stdout._detach()
-            self._stderr._detach()
+            self._stdout._unbind()
+            self._stderr._unbind()
             self._process.stdin.write('quit %d\n' % (retcode, ))
             return self._process.wait()
 
@@ -411,12 +411,12 @@ class _ClientHandler(asynchat.async_chat):
         self.connections = connections
         self.mplayer = mplayer
         # hook handle_mplayer_data method to mplayer's stdout
-        self.handler_id = self.mplayer.stdout.add_handler(self.handle_mplayer_data)
+        self.mplayer.stdout.attach(self.handle_mplayer_data)
         self.log = log
         self.buffer = []
 
     def handle_close(self):
-        self.mplayer.stdout.remove_handler(self.handler_id)
+        self.mplayer.stdout.detach(self.handle_mplayer_data)
         del self.connections[self._fileno]
         self.close()
         self.log('Connection closed: %s' % (self.addr, ))
@@ -448,21 +448,21 @@ class _file(object):
     """Wrapper for stdout and stderr
 
     Exposes the fileno() and readline() methods
-    Provides methods for management of data handlers
+    Provides methods for management of subscribers (data handlers)
     """
 
     def __init__(self):
-        self._handlers = {}
+        self._subscribers = []
         self._file = None
         self._query_in_progress = False
 
-    def _attach(self, file):
-        self._detach()
+    def _bind(self, file):
+        self._unbind()
         self._file = file
         # create file_dispatcher instance and override handle_read method
         asyncore.file_dispatcher(file.fileno()).handle_read = self.callback
 
-    def _detach(self):
+    def _unbind(self):
         if self._file is not None and asyncore.socket_map.has_key(self._file.fileno()):
             del asyncore.socket_map[self._file.fileno()]
         self._file = None
@@ -482,7 +482,7 @@ class _file(object):
     def callback(self, *args):
         """Callback for use with event loops of other frameworks
 
-        m.stdout.add_handler(handle_player_data)
+        m.stdout.attach(handle_player_data)
         m.start()
 
         fd = m.stdout.fileno()
@@ -495,24 +495,23 @@ class _file(object):
         data = self.readline()
         if data is None:
             return True
-        for handler in self._handlers.values():
-            if callable(handler):
-                handler(data)
+        for subscriber in self._subscribers:
+            if callable(subscriber):
+                subscriber(data)
             else:
-                del self._handlers[id(handler)]
+                self._subscribers.remove(subscriber)
         return True
 
-    def add_handler(self, handler):
-        if not callable(handler):
-            raise TypeError('handler should be callable')
-        hid = id(handler)
-        self._handlers[hid] = handler
-        return hid
+    def attach(self, subscriber):
+        if not callable(subscriber):
+            raise TypeError('subscriber should be callable')
+        if not self._subscribers.count(subscriber):
+            self._subscribers.append(subscriber)
 
-    def remove_handler(self, hid):
+    def detach(self, subscriber):
         try:
-            del self._handlers[hid]
-        except KeyError:
+            self._subscribers.remove(subscriber)
+        except ValueError:
             return False
         else:
             return True
@@ -527,9 +526,9 @@ if __name__ == '__main__':
 
     player = MPlayer()
     player.args = sys.argv[1:]
-    player.stdout.add_handler(handle_data)
+    player.stdout.attach(handle_data)
     player.start()
 
-    signal.signal(signal.SIGTERM, lambda s, f: player.stop())
-    signal.signal(signal.SIGINT, lambda s, f: player.stop())
+    signal.signal(signal.SIGTERM, lambda s, f: player.quit())
+    signal.signal(signal.SIGINT, lambda s, f: player.quit())
     loop()
