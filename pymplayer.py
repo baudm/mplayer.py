@@ -40,7 +40,7 @@ STDOUT -- subprocess.STDOUT, provided here for convenience
 import socket
 import asyncore
 import asynchat
-from time import sleep
+from select import select
 from subprocess import Popen, PIPE, STDOUT
 
 
@@ -209,8 +209,8 @@ class MPlayer(object):
             if self._stderr._subscribers:
                 stderr = PIPE
             try:
-                # Start the MPlayer process (line-buffered)
-                self._process = Popen(args, bufsize=1, stdin=PIPE, stdout=stdout, stderr=stderr)
+                # Start the MPlayer process (unbuffered)
+                self._process = Popen(args, stdin=PIPE, stdout=stdout, stderr=stderr)
             except OSError:
                 return False
             else:
@@ -262,7 +262,7 @@ class MPlayer(object):
             command.append('\n')
             self._process.stdin.write(' '.join(command))
 
-    def query(self, name, timeout=0.1):
+    def query(self, name, timeout=0.25):
         """Send a query to MPlayer. Result is returned, if there is.
 
         query() will first consume all data in stdout before proceeding.
@@ -277,23 +277,13 @@ class MPlayer(object):
         if self._stdout._file is not None and name.lower().startswith('get_'):
             self._stdout._query_in_progress = True
             # Consume all data in stdout before proceeding
-            try:
-                self._process.stdout.read()
-            except IOError:
+            while self._stdout.readline() is not None:
                 pass
             self.command(name)
-            sleep(timeout)
-            try:
-                response = self._process.stdout.readline().rstrip()
-            except IOError:
-                return None
-            finally:
-                self._stdout._query_in_progress = False
-            if response.startswith('ANS_'):
-                response = response.split('=')[1].strip('\'"')
-            else:
-                response = None
-            return response
+            response = self._stdout.readline(timeout)
+            self._stdout._query_in_progress = False
+            if response is not None and response.startswith('ANS_'):
+                return response.split('=')[1].strip('\'"')
 
 
 class Server(asyncore.dispatcher):
@@ -444,6 +434,15 @@ class _ClientHandler(asynchat.async_chat):
             self.push(''.join([data, '\r\n']))
 
 
+class _file_dispatcher(asyncore.file_dispatcher):
+
+    def __init__(self, fd, callback):
+        asyncore.dispatcher.__init__(self)
+        self.connected = True
+        self.set_file(fd)
+        self.handle_read = callback
+
+
 class _file(object):
     """Wrapper for stdout and stderr
 
@@ -452,15 +451,14 @@ class _file(object):
     """
 
     def __init__(self):
-        self._subscribers = []
         self._file = None
+        self._subscribers = []
         self._query_in_progress = False
 
     def _bind(self, file):
         self._unbind()
         self._file = file
-        # create file_dispatcher instance and override handle_read method
-        asyncore.file_dispatcher(file.fileno()).handle_read = self.publish
+        _file_dispatcher(file.fileno(), self.publish)
 
     def _unbind(self):
         if self._file is not None and asyncore.socket_map.has_key(self._file.fileno()):
@@ -471,19 +469,15 @@ class _file(object):
         if self._file is not None:
             return self._file.fileno()
 
-    def readline(self):
-        if self._file is not None and not self._query_in_progress:
-            try:
-                data = self._file.readline().rstrip()
-            except IOError:
-                data = None
-            return data
+    def readline(self, timeout=0):
+        if self._file is not None and any(select([self._file], [], [], timeout)):
+            return self._file.readline().rstrip()
 
     def publish(self, *args):
         """Publish data to subscribers
 
         This is a callback for use with event loops of other frameworks.
-        It is not meant to be called manually.
+        It is NOT meant to be called manually.
 
         m.stdout.attach(handle_player_data)
         m.start()
@@ -495,8 +489,10 @@ class _file(object):
         tkinter.createfilehandler(fd, tkinter.READABLE, cb)
 
         """
-        data = self.readline()
-        if data is None:
+        if self._query_in_progress:
+            return True
+        data = self._file.readline()
+        if not data:
             return True
         for subscriber in self._subscribers:
             if callable(subscriber):
