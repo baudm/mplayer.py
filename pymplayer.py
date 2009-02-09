@@ -254,7 +254,7 @@ class MPlayer(object):
         """
         if not isinstance(name, basestring):
             raise TypeError('command name should be a string')
-        if name.lower().startswith('quit'):
+        if 'quit'.startswith(name.split()[0].lower()):
             raise ValueError('use the quit() method instead')
         if self.is_alive() and name:
             command = ['pausing_keep', name]
