@@ -460,7 +460,7 @@ class _file(object):
         self._unbind()
         self._file = file
         # create file_dispatcher instance and override handle_read method
-        asyncore.file_dispatcher(file.fileno()).handle_read = self.callback
+        asyncore.file_dispatcher(file.fileno()).handle_read = self.publish
 
     def _unbind(self):
         if self._file is not None and asyncore.socket_map.has_key(self._file.fileno()):
@@ -479,14 +479,17 @@ class _file(object):
                 data = None
             return data
 
-    def callback(self, *args):
-        """Callback for use with event loops of other frameworks
+    def publish(self, *args):
+        """Publish data to subscribers
+
+        This is a callback for use with event loops of other frameworks.
+        It is not meant to be called manually.
 
         m.stdout.attach(handle_player_data)
         m.start()
 
         fd = m.stdout.fileno()
-        cb = m.stdout.callback
+        cb = m.stdout.publish
 
         gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
         tkinter.createfilehandler(fd, tkinter.READABLE, cb)
@@ -505,7 +508,9 @@ class _file(object):
     def attach(self, subscriber):
         if not callable(subscriber):
             raise TypeError('subscriber should be callable')
-        if not self._subscribers.count(subscriber):
+        try:
+            self._subscribers.index(subscriber)
+        except ValueError:
             self._subscribers.append(subscriber)
 
     def detach(self, subscriber):
