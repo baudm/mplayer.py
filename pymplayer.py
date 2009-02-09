@@ -280,10 +280,19 @@ class MPlayer(object):
             while self._stdout.readline() is not None:
                 pass
             self.command(name)
-            response = self._stdout.readline(timeout)
+            response = self._stdout.readline(timeout) or ''
             self._stdout._query_in_progress = False
-            if response is not None and response.startswith('ANS_'):
-                return response.split('=')[1].strip('\'"')
+            if not response.startswith('ANS_'):
+                return None
+            ans = response.split('=')[1].strip('\'"')
+            if ans.isdigit():
+                ans = int(ans)
+            elif ans.count('.') == 1:
+                try:
+                    ans = float(ans)
+                except ValueError:
+                    pass
+            return ans
 
 
 class Server(asyncore.dispatcher):
