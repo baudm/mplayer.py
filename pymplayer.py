@@ -257,7 +257,7 @@ class MPlayer(object):
         if name.lower().startswith('quit'):
             raise ValueError('use the quit() method instead')
         if self.is_alive() and name:
-            command = [name]
+            command = ['pausing_keep', name]
             command.extend([str(arg) for arg in args])
             command.append('\n')
             self._process.stdin.write(' '.join(command))
