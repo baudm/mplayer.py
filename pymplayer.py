@@ -93,11 +93,14 @@ class MPlayer(object):
         if not min_argc and argc:
             raise TypeError('%s() takes no arguments (%d given)' % (name, argc))
         if argc < min_argc:
-            raise TypeError('%s() takes at least %d arguments (%d given)' % (name, min_argc, argc))
+            s = ('s' if min_argc > 1 else '')
+            raise TypeError('%s() takes at least %d argument%s (%d given)' % (name, min_argc, s, argc))
         if min_argc == max_argc and argc != max_argc:
-            raise TypeError('%s() takes exactly %d arguments (%d given)' % (name, max_argc, argc))
+            s = ('s' if max_argc > 1 else '')
+            raise TypeError('%s() takes exactly %d argument%s (%d given)' % (name, max_argc, s, argc))
         if argc > max_argc:
-            raise TypeError('%s() takes at most %d arguments (%d given)' % (name, max_argc, argc))
+            s = ('s' if max_argc > 1 else '')
+            raise TypeError('%s() takes at most %d argument%s (%d given)' % (name, max_argc, s, argc))
         for i in xrange(argc - 1):
             if not isinstance(args[i], types[i]):
                 raise TypeError('%s() argument %d should be %s' % (name, i + 1, types[i].__name__.replace('base', '')))
@@ -111,7 +114,7 @@ class MPlayer(object):
             _args.extend(args)
         except TypeError:
             raise TypeError('args should be an iterable')
-        for i in range(3, len(_args)):
+        for i in xrange(3, len(_args)):
             if not isinstance(_args[i], basestring):
                 _args[i] = str(_args[i])
         self._args = _args
@@ -166,8 +169,8 @@ class MPlayer(object):
                 )
             else:
                 code = '''
-                def %(name)s(self, timeout=0.1):
-                    """%(name)s(timeout=0.1)"""
+                def %(name)s(self, timeout=0.25):
+                    """%(name)s(timeout=0.25)"""
                     try:
                         return self.query('%(name)s', timeout)
                     except TypeError, msg:
@@ -177,8 +180,8 @@ class MPlayer(object):
             exec code.strip() in globals(), scope
             setattr(cls, name, scope[name])
         # Just manually define get_property
-        def get_property(self, name, timeout=0.1):
-            """get_property(name, timeout=0.1)"""
+        def get_property(self, name, timeout=0.25):
+            """get_property(name, timeout=0.25)"""
             if not isinstance(name, basestring):
                 raise TypeError('property name should be a string')
             return self.query(' '.join(['get_property', name]), timeout)
