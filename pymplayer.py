@@ -64,11 +64,12 @@ loop = asyncore.loop
 class MPlayer(object):
     """MPlayer(args=())
 
-    An out-of-process wrapper for MPlayer. It provides the basic interface
-    for sending commands and receiving responses to and from MPlayer. Take
-    note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
+    An out-of-process wrapper for MPlayer. It provides the basic
+    interface for sending commands and receiving responses to and from
+    MPlayer. Take note that MPlayer is always started in 'slave',
+    'idle', and 'quiet' modes.
 
-    @class attribute executable: path to or filename of the MPlayer executable
+    @class attribute executable: path to or filename of MPlayer
     @property args: MPlayer arguments
     @property stdout: process' stdout (read-only)
     @property stderr: process' stderr (read-only)
@@ -91,19 +92,24 @@ class MPlayer(object):
     def _check_command_args(name, types, min_argc, max_argc, args):
         argc = len(args) + 1
         if not min_argc and argc:
-            raise TypeError('%s() takes no arguments (%d given)' % (name, argc))
+            raise TypeError('%s() takes no arguments (%d given)' %
+                (name, argc))
         if argc < min_argc:
             s = ('s' if min_argc > 1 else '')
-            raise TypeError('%s() takes at least %d argument%s (%d given)' % (name, min_argc, s, argc))
+            raise TypeError('%s() takes at least %d argument%s (%d given)' %
+                (name, min_argc, s, argc))
         if min_argc == max_argc and argc != max_argc:
             s = ('s' if max_argc > 1 else '')
-            raise TypeError('%s() takes exactly %d argument%s (%d given)' % (name, max_argc, s, argc))
+            raise TypeError('%s() takes exactly %d argument%s (%d given)' %
+                (name, max_argc, s, argc))
         if argc > max_argc:
             s = ('s' if max_argc > 1 else '')
-            raise TypeError('%s() takes at most %d argument%s (%d given)' % (name, max_argc, s, argc))
+            raise TypeError('%s() takes at most %d argument%s (%d given)' %
+                (name, max_argc, s, argc))
         for i in xrange(argc - 1):
             if not isinstance(args[i], types[i]):
-                raise TypeError('%s() argument %d should be %s' % (name, i + 1, types[i].__name__.replace('base', '')))
+                raise TypeError('%s() argument %d should be %s' %
+                    (name, i + 1, types[i].__name__.replace('base', '')))
 
     def _get_args(self):
         return self._args[3:]
@@ -133,7 +139,7 @@ class MPlayer(object):
 
     @classmethod
     def introspect(cls):
-        """Introspect the MPlayer binary
+        """Introspect the MPlayer executable
 
         Generate methods based on the available commands. The generated
         methods check the number and type of the passed parameters.
@@ -145,7 +151,8 @@ class MPlayer(object):
             return False
         types = {'integer': int, 'float': float, 'string': basestring}
         for line in mplayer.communicate()[0].split('\n'):
-            if not line or line.startswith('quit') or line.startswith('get_property'):
+            if not line or line.startswith('quit') or \
+               line.startswith('get_property'):
                 continue
             args = line.lower().split()
             name = args.pop(0)
@@ -154,18 +161,20 @@ class MPlayer(object):
                 for arg in args:
                     if not arg.startswith('['):
                         required += 1
-                arg_types = str([types[arg.strip('[]')].__name__ for arg in args]).replace("'", '')
+                arg_types = str([types[arg.strip('[]')].__name__ for arg in
+                    args]).replace("'", '')
                 code = '''
                 def %(name)s(self, *args):
                     """%(name)s(%(args)s)"""
                     try:
-                        self._check_command_args('%(name)s', %(types)s, %(min_argc)d, %(max_argc)d, args)
+                        self._check_command_args('%(name)s', %(types)s,
+                            %(min_argc)d, %(max_argc)d, args)
                     except TypeError, msg:
                         raise TypeError(msg)
                     return self.command('%(name)s', *args)
                 ''' % dict(
-                    name = name, args = ', '.join(args), min_argc = required + 1,
-                    max_argc = len(args) + 1, types = arg_types
+                    name = name, args = ', '.join(args), types = arg_types,
+                    min_argc = required + 1, max_argc = len(args) + 1
                 )
             else:
                 code = '''
@@ -194,9 +203,9 @@ class MPlayer(object):
         @param stdout: subprocess.PIPE | None
         @param stderr: subprocess.PIPE | subprocess.STDOUT | None
 
-        Returns True on success, False on failure, or None if MPlayer is
-        already running. stdout/stderr will be PIPEd regardless of the
-        passed parameters if subscribers were added to them.
+        Returns True on success, False on failure, or None if MPlayer
+        is already running. stdout/stderr will be PIPEd regardless of
+        the passed parameters if subscribers were added to them.
 
         """
         if stdout not in (PIPE, None):
@@ -213,7 +222,8 @@ class MPlayer(object):
                 stderr = PIPE
             try:
                 # Start the MPlayer process (unbuffered)
-                self._process = Popen(args, stdin=PIPE, stdout=stdout, stderr=stderr)
+                self._process = Popen(args, stdin=PIPE, stdout=stdout,
+                    stderr=stderr)
             except OSError:
                 return False
             else:
@@ -266,7 +276,7 @@ class MPlayer(object):
             self._process.stdin.write(' '.join(command))
 
     def query(self, name, timeout=0.25):
-        """Send a query to MPlayer. Result is returned, if there is.
+        """Send a query to MPlayer. The result is returned, if there is any.
 
         query() will first consume all data in stdout before proceeding.
         This is to ensure that it'll get the response from the command
@@ -338,7 +348,8 @@ class Server(asyncore.dispatcher):
             # Dispatch connection to a _ClientHandler
             _ClientHandler(self._channels, self._mplayer, conn, self.log)
         else:
-            self.log('Max number of connections reached, rejected: %s' % (addr, ))
+            self.log('Max number of connections reached, rejected: %s' %
+                (addr, ))
             conn.close()
 
 
@@ -475,7 +486,8 @@ class _file(object):
         _file_dispatcher(file.fileno(), self.publish)
 
     def _unbind(self):
-        if self._file is not None and asyncore.socket_map.has_key(self._file.fileno()):
+        if self._file is not None and \
+           asyncore.socket_map.has_key(self._file.fileno()):
             del asyncore.socket_map[self._file.fileno()]
         self._file = None
 
@@ -484,8 +496,25 @@ class _file(object):
             return self._file.fileno()
 
     def readline(self, timeout=0):
-        if self._file is not None and any(select([self._file], [], [], timeout)):
+        if self._file is not None and \
+           any(select([self._file], [], [], timeout)):
             return self._file.readline().rstrip()
+
+    def attach(self, subscriber):
+        if not callable(subscriber):
+            raise TypeError('subscriber should be callable')
+        try:
+            self._subscribers.index(subscriber)
+        except ValueError:
+            self._subscribers.append(subscriber)
+
+    def detach(self, subscriber):
+        try:
+            self._subscribers.remove(subscriber)
+        except ValueError:
+            return False
+        else:
+            return True
 
     def publish(self, *args):
         """Publish data to subscribers
@@ -514,22 +543,6 @@ class _file(object):
             else:
                 self._subscribers.remove(subscriber)
         return True
-
-    def attach(self, subscriber):
-        if not callable(subscriber):
-            raise TypeError('subscriber should be callable')
-        try:
-            self._subscribers.index(subscriber)
-        except ValueError:
-            self._subscribers.append(subscriber)
-
-    def detach(self, subscriber):
-        try:
-            self._subscribers.remove(subscriber)
-        except ValueError:
-            return False
-        else:
-            return True
 
 
 if __name__ == '__main__':
