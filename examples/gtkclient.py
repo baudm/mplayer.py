@@ -20,6 +20,7 @@
 
 """GTK-based PyMPlayer Client"""
 
+import sys
 import pygtk
 pygtk.require('2.0')
 import gtk.glade
@@ -47,7 +48,7 @@ class GTKClient(object):
             return
         self.client = pymplayer.Client()
         self.client.handle_data = self.handle_data
-        self.client.connect(('', 1025))
+        self.client.connect((sys.argv[1], int(sys.argv[2])))
         t = Thread(target=pymplayer.loop)
         t.setDaemon(True)
         t.start()
@@ -124,7 +125,9 @@ class GTKClient(object):
             minutes1, seconds1 = int(time / 60), int(time % 60)
             minutes2, seconds2 = int(self.time_length / 60), int(self.time_length % 60)
             self.progress_bar.set_text('%d:%02d / %d:%02d' % (minutes1, seconds1, minutes2, seconds2))
-            self.progress_bar.set_fraction(time/self.time_length)
+            fraction = time / self.time_length
+            if 0.0 <= fraction <= 1.0:
+                self.progress_bar.set_fraction(fraction)
 
 
 if __name__ == '__main__':
