@@ -1,0 +1,173 @@
+Changes from 0.3.0
+
+
+-----
+General
+----
+
+* Removed PORT and MAX_CMD_LEN constants
+* 
+
+http://code.activestate.com/recipes/542195/
+
+
+
+------
+API
+-----
+MPlayer
+
+Additions:
+* query(name, timeout=0.25):
+  A dedicated method for sending a get_* command and expecting a response.
+  timeout is the maximum time that query() will wait for MPlayer's response
+  which implies that query() may finish faster than the set timeout.
+
+* introspect():
+  The addition of the introspect() class method was inspired by the code here:
+  http://code.activestate.com/recipes/542195/. Thanks to Fabien Devaux.
+
+  introspect() is for those who want to programatically interact with MPlayer
+  using methods instead of using the basic command() and query() interface.
+
+Changes:
+* 'bin' class property has been renamed to 'executable'
+
+* 'args' property now accepts any iterable; non-string data are also
+  automatically converted to strings. Be careful though...
+
+* start() -> start(stdout=None, stderr=None):
+  Now, stdout and stderr are not PIPEd by default. You can now specify the
+  values for stdout/stderr to be passed to subprocess.Popen. Take note though
+  that attaching subscribers to stdout/stderr will force a PIPE.
+
+* command(name, timeout=0.1) -> command(name, *args):
+  The command method no longer accepts a timeout parameter and no longer
+  returns the result of a get_* command. Now, its only purpose is to send
+  commands, nothing more. Furthermore, it now accepts an arbitrary number of
+  parameters which are first converted to string (if not yet a string), then
+  concatenated with the command name.
+
+  For querying MPlayer using get_* commands, use the query method
+  (new in 0.4.0) instead.
+
+* stop() -> quit(retcode=0):
+  Has been renamed to be consistent with the other MPlayer commands.
+  Now, it also accepts an optional parameter to specify MPlayer's return code.
+
+* isalive() -> is_alive()
+
+
+Deletions:
+* poll_output
+  A single pymplayer.loop can now be used for all classes (MPlayer, Client,
+  Server). pymplayer.loop is actually just asyncore.loop and was made
+  available in pymplayer for convenience.
+
+* create_handler, remove_handler, handle_data, and handle_error:
+  The MPlayer class no longer needs to be subclassed to be able to integrate
+  with other frameworks/event loops. Also, obtaining data from MPlayer is
+  no longer done by overriding handle_data and handle_error.
+
+  To use the event loops of other frameworks aside from asyncore, the file
+  descriptor and publish() method (callback function) can be used as such:
+
+  m = pymplayer.MPlayer()
+  # stdout needs to be PIPEd, otherwise we can't use it
+  m.start(stdout=pymplayer.PIPE)
+
+  fd = m.stdout.fileno()
+  cb = m.stdout.publish
+
+  gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
+  tkinter.createfilehandler(fd, tkinter.READABLE, cb)
+
+  To obtain data from MPlayer asynchronously, see method #3 below.
+
+
+There are now three ways of obtaining data from MPlayer.
+
+1. via readline() method:
+
+m = pymplayer.MPlayer()
+m.start(stdout=pymplayer.PIPE)
+line = m.stdout.readline()
+
+This method simply returns whatever is in the pipe buffers.
+Although this is convenient, using this method is not recommended because
+the MPlayer process may still hang if the pipe buffers get filled up and
+just sit there waiting to be read from. If you want to, you can define a
+timer for periodically calling readline() just to clear up the buffers.
+You can also use this with #3.
+
+
+2. via query() method:
+
+m = pymplayer.MPlayer()
+m.start(stdout=pymplayer.PIPE)
+m.command('loadfile', '/path/to/some/file.mkv')
+time_length = m.query('get_time_length')
+# if successful, time_length should now contain a float object
+
+Using only this method has the same problems as the readline() method above.
+I personally use this method with the one described below (#3) since I won't
+have to worry about MPlayer hanging.
+
+*** IMPORTANT ***
+Upon execution, query() will temporarily suppress the transfer of data to the
+subscribers. Upon finishing, data transfer to the subscribers will be enabled
+again.
+
+
+3. via subscribers (asynchronous):
+
+This method is inspired by the Observer design pattern (aka publisher/subscriber)
+and is the replacement for handle_data() and handle_error(). Basically,
+subscribers are simply callback functions which accept a single parameter--the
+data published by whichever publisher (stdout/stderr) the subscribers are
+attached to.
+
+
+Example for typical usage of methods:
+
+"a hypothetical class for a GUI program"
+
+...
+def __init__(self):
+  super(SomeClass, self).__init__()
+  self.pl = playlist_generator()
+  self.m = pymplayer.MPlayer()
+  # introspect MPlayer executable so that we can just use additional methods
+  # instead of using command() or query() directly
+  self.m.introspect()
+  self.m.stdout.attach(self.check_mplayer_eof)
+  self.timer = SomeTimer(timeout=1000, callback=self.update_status)
+
+def __del__(self):
+  # not really needed. just here for demo purposes
+  self.m.stdout.detach(self.check_mplayer_eof)
+  # make sure MPlayer is terminated properly
+  self.m.quit()
+
+def load_video(self):
+  video = self.pl.next() # get next video
+  self.m.loadfile(video) # uses command() internally
+  filename = self.m.get_file_name() # uses query() internally
+  time_length = self.m.get_time_length() # uses query() internally
+  self.statusbar.set_text('Now playing: %s (%d seconds)' % (filename, time_length))
+
+def check_mplayer_eof(self, data):
+  if data.startswith('EOF code'):
+    self.load_video()
+
+def update_status(self):
+  pos = self.m.get_time_pos()
+  self.statusbar2.set_text('Current Time: %d' % (pos, ))
+
+def run(self):
+  # subscribers were attached to stdout, no need to explicitly set stdout to PIPE
+  self.m.start()
+  # echo first 5 lines of MPlayer's output
+  for i in xrange(5):
+    print 'debug: ', self.m.readline()
+...
