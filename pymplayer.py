@@ -251,6 +251,7 @@ class MPlayer(object):
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
 
         """
+        assert self.is_alive(), 'MPlayer not running'
         if not isinstance(name, basestring):
             raise TypeError('command name should be a string')
         if 'quit'.startswith(name.split()[0].lower()):
