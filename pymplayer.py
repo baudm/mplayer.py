@@ -26,39 +26,23 @@ MPlayer -- thin, out-of-process wrapper for MPlayer
 Server -- asynchronous server that manages an MPlayer instance
 Client -- client for sending MPlayer commands
 
-Function:
-
-loop() -- the asyncore.loop function, provided here for convenience
-
-Constants:
-
-PIPE -- subprocess.PIPE, provided here for convenience
-STDOUT -- subprocess.STDOUT, provided here for convenience
-
 """
 
 import socket
 import asyncore
 import asynchat
-from select import select
-from subprocess import Popen, PIPE, STDOUT
+import subprocess
+import select
 
 
 __all__ = [
     'MPlayer',
     'Server',
-    'Client',
-    'loop',
-    'PIPE',
-    'STDOUT'
+    'Client'
     ]
 
 __version__ = '0.4.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
-
-
-# For convenience
-loop = asyncore.loop
 
 
 class MPlayer(object):
@@ -146,7 +130,7 @@ class MPlayer(object):
         """
         args = [cls.executable, '-input', 'cmdlist', '-really-quiet']
         try:
-            mplayer = Popen(args, bufsize=1, stdout=PIPE)
+            mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE)
         except OSError:
             return False
         types = {'integer': int, 'float': float, 'string': basestring}
@@ -173,8 +157,8 @@ class MPlayer(object):
                         raise TypeError(msg)
                     return self.command('%(name)s', *args)
                 ''' % dict(
-                    name = name, args = ', '.join(args), types = arg_types,
-                    min_argc = required + 1, max_argc = len(args) + 1
+                    name=name, args=', '.join(args), types=arg_types,
+                    min_argc=required + 1, max_argc=len(args) + 1
                 )
             else:
                 code = '''
@@ -184,7 +168,7 @@ class MPlayer(object):
                         return self.query('%(name)s', timeout)
                     except TypeError, msg:
                         raise TypeError(msg)
-                ''' % dict(name = name)
+                ''' % dict(name=name)
             scope = {}
             exec code.strip() in globals(), scope
             setattr(cls, name, scope[name])
@@ -208,22 +192,22 @@ class MPlayer(object):
         the passed parameters if subscribers were added to them.
 
         """
-        if stdout not in (PIPE, None):
+        if stdout not in (subprocess.PIPE, None):
             raise ValueError('stdout should either be PIPE or None')
-        if stderr not in (PIPE, STDOUT, None):
+        if stderr not in (subprocess.PIPE, subprocess.STDOUT, None):
             raise ValueError('stderr should be one of PIPE, STDOUT, or None')
         if not self.is_alive():
             args = [self.__class__.executable]
             args.extend(self._args)
             # Force PIPE if subscribers were added
             if self._stdout._subscribers:
-                stdout = PIPE
+                stdout = subprocess.PIPE
             if self._stderr._subscribers:
-                stderr = PIPE
+                stderr = subprocess.PIPE
             try:
                 # Start the MPlayer process (unbuffered)
-                self._process = Popen(args, stdin=PIPE, stdout=stdout,
-                    stderr=stderr)
+                self._process = subprocess.Popen(args, stdin=subprocess.PIPE,
+                    stdout=stdout, stderr=stderr)
             except OSError:
                 return False
             else:
@@ -498,7 +482,7 @@ class _file(object):
 
     def readline(self, timeout=0):
         if self._file is not None and \
-           any(select([self._file], [], [], timeout)):
+           select.select([self._file], [], [], timeout)[0]:
             return self._file.readline().rstrip()
 
     def attach(self, subscriber):
@@ -560,4 +544,4 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGTERM, lambda s, f: player.quit())
     signal.signal(signal.SIGINT, lambda s, f: player.quit())
-    loop()
+    asyncore.loop()
