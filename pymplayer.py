@@ -73,6 +73,13 @@ class MPlayer(object):
         # Be sure to stop the MPlayer process.
         self.quit()
 
+    def __repr__(self):
+        if self.is_alive():
+            status = 'with pid = %d' % (self._process.pid)
+        else:
+            status = 'not running'
+        return '<%s.%s %s>' % (__name__, self.__class__.__name__, status)
+
     @staticmethod
     def _check_command_args(name, types, min_argc, max_argc, args):
         argc = len(args) + 1
@@ -142,10 +149,7 @@ class MPlayer(object):
             args = line.lower().split()
             name = args.pop(0)
             if not name.startswith('get_'):
-                required = 0
-                for arg in args:
-                    if not arg.startswith('['):
-                        required += 1
+                required = len(args) - str(args).count("'[")
                 arg_types = str([types[arg.strip('[]')].__name__ for arg in
                     args]).replace("'", '')
                 code = '''
@@ -165,14 +169,11 @@ class MPlayer(object):
                 code = '''
                 def %(name)s(self, timeout=0.25):
                     """%(name)s(timeout=0.25)"""
-                    try:
-                        return self.query('%(name)s', timeout)
-                    except TypeError, msg:
-                        raise TypeError(msg)
+                    return self.query('%(name)s', timeout)
                 ''' % dict(name=name)
-            scope = {}
-            exec code.strip() in globals(), scope
-            setattr(cls, name, scope[name])
+            local = {}
+            exec code.strip() in globals(), local
+            setattr(cls, name, local[name])
         # Just manually define get_property
         def get_property(self, name, timeout=0.25):
             """get_property(name, timeout=0.25)"""
