@@ -32,7 +32,8 @@ import socket
 import asyncore
 import asynchat
 import subprocess
-import select
+if not subprocess.mswindows:
+    import select
 
 
 __all__ = [
@@ -441,16 +442,17 @@ class _ClientHandler(asynchat.async_chat):
             self.push(''.join([data, '\r\n']))
 
 
-class _file_dispatcher(asyncore.file_dispatcher):
-    """asyncore.file_dispatcher-like class that doesn't set fd non-blocking"""
+if not subprocess.mswindows:
+    class _file_dispatcher(asyncore.file_dispatcher):
+        """asyncore.file_dispatcher-like class that doesn't set fd non-blocking"""
 
-    def __init__(self, fd, callback):
-        # This is intended. We don't want asyncore.file_dispatcher.__init__()
-        # to make fd non-blocking since it causes problems with MPlayer.
-        asyncore.dispatcher.__init__(self)
-        self.connected = True
-        self.set_file(fd)
-        self.handle_read = callback
+        def __init__(self, fd, callback):
+            # This is intended. We don't want asyncore.file_dispatcher.__init__()
+            # to make fd non-blocking since it causes problems with MPlayer.
+            asyncore.dispatcher.__init__(self)
+            self.connected = True
+            self.set_file(fd)
+            self.handle_read = callback
 
 
 class _file(object):
@@ -468,7 +470,8 @@ class _file(object):
     def _bind(self, file):
         self._unbind()
         self._file = file
-        _file_dispatcher(file.fileno(), self.publish)
+        if not subprocess.mswindows:
+            _file_dispatcher(file.fileno(), self.publish)
 
     def _unbind(self):
         if self._file is not None and \
@@ -480,10 +483,16 @@ class _file(object):
         if self._file is not None:
             return self._file.fileno()
 
-    def readline(self, timeout=0):
-        if self._file is not None and \
-           select.select([self._file], [], [], timeout)[0]:
-            return self._file.readline().rstrip()
+    if subprocess.mswindows:
+        def readline(self, timeout=0):
+            """This method will block in Windows"""
+            if self._file is not None:
+                return self._file.readline().rstrip()
+    else:
+        def readline(self, timeout=0):
+            if self._file is not None and \
+               select.select([self._file], [], [], timeout)[0]:
+                return self._file.readline().rstrip()
 
     def attach(self, subscriber):
         if not callable(subscriber):
