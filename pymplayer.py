@@ -458,6 +458,7 @@ class _ClientHandler(asynchat.async_chat):
 
 
 class _file_dispatcher(asyncore.file_dispatcher):
+    """asyncore.file_dispatcher-like class that doesn't set fd non-blocking"""
 
     def __init__(self, fd, callback):
         # This is intended. We don't want asyncore.file_dispatcher.__init__()
