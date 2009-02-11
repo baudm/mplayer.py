@@ -81,7 +81,8 @@ class MPlayer(object):
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
-        self.quit()
+        if self.is_alive():
+            self.quit()
 
     def __repr__(self):
         if self.is_alive():
