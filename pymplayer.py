@@ -46,6 +46,11 @@ __version__ = '0.4.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
 
 
+# Python 3.0 compatibility
+def _exec(code, local):
+    exec(code, globals(), local)
+
+
 class MPlayer(object):
     """MPlayer(args=())
 
@@ -98,7 +103,7 @@ class MPlayer(object):
             s = ('s' if max_argc > 1 else '')
             raise TypeError('%s() takes at most %d argument%s (%d given)' %
                 (name, max_argc, s, argc))
-        for i in xrange(argc - 1):
+        for i in range(argc - 1):
             if not isinstance(args[i], types[i]):
                 raise TypeError('%s() argument %d should be %s' %
                     (name, i + 1, types[i].__name__.replace('base', '')))
@@ -112,7 +117,7 @@ class MPlayer(object):
             _args.extend(args)
         except TypeError:
             raise TypeError('args should be an iterable')
-        for i in xrange(3, len(_args)):
+        for i in range(3, len(_args)):
             if not isinstance(_args[i], basestring):
                 _args[i] = str(_args[i])
         self._args = _args
@@ -172,7 +177,7 @@ class MPlayer(object):
                     return self.query('%(name)s', timeout)
                 ''' % dict(name=name)
             local = {}
-            exec code.strip() in globals(), local
+            _exec(code.strip(), local)
             setattr(cls, name, local[name])
         # Just manually define get_property
         def get_property(self, name, timeout=0.25):
@@ -209,7 +214,7 @@ class MPlayer(object):
             try:
                 # Start the MPlayer process (unbuffered)
                 self._process = subprocess.Popen(args, stdin=subprocess.PIPE,
-                    stdout=stdout, stderr=stderr)
+                    stdout=stdout, stderr=stderr, universal_newlines=True)
             except OSError:
                 return False
             else:
@@ -373,13 +378,13 @@ class Client(asynchat.async_chat):
     def handle_data(self, data):
         self.log(data)
 
-    def connect(self, (host, port)):
+    def connect(self, address):
         if self.connected:
             return
         if self.socket:
             self.close()
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        asynchat.async_chat.connect(self, (host, port))
+        asynchat.async_chat.connect(self, address)
 
     def send_command(self, cmd):
         """Send an MPlayer command to the server
@@ -546,7 +551,7 @@ if __name__ == '__main__':
     import signal
 
     def handle_data(data):
-        print 'mplayer: ', data
+        print('mplayer: %s' % (data, ))
 
     player = MPlayer()
     player.args = sys.argv[1:]
