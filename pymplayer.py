@@ -145,10 +145,8 @@ class MPlayer(object):
         methods check the number and type of the passed parameters.
         """
         args = [cls.executable, '-input', 'cmdlist', '-really-quiet']
-        try:
-            mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE)
-        except OSError:
-            return False
+        mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE,
+            universal_newlines=True)
         types = {'integer': int, 'float': float, 'string': basestring}
         for line in mplayer.communicate()[0].split('\n'):
             if not line or line.startswith('quit') or \
@@ -187,7 +185,6 @@ class MPlayer(object):
             """get_property(name, timeout=0.25)"""
             return self.query(' '.join(['get_property', name]), timeout)
         cls.get_property = get_property
-        return True
 
     def start(self, stdout=None, stderr=None):
         """Start the MPlayer process.
