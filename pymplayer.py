@@ -278,7 +278,10 @@ class MPlayer(object):
         WARNING: This function is not thread-safe. You might want to implement
                  a locking mechanism to ensure that you get the correct result
         """
+        assert not subprocess.mswindows, "query() doesn't work in MS Windows"
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
+        if not isinstance(name, basestring):
+            raise TypeError('name should be a string')
         if not isinstance(timeout, (int, float)):
             raise TypeError('timeout should either be int or float')
         if self._stdout._file is not None and name.lower().startswith('get_'):
@@ -494,7 +497,7 @@ class _file(object):
 
     if subprocess.mswindows:
         def readline(self, timeout=0):
-            """This method will block in Windows"""
+            """This method will block in MS Windows"""
             if self._file is not None:
                 return self._file.readline().rstrip()
     else:
