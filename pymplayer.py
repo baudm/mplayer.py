@@ -230,6 +230,7 @@ class MPlayer(object):
         Returns the exit status of MPlayer or None if not running.
 
         """
+        assert self.is_alive(), 'MPlayer not running'
         if self.is_alive():
             self._stdout._unbind()
             self._stderr._unbind()
@@ -277,6 +278,7 @@ class MPlayer(object):
         WARNING: This function is not thread-safe. You might want to implement
                  a locking mechanism to ensure that you get the correct result
         """
+        assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
         if not isinstance(timeout, (int, float)):
             raise TypeError('timeout should either be int or float')
         if self._stdout._file is not None and name.lower().startswith('get_'):
