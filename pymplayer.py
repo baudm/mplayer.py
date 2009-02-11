@@ -514,7 +514,7 @@ class _file(object):
                 return self._file.readline().rstrip()
 
     def attach(self, subscriber):
-        if not callable(subscriber):
+        if not hasattr(subscriber, '__call__'):
             raise TypeError('subscriber should be callable')
         try:
             self._subscribers.index(subscriber)
@@ -551,7 +551,7 @@ class _file(object):
         if not data:
             return True
         for subscriber in self._subscribers:
-            if callable(subscriber):
+            if hasattr(subscriber, '__call__'):
                 subscriber(data)
             else:
                 self._subscribers.remove(subscriber)
