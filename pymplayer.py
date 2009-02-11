@@ -46,7 +46,12 @@ __version__ = '0.4.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
 
 
-# Python 3.0 compatibility
+# basestring no longer exists in Python 3
+try:
+    basestring
+except NameError:
+    basestring = str
+# exec is now a function in Python 3; the following also works in Python 2
 def _exec(code, local):
     exec(code, globals(), local)
 
@@ -199,6 +204,7 @@ class MPlayer(object):
         the passed parameters if subscribers were added to them.
 
         """
+        assert not self.is_alive(), 'MPlayer already started'
         if stdout not in (subprocess.PIPE, None):
             raise ValueError('stdout should either be PIPE or None')
         if stderr not in (subprocess.PIPE, subprocess.STDOUT, None):
@@ -230,7 +236,7 @@ class MPlayer(object):
         Returns the exit status of MPlayer or None if not running.
 
         """
-        assert self.is_alive(), 'MPlayer not running'
+        assert self.is_alive(), 'MPlayer not yet started'
         if self.is_alive():
             self._stdout._unbind()
             self._stderr._unbind()
@@ -257,7 +263,7 @@ class MPlayer(object):
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
 
         """
-        assert self.is_alive(), 'MPlayer not running'
+        assert self.is_alive(), 'MPlayer not yet started'
         if not isinstance(name, basestring):
             raise TypeError('command name should be a string')
         if 'quit'.startswith(name.split()[0].lower()):
