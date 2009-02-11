@@ -21,6 +21,7 @@
 """GTK-based PyMPlayer Client"""
 
 import sys
+import asyncore
 import pygtk
 pygtk.require('2.0')
 import gtk.glade
@@ -49,7 +50,7 @@ class GTKClient(object):
         self.client = pymplayer.Client()
         self.client.handle_data = self.handle_data
         self.client.connect((sys.argv[1], int(sys.argv[2])))
-        t = Thread(target=pymplayer.loop)
+        t = Thread(target=asyncore.loop)
         t.setDaemon(True)
         t.start()
         self.timer = gobject.timeout_add(1000, self.query)

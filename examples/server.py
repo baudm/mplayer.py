@@ -23,6 +23,7 @@
 import sys
 import socket
 import signal
+import asyncore
 import pymplayer
 
 
@@ -37,7 +38,7 @@ def main():
         print 'mplayer: ', data
 
     player.args = sys.argv[1:]
-    player.stdout.add_handler(handle_data)
+    player.stdout.attach(handle_data)
     player.start()
 
     def term(*args):
@@ -46,7 +47,7 @@ def main():
 
     signal.signal(signal.SIGTERM, term)
     signal.signal(signal.SIGINT, term)
-    pymplayer.loop()
+    asyncore.loop()
 
 
 if __name__ == '__main__':
