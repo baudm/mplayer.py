@@ -484,7 +484,7 @@ class _file(object):
 
     def _unbind(self):
         if self._file is not None and \
-           asyncore.socket_map.has_key(self._file.fileno()):
+           self._file.fileno() in asyncore.socket_map:
             del asyncore.socket_map[self._file.fileno()]
         self._file = None
 
