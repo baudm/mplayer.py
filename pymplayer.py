@@ -119,10 +119,7 @@ class MPlayer(object):
 
     def _set_args(self, args):
         _args = ['-slave', '-idle', '-quiet']
-        try:
-            _args.extend(args)
-        except TypeError:
-            raise TypeError('args should be an iterable')
+        _args.extend(args)
         for i in range(3, len(_args)):
             if not isinstance(_args[i], basestring):
                 _args[i] = str(_args[i])
@@ -188,8 +185,6 @@ class MPlayer(object):
         # Just manually define get_property
         def get_property(self, name, timeout=0.25):
             """get_property(name, timeout=0.25)"""
-            if not isinstance(name, basestring):
-                raise TypeError('property name should be a string')
             return self.query(' '.join(['get_property', name]), timeout)
         cls.get_property = get_property
         return True
@@ -206,10 +201,10 @@ class MPlayer(object):
 
         """
         assert not self.is_alive(), 'MPlayer already started'
-        if stdout not in (subprocess.PIPE, None):
-            raise ValueError('stdout should either be PIPE or None')
-        if stderr not in (subprocess.PIPE, subprocess.STDOUT, None):
-            raise ValueError('stderr should be one of PIPE, STDOUT, or None')
+        assert stdout in (subprocess.PIPE, None), \
+            'stdout should either be PIPE or None'
+        assert stderr in (subprocess.PIPE, subprocess.STDOUT, None), \
+            'stderr should be one of PIPE, STDOUT, or None'
         if not self.is_alive():
             args = [self.__class__.executable]
             args.extend(self._args)
@@ -265,10 +260,9 @@ class MPlayer(object):
 
         """
         assert self.is_alive(), 'MPlayer not yet started'
-        if not isinstance(name, basestring):
-            raise TypeError('command name should be a string')
-        if 'quit'.startswith(name.split()[0].lower()):
-            raise ValueError('use the quit() method instead')
+        assert isinstance(name, basestring), 'command name should be a string'
+        assert not 'quit'.startswith(name.split()[0].lower()), \
+            'use the quit() method instead'
         if self.is_alive() and name:
             command = ['pausing_keep', name]
             command.extend([str(arg) for arg in args])
@@ -287,10 +281,6 @@ class MPlayer(object):
         """
         assert not subprocess.mswindows, "query() doesn't work in MS Windows"
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
-        if not isinstance(name, basestring):
-            raise TypeError('name should be a string')
-        if not isinstance(timeout, (int, float)):
-            raise TypeError('timeout should either be int or float')
         if self._stdout._file is not None and name.lower().startswith('get_'):
             self._stdout._query_in_progress = True
             # Consume all data in stdout before proceeding
@@ -463,10 +453,10 @@ class _ClientHandler(asynchat.async_chat):
 
 if not subprocess.mswindows:
     class _file_dispatcher(asyncore.file_dispatcher):
-        """asyncore.file_dispatcher-like class that doesn't set fd non-blocking"""
+        """file_dispatcher-like class with blocking fd"""
 
         def __init__(self, fd, callback):
-            # This is intended. We don't want asyncore.file_dispatcher.__init__()
+            # This is intended. We don't want file_dispatcher.__init__()
             # to make fd non-blocking since it causes problems with MPlayer.
             asyncore.dispatcher.__init__(self)
             self.connected = True
@@ -514,8 +504,7 @@ class _file(object):
                 return self._file.readline().rstrip()
 
     def attach(self, subscriber):
-        if not hasattr(subscriber, '__call__'):
-            raise TypeError('subscriber should be callable')
+        assert hasattr(subscriber, '__call__'), 'subscriber should be callable'
         try:
             self._subscribers.index(subscriber)
         except ValueError:
