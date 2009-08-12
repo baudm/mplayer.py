@@ -534,7 +534,7 @@ class _file(object):
         tkinter.createfilehandler(fd, tkinter.READABLE, cb)
 
         """
-        if self._query_in_progress:
+        if self._query_in_progress or self._file is None:
             return True
         data = self._file.readline().rstrip()
         if not data:
