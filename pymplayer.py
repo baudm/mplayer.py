@@ -498,7 +498,10 @@ class _file(object):
         def readline(self, timeout=0):
             if self._file is not None and \
                select.select([self._file], [], [], timeout)[0]:
-                return self._file.readline().rstrip()
+                try:
+                    return self._file.readline().rstrip()
+                except AttributeError:
+                    pass
 
     def attach(self, subscriber):
         assert hasattr(subscriber, '__call__'), 'subscriber should be callable'

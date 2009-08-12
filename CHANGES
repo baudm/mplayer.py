@@ -169,5 +169,5 @@ def run(self):
   self.m.start()
   # echo first 5 lines of MPlayer's output
   for i in xrange(5):
-    print 'debug: ', self.m.readline()
+    print 'debug: ', self.m.stdout.readline()
 ...
