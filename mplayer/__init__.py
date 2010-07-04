@@ -12,6 +12,7 @@ GtkMPlayer -- provides a very basic (as of now) GTK2 widget that embeds MPlayer
 
 from mplayer.core import MPlayer
 from mplayer.gtk2 import GtkMPlayer
+from mplayer.qt4 import QtMPlayer
 import sys
 if sys.platform != 'win32':
     from mplayer.async import AsyncMPlayer
