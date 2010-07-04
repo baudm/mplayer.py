@@ -17,15 +17,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Thin, out-of-source wrapper for MPlayer
-
-Classes:
-
-MPlayer -- thin, out-of-process wrapper for MPlayer
-
-"""
-
-import asyncore
 import subprocess
 from threading import Lock
 if not subprocess.mswindows:
@@ -33,8 +24,6 @@ if not subprocess.mswindows:
 
 
 __all__ = ['MPlayer']
-__version__ = '0.5.0'
-__author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
 
 
 # basestring no longer exists in Python 3
@@ -59,7 +48,6 @@ class MPlayer(object):
     @property args: MPlayer arguments
     @property stdout: process' stdout (read-only)
     @property stderr: process' stderr (read-only)
-
     """
 
     executable = 'mplayer'
@@ -67,8 +55,8 @@ class MPlayer(object):
     def __init__(self, args=()):
         self.args = args
         self._process = None
-        self._stdout = _file()
-        self._stderr = _file()
+        self._stdout = _File()
+        self._stderr = _File()
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -163,17 +151,15 @@ class MPlayer(object):
             _exec(code.strip(), local)
             setattr(cls, name, local[name])
 
-    def start(self, stdout=None, stderr=None, with_asyncore=False):
+    def start(self, stdout=None, stderr=None):
         """Start the MPlayer process.
 
         @param stdout: subprocess.PIPE | None
         @param stderr: subprocess.PIPE | subprocess.STDOUT | None
-        @param with_asyncore: True | False
 
         Returns True on success, False on failure, or None if MPlayer
         is already running. stdout/stderr will be PIPEd regardless of
         the passed parameters if subscribers were added to them.
-
         """
         assert stdout in (subprocess.PIPE, None), \
             'stdout should either be PIPE or None'
@@ -194,26 +180,17 @@ class MPlayer(object):
             except OSError:
                 return False
             else:
-                if self._process.stdout is not None:
-                    self._stdout._file = self._process.stdout
-                    if with_asyncore:
-                        self._stdout._asyncore_add()
-                if self._process.stderr is not None:
-                    self._stderr._file = self._process.stderr
-                    if with_asyncore:
-                        self._stderr._asyncore_add()
+                self._stdout._file = self._process.stdout
+                self._stderr._file = self._process.stderr
                 return True
 
     def quit(self, retcode=0):
         """Stop the MPlayer process.
 
         Returns the exit status of MPlayer or None if not running.
-
         """
         if self.is_alive():
-            self._stdout._asyncore_del()
             self._stdout._file = None
-            self._stderr._asyncore_del()
             self._stderr._file = None
             self._process.stdin.write('quit %d\n' % (retcode, ))
             return self._process.wait()
@@ -222,7 +199,6 @@ class MPlayer(object):
         """Check if MPlayer process is alive.
 
         Returns True if alive, else, returns False.
-
         """
         if self._process is not None:
             return (self._process.poll() is None)
@@ -236,7 +212,6 @@ class MPlayer(object):
 
         Valid MPlayer commands are documented in:
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
-
         """
         assert self.is_alive(), 'MPlayer not yet started'
         assert not 'quit'.startswith(name.split()[0].lower()), \
@@ -283,20 +258,7 @@ class MPlayer(object):
         return self.query(' '.join(['get_property', name]), timeout)
 
 
-if not subprocess.mswindows:
-    class _file_dispatcher(asyncore.file_dispatcher):
-        """file_dispatcher-like class with blocking fd"""
-
-        def __init__(self, fd, callback):
-            # This is intentional. We don't want file_dispatcher.__init__()
-            # to make fd non-blocking since it causes problems with MPlayer.
-            asyncore.dispatcher.__init__(self)
-            self.connected = True
-            self.set_file(fd)
-            self.handle_read = callback
-
-
-class _file(object):
+class _File(object):
     """Wrapper for stdout and stderr
 
     Exposes the fileno() and readline() methods
@@ -304,20 +266,9 @@ class _file(object):
     """
 
     def __init__(self):
-        self._fd = None
         self._file = None
         self._lock = Lock()
         self._subscribers = []
-
-    def _asyncore_add(self):
-        self._asyncore_del()
-        if not subprocess.mswindows and self._file is not None:
-            self._fd = _file_dispatcher(self._file.fileno(),
-                self.publish).fileno()
-
-    def _asyncore_del(self):
-        if self._fd in asyncore.socket_map:
-            del asyncore.socket_map[self._fd]
 
     def fileno(self):
         if self._file is not None:
@@ -367,8 +318,8 @@ class _file(object):
         cb = m.stdout.publish
 
         gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
+            -- or --
         tkinter.createfilehandler(fd, tkinter.READABLE, cb)
-
         """
         if self._lock.locked() or self._file is None:
             return True
@@ -384,14 +335,10 @@ if __name__ == '__main__':
     import sys
     import signal
 
-    def handle_data(data):
-        print('mplayer: %s' % (data, ))
-
     player = MPlayer()
     player.args = sys.argv[1:]
-    player.stdout.attach(handle_data)
-    player.start(with_asyncore=True)
+    player.start()
 
     signal.signal(signal.SIGTERM, lambda s, f: player.quit())
     signal.signal(signal.SIGINT, lambda s, f: player.quit())
-    asyncore.loop()
+    raw_input() # block

@@ -22,12 +22,15 @@ import gobject
 from mplayer.core import MPlayer
 
 
+__all__ = ['GtkMPlayer']
+
+
 class GtkMPlayer(gtk.Socket):
-    
+
     __gsignals__ = {
         'complete': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
     }
-    
+
     def __init__(self):
         super(GtkMPlayer, self).__init__()
         self._mplayer = MPlayer(args=['-idx', '-fs', '-osdlevel', '0',
@@ -36,7 +39,7 @@ class GtkMPlayer(gtk.Socket):
         self.source = ''
         self.connect('show', self._on_show)
         self.connect('destroy', self._on_destroy)
-        
+
     def _on_show(self, *args):
         if self.get_id():
             self._mplayer.args += ['-wid', str(self.get_id())]
@@ -45,7 +48,7 @@ class GtkMPlayer(gtk.Socket):
             fd = self._mplayer.stdout.fileno()
             cb = self._mplayer.stdout.publish
             self._tag = gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
-    
+
     def _on_destroy(self, *args):
         if self._tag is not None:
             gobject.source_remove(self._tag)
@@ -54,10 +57,10 @@ class GtkMPlayer(gtk.Socket):
     def _handle_data(self, data):
         if data.startswith('EOF code'):
             self.emit('complete')
-        
+
     def pause(self):
         self._mplayer.command('pause')
-    
+
     def play(self):
         if self.source:
             self._mplayer.command('loadfile', self.source)
