@@ -19,7 +19,7 @@
 import gtk
 import gobject
 
-from core import MPlayer
+from mplayer.core import MPlayer
 
 
 class GtkMPlayer(gtk.Socket):
@@ -32,6 +32,7 @@ class GtkMPlayer(gtk.Socket):
         super(GtkMPlayer, self).__init__()
         self._mplayer = MPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
+        self._tag = None
         self.source = ''
         self.connect('show', self._on_show)
         self.connect('destroy', self._on_destroy)
@@ -43,9 +44,11 @@ class GtkMPlayer(gtk.Socket):
             self._mplayer.start()
             fd = self._mplayer.stdout.fileno()
             cb = self._mplayer.stdout.publish
-            gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
+            self._tag = gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
     
     def _on_destroy(self, *args):
+        if self._tag is not None:
+            gobject.source_remove(self._tag)
         self._mplayer.quit()
 
     def _handle_data(self, data):

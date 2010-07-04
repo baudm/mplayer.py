@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from core import MPlayer
-from gtk2 import GtkMPlayer
-#from qt4 import QtMPlayer
+from mplayer.core import MPlayer
+from mplayer.gtk2 import GtkMPlayer
+#from mplayer.qt4 import QtMPlayer
