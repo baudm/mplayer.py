@@ -20,6 +20,6 @@ if sys.platform != 'win32':
 
 __version__ = '0.5.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
-__all__ = ['MPlayer', 'GtkMPlayer']
+__all__ = ['MPlayer', 'GtkMPlayer', 'QtMPlayer']
 if sys.platform != 'win32':
     __all__.append('AsyncMPlayer')
