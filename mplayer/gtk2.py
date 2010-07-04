@@ -35,19 +35,23 @@ class GtkMPlayer(gtk.Socket):
         super(GtkMPlayer, self).__init__()
         self._mplayer = MPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
+        self._mplayer.stdout.attach(self._handle_data)
         self._tag = None
         self.source = ''
-        self.connect('show', self._on_show)
         self.connect('destroy', self._on_destroy)
+        self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
-    def _on_show(self, *args):
-        if self.get_id():
+    def __del__(self):
+        self._on_destroy()
+
+    def _on_hierarchy_changed(self, *args):
+        if self.parent is not None:
             self._mplayer.args += ['-wid', str(self.get_id())]
-            self._mplayer.stdout.attach(self._handle_data)
             self._mplayer.start()
-            fd = self._mplayer.stdout.fileno()
-            cb = self._mplayer.stdout.publish
-            self._tag = gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
+            self._tag = gobject.io_add_watch(self._mplayer.stdout.fileno(),
+                gobject.IO_IN | gobject.IO_PRI, self._mplayer.stdout.publish)
+        else:
+            self._on_destroy()
 
     def _on_destroy(self, *args):
         if self._tag is not None:
