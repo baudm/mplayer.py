@@ -55,8 +55,8 @@ class MPlayer(object):
     def __init__(self, args=()):
         self.args = args
         self._process = None
-        self._stdout = _File()
-        self._stderr = _File()
+        self._stdout = _FileWrapper()
+        self._stderr = _FileWrapper()
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -258,7 +258,7 @@ class MPlayer(object):
         return self.query(' '.join(['get_property', name]), timeout)
 
 
-class _File(object):
+class _FileWrapper(object):
     """Wrapper for stdout and stderr
 
     Exposes the fileno() and readline() methods

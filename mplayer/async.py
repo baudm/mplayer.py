@@ -20,7 +20,7 @@ import os
 import fcntl
 import asyncore
 
-from mplayer.core import MPlayer, _File
+from mplayer.core import MPlayer
 
 
 __all__ = ['AsyncMPlayer']
@@ -35,48 +35,36 @@ class AsyncMPlayer(MPlayer):
 
     def __init__(self, args=()):
         super(AsyncMPlayer, self).__init__(args)
-        self._stdout = _AsyncFile()
-        self._stderr = _AsyncFile()
+        self._fd = []
 
     def start(self, stdout=None, stderr=None):
-        if super(AsyncMPlayer, self).start(stdout, stderr):
-            self._stdout._asyncore_add()
-            self._stderr._asyncore_add()
+        super(AsyncMPlayer, self).start(stdout, stderr)
+        if self._stdout._file is not None:
+            self._fd.append(_FileDispatcher(self._stdout).fileno())
+        if self._stderr._file is not None:
+            self._fd.append(_FileDispatcher(self._stderr).fileno())
 
     def quit(self, retcode=0):
-        self._stdout._asyncore_del()
-        self._stderr._asyncore_del()
+        try:
+            map(asyncore.socket_map.pop, self._fd)
+        except KeyError:
+            pass
+        self._fd = []
         super(AsyncMPlayer, self).quit(retcode)
 
 
 class _FileDispatcher(asyncore.file_dispatcher):
     """file_dispatcher-like class with blocking fd"""
 
-    def __init__(self, fd, callback):
+    def __init__(self, file_wrapper):
+        fd = file_wrapper.fileno()
         asyncore.file_dispatcher.__init__(self, fd)
         # Set fd back to blocking mode since
         # a blocking fd causes problems with MPlayer.
         flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
         flags &= ~os.O_NONBLOCK
         fcntl.fcntl(fd, fcntl.F_SETFL, flags)
-        self.handle_read = callback
-
-
-class _AsyncFile(_File):
-
-    def __init__(self):
-        super(_AsyncFile, self).__init__()
-        self._fd = None
-
-    def _asyncore_add(self):
-        self._asyncore_del()
-        if self._file is not None:
-            self._fd = _FileDispatcher(self._file.fileno(),
-                self.publish).fileno()
-
-    def _asyncore_del(self):
-        if self._fd in asyncore.socket_map:
-            del asyncore.socket_map[self._fd]
+        self.handle_read = file_wrapper.publish
 
 
 if __name__ == '__main__':
@@ -84,7 +72,7 @@ if __name__ == '__main__':
     import signal
 
     def handle_data(data):
-        print('mplayer: %s' % (data, ))
+        print('log: %s' % (data, ))
 
     player = AsyncMPlayer()
     player.args = sys.argv[1:]
