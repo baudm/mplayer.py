@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# $Id$
+# $Id: server.py 574 2009-02-11 03:41:38Z darwin $
 #
 # Copyright (C) 2007-2008  UP EEEI Computer Networks Laboratory
 # Copyright (C) 2007-2009  Darwin M. Bautista <djclue917@gmail.com>
@@ -40,6 +40,7 @@ def main():
     player.args = sys.argv[1:]
     player.stdout.attach(handle_data)
     player.start()
+    #server.start()
 
     def term(*args):
         server.stop()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# $Id$
+# $Id: setup.py 361 2008-01-24 11:01:55Z darwin $
 
 from distutils.core import setup
 
@@ -21,7 +21,6 @@ setup(
         'Environment :: Console :: Curses',
         'Environment :: No Input/Output (Daemon)',
         'Environment :: X11 Applications',
-        'Environment :: X11 Applications :: Gnome',
         'Environment :: X11 Applications :: GTK',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
