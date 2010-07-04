@@ -72,8 +72,7 @@ class MPlayer(object):
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
-        if self.is_alive():
-            self.quit()
+        self.quit()
 
     def __repr__(self):
         if self.is_alive():
@@ -105,7 +104,8 @@ class MPlayer(object):
         return self._args[7:]
 
     def _set_args(self, args):
-        _args = ['-slave', '-idle', '-quiet', '-input', 'nodefault-bindings', '-noconfig', 'all']
+        _args = ['-slave', '-idle', '-quiet', '-input', 'nodefault-bindings',
+            '-noconfig', 'all']
         args = map(str, args) # force all args to string
         _args.extend(args)
         self._args = _args
@@ -144,14 +144,14 @@ class MPlayer(object):
                 def %(name)s(self, *args):
                     """%(name)s(%(args)s)"""
                     try:
-                        self._check_command_args('%(name)s',
-                            %(min_argc)d, %(max_argc)d, args)
+                        self._check_command_args('%(name)s', %(min_argc)d,
+                            %(max_argc)d, args)
                     except TypeError, msg:
                         raise TypeError(msg)
                     return self.command('%(name)s', *args)
                 ''' % dict(
                     name=name, args=', '.join(args),
-                    min_argc=required + 1, max_argc=len(args) + 1
+                    min_argc=(required + 1), max_argc=(len(args) + 1)
                 )
             else:
                 code = '''
@@ -175,7 +175,6 @@ class MPlayer(object):
         the passed parameters if subscribers were added to them.
 
         """
-        assert not self.is_alive(), 'MPlayer already started'
         assert stdout in (subprocess.PIPE, None), \
             'stdout should either be PIPE or None'
         assert stderr in (subprocess.PIPE, subprocess.STDOUT, None), \
@@ -211,7 +210,6 @@ class MPlayer(object):
         Returns the exit status of MPlayer or None if not running.
 
         """
-        assert self.is_alive(), 'MPlayer not yet started'
         if self.is_alive():
             self._stdout._asyncore_del()
             self._stdout._file = None
@@ -241,7 +239,6 @@ class MPlayer(object):
 
         """
         assert self.is_alive(), 'MPlayer not yet started'
-        assert isinstance(name, basestring), 'command name should be a string'
         assert not 'quit'.startswith(name.split()[0].lower()), \
             'use the quit() method instead'
         if self.is_alive() and name:
@@ -256,9 +253,6 @@ class MPlayer(object):
         query() will first consume all data in stdout before proceeding.
         This is to ensure that it'll get the response from the command
         given and not just some random data.
-
-        WARNING: This function is not thread-safe. You might want to implement
-                 a locking mechanism to ensure that you get the correct result
         """
         assert not subprocess.mswindows, "query() doesn't work in MS Windows"
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
@@ -280,6 +274,8 @@ class MPlayer(object):
                     ans = float(ans)
                 except ValueError:
                     pass
+            elif ans == '(null)':
+                ans = None
             return ans
 
     def get_property(self, name, timeout=0.25):
@@ -316,11 +312,11 @@ class _file(object):
     def _asyncore_add(self):
         self._asyncore_del()
         if not subprocess.mswindows and self._file is not None:
-            self._fd = _file_dispatcher(self._file.fileno(), self.publish).fileno()
+            self._fd = _file_dispatcher(self._file.fileno(),
+                self.publish).fileno()
 
     def _asyncore_del(self):
-        if self._fd is not None and \
-           self._fd in asyncore.socket_map:
+        if self._fd in asyncore.socket_map:
             del asyncore.socket_map[self._fd]
 
     def fileno(self):
@@ -336,17 +332,19 @@ class _file(object):
         def readline(self, timeout=0):
             if self._file is not None and \
                select.select([self._file], [], [], timeout)[0]:
-                try:
-                    return self._file.readline().rstrip()
-                except AttributeError:
-                    pass
+                return self._file.readline().rstrip()
 
     def attach(self, subscriber):
-        assert hasattr(subscriber, '__call__'), 'subscriber should be callable'
+        if not hasattr(subscriber, '__call__'):
+            raise TypeError("'%s' object is not callable" %
+                (str(type(subscriber)).split("'")[1], ))
         try:
             self._subscribers.index(subscriber)
         except ValueError:
             self._subscribers.append(subscriber)
+            return True
+        else:
+            return False
 
     def detach(self, subscriber):
         try:
@@ -378,10 +376,7 @@ class _file(object):
         if not data:
             return True
         for subscriber in self._subscribers:
-            if hasattr(subscriber, '__call__'):
-                subscriber(data)
-            else:
-                self._subscribers.remove(subscriber)
+            subscriber(data)
         return True
 
 
