@@ -58,3 +58,19 @@ class QtMPlayer(QtGui.QX11EmbedContainer):
     def play(self):
         if self.source:
             self._mplayer.command('loadfile', self.source)
+
+
+if __name__ == '__main__':
+    import sys
+
+    app = QtGui.QApplication(sys.argv)
+    w = QtGui.QWidget()
+    w.resize(640, 480)
+    w.setWindowTitle('QtMPlayer')
+    w.destroyed.connect(app.quit)
+    m = QtMPlayer(w)
+    m.source = sys.argv[1]
+    m.resize(640, 480)
+    w.show()
+    m.play()
+    sys.exit(app.exec_())

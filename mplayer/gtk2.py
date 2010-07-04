@@ -75,13 +75,14 @@ gobject.type_register(GtkMPlayer)
 
 
 if __name__ == '__main__':
-    m = GtkMPlayer()
-    m.source = '/path/to/video.mkv'
+    import sys
+
     w = gtk.Window()
     w.set_size_request(640, 480)
-    def destroy(*args):
-        gtk.main_quit()
-    w.connect('destroy', destroy)
+    w.set_title('GtkMPlayer')
+    w.connect('destroy', gtk.main_quit)
+    m = GtkMPlayer()
+    m.source = sys.argv[1]
     w.add(m)
     w.show_all()
     m.play()
