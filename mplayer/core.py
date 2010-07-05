@@ -26,16 +26,6 @@ if not subprocess.mswindows:
 __all__ = ['MPlayer']
 
 
-# basestring no longer exists in Python 3
-try:
-    basestring
-except NameError:
-    basestring = str
-# exec is now a function in Python 3; the following also works in Python 2
-def _exec(code, local):
-    exec(code, globals(), local)
-
-
 class MPlayer(object):
     """MPlayer(args=())
 
@@ -134,7 +124,7 @@ class MPlayer(object):
                     try:
                         self._check_command_args('%(name)s', %(min_argc)d,
                             %(max_argc)d, args)
-                    except TypeError, msg:
+                    except TypeError as msg:
                         raise TypeError(msg)
                     return self.command('%(name)s', *args)
                 ''' % dict(
@@ -148,7 +138,7 @@ class MPlayer(object):
                     return self.query('%(name)s', timeout)
                 ''' % dict(name=name)
             local = {}
-            _exec(code.strip(), local)
+            exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
 
     def start(self, stdout=None, stderr=None):
