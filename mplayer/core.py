@@ -333,12 +333,8 @@ class _FileWrapper(object):
 
 if __name__ == '__main__':
     import sys
-    import signal
 
     player = MPlayer()
     player.args = sys.argv[1:]
     player.start()
-
-    signal.signal(signal.SIGTERM, lambda s, f: player.quit())
-    signal.signal(signal.SIGINT, lambda s, f: player.quit())
     raw_input() # block

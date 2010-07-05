@@ -62,14 +62,12 @@ class _FileDispatcher(asyncore.file_dispatcher):
         # Set fd back to blocking mode since
         # a blocking fd causes problems with MPlayer.
         flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
-        flags &= ~os.O_NONBLOCK
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
         self.handle_read = file_wrapper.publish
 
 
 if __name__ == '__main__':
     import sys
-    import signal
 
     def handle_data(data):
         print('log: %s' % (data, ))
@@ -78,7 +76,4 @@ if __name__ == '__main__':
     player.args = sys.argv[1:]
     player.stdout.attach(handle_data)
     player.start()
-
-    signal.signal(signal.SIGTERM, lambda s, f: player.quit())
-    signal.signal(signal.SIGINT, lambda s, f: player.quit())
     asyncore.loop()
