@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Thin, out-of-source wrapper for MPlayer
+"""Lightweight, out-of-source wrapper for MPlayer
 
 Classes:
 
@@ -10,17 +10,29 @@ GtkMPlayer -- provides a basic (as of now) PyGTK widget that embeds MPlayer
 QtMPlayer -- provides a PyQt4 widget similar to GtkMPlayer in functionality
 """
 
+__all__ = ['MPlayer']
+
 
 from mplayer.core import MPlayer
-from mplayer.gtk2 import GtkMPlayer
-from mplayer.qt4 import QtMPlayer
-import os
-if os.name == 'posix':
+try:
     from mplayer.async import AsyncMPlayer
+except AttributeError: # asyncore.file_dispatcher is undefined in non-POSIX
+    pass
+else:
+    __all__.append('AsyncMPlayer')
+try:
+    from mplayer.gtk2 import GtkMPlayer
+except ImportError: # PyGTK not available
+    pass
+else:
+    __all__.append('GtkMPlayer')
+try:
+    from mplayer.qt4 import QtMPlayer
+except ImportError: # PyQt4 not available
+    pass
+else:
+    __all__.append('QtMPlayer')
 
 
 __version__ = '0.5.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
-__all__ = ['MPlayer', 'GtkMPlayer', 'QtMPlayer']
-if os.name == 'posix':
-    __all__.append('AsyncMPlayer')
