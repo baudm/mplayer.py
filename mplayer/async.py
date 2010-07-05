@@ -38,11 +38,12 @@ class AsyncMPlayer(MPlayer):
         self._fd = []
 
     def start(self, stdout=None, stderr=None):
-        super(AsyncMPlayer, self).start(stdout, stderr)
+        retcode = super(AsyncMPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
             self._fd.append(_FileDispatcher(self._stdout).fileno())
         if self._stderr._file is not None:
             self._fd.append(_FileDispatcher(self._stderr).fileno())
+        return retcode
 
     def quit(self, retcode=0):
         try:
@@ -50,7 +51,7 @@ class AsyncMPlayer(MPlayer):
         except KeyError:
             pass
         self._fd = []
-        super(AsyncMPlayer, self).quit(retcode)
+        return super(AsyncMPlayer, self).quit(retcode)
 
 
 class _FileDispatcher(asyncore.file_dispatcher):
