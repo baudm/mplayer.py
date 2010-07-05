@@ -183,6 +183,7 @@ class MPlayer(object):
             self._stdout._file = None
             self._stderr._file = None
             self._process.stdin.write('quit %d\n' % (retcode, ))
+            self._process.stdin.flush()
             return self._process.wait()
 
     def is_alive(self):
@@ -211,6 +212,7 @@ class MPlayer(object):
             command.extend(map(str, args))
             command.append('\n')
             self._process.stdin.write(' '.join(command))
+            self._process.stdin.flush()
 
     def query(self, name, timeout=0.25):
         """Send a query to MPlayer. The result is returned, if there is any.
@@ -327,4 +329,8 @@ if __name__ == '__main__':
     player = MPlayer()
     player.args = sys.argv[1:]
     player.start()
-    raw_input() # block
+    # block execution
+    try:
+        raw_input()
+    except NameError: # raw_input() was renamed to input() in Python 3
+        input()
