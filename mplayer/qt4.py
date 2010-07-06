@@ -33,7 +33,7 @@ class QtMPlayer(QtGui.QX11EmbedContainer):
         self._mplayer = MPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', str(self.winId())])
-        self._mplayer.stdout.attach(self._handle_data)
+        self._mplayer.stdout.hook(self._handle_data)
         self._mplayer.start()
         self._notifier = QtCore.QSocketNotifier(self._mplayer.stdout.fileno(),
             QtCore.QSocketNotifier.Read)

@@ -70,11 +70,15 @@ class _FileDispatcher(asyncore.file_dispatcher):
 if __name__ == '__main__':
     import sys
 
-    def handle_data(data):
-        print('log: %s' % (data, ))
-
     player = AsyncMPlayer()
-    player.args = sys.argv[1:]
-    player.stdout.attach(handle_data)
+    player.args = ['-really-quiet', '-msglevel', 'global=6'] + sys.argv[1:]
+
+    def handle_data(data):
+        if not data.startswith('EOF code'):
+            print('log: %s' % (data, ))
+        else:
+            player.quit()
+
+    player.stdout.hook(handle_data)
     player.start()
     asyncore.loop()

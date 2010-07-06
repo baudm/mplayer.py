@@ -300,7 +300,7 @@ class _FileWrapper(object):
                select.select([self._file], [], [], timeout)[0]:
                 return self._file.readline().rstrip()
 
-    def attach(self, subscriber):
+    def hook(self, subscriber):
         if not hasattr(subscriber, '__call__'):
             raise TypeError("'%s' object is not callable" %
                 (str(type(subscriber)).split("'")[1], ))
@@ -312,7 +312,7 @@ class _FileWrapper(object):
         else:
             return False
 
-    def detach(self, subscriber):
+    def unhook(self, subscriber):
         try:
             self._subscribers.remove(subscriber)
         except ValueError:

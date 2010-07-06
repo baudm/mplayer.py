@@ -35,7 +35,7 @@ class GtkMPlayer(gtk.Socket):
         super(GtkMPlayer, self).__init__()
         self._mplayer = MPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
-        self._mplayer.stdout.attach(self._handle_data)
+        self._mplayer.stdout.hook(self._handle_data)
         self._tag = None
         self.source = ''
         self.connect('destroy', self._on_destroy)
