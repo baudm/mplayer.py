@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import shlex
 import subprocess
 from threading import Lock
 if not subprocess.mswindows:
@@ -84,7 +85,12 @@ class MPlayer(object):
     def _set_args(self, args):
         _args = ['-slave', '-idle', '-quiet', '-input', 'nodefault-bindings',
             '-noconfig', 'all']
-        args = map(str, args) # force all args to string
+        # Assume that args is a string.
+        try:
+            args = shlex.split(args)
+        except AttributeError: # args is not a string
+            # Force all args to string
+            args = map(str, args)
         _args.extend(args)
         self._args = _args
 
