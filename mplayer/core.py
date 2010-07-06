@@ -106,10 +106,15 @@ class MPlayer(object):
 
         Generate methods based on the available commands. The generated
         methods check the number and type of the passed parameters.
+
+        Returns True if successful, False otherwise.
         """
         args = [cls.executable, '-input', 'cmdlist', '-really-quiet']
-        mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE,
-            universal_newlines=True)
+        try:
+            mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE,
+                universal_newlines=True)
+        except OSError:
+            return False
         for line in mplayer.communicate()[0].split('\n'):
             if not line or line.startswith('quit') or \
                line.startswith('get_property'):
@@ -140,6 +145,7 @@ class MPlayer(object):
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
+        return True
 
     def start(self, stdout=None, stderr=None):
         """Start the MPlayer process.
