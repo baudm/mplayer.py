@@ -49,7 +49,7 @@ class GtkMPlayer(gtk.Socket):
             self._mplayer.args += ['-wid', str(self.get_id())]
             self._mplayer.start()
             self._tag = gobject.io_add_watch(self._mplayer.stdout.fileno(),
-                gobject.IO_IN | gobject.IO_PRI, self._mplayer.stdout.publish)
+                gobject.IO_IN | gobject.IO_PRI, self._mplayer.stdout)
         else:
             self._on_destroy()
 

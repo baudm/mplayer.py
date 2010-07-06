@@ -37,7 +37,7 @@ class QtMPlayer(QtGui.QX11EmbedContainer):
         self._mplayer.start()
         self._notifier = QtCore.QSocketNotifier(self._mplayer.stdout.fileno(),
             QtCore.QSocketNotifier.Read)
-        self._notifier.activated.connect(self._mplayer.stdout.publish)
+        self._notifier.activated.connect(self._mplayer.stdout)
         self.source = ''
         self.destroyed.connect(self._on_destroy)
 

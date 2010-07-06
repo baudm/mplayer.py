@@ -274,6 +274,17 @@ class _FileWrapper(object):
         self._lock = Lock()
         self._subscribers = []
 
+    def __call__(self, *args):
+        """Publish data to subscribers"""
+        if self._lock.locked() or self._file is None:
+            return True
+        data = self._file.readline().rstrip()
+        if not data:
+            return True
+        for subscriber in self._subscribers:
+            subscriber(data)
+        return True
+
     def fileno(self):
         if self._file is not None:
             return self._file.fileno()
@@ -308,31 +319,6 @@ class _FileWrapper(object):
             return False
         else:
             return True
-
-    def publish(self, *args):
-        """Publish data to subscribers
-
-        This is a callback for use with event loops of other frameworks.
-        It is NOT meant to be called manually.
-
-        m.stdout.attach(handle_player_data)
-        m.start()
-
-        fd = m.stdout.fileno()
-        cb = m.stdout.publish
-
-        gobject.io_add_watch(fd, gobject.IO_IN|gobject.IO_PRI, cb)
-            -- or --
-        tkinter.createfilehandler(fd, tkinter.READABLE, cb)
-        """
-        if self._lock.locked() or self._file is None:
-            return True
-        data = self._file.readline().rstrip()
-        if not data:
-            return True
-        for subscriber in self._subscribers:
-            subscriber(data)
-        return True
 
 
 if __name__ == '__main__':

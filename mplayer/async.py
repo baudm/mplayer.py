@@ -58,13 +58,13 @@ class _FileDispatcher(asyncore.file_dispatcher):
     """file_dispatcher-like class with blocking fd"""
 
     def __init__(self, file_wrapper):
+        self.handle_read = file_wrapper
         fd = file_wrapper.fileno()
         asyncore.file_dispatcher.__init__(self, fd)
         # Set fd back to blocking mode since
         # a blocking fd causes problems with MPlayer.
         flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
-        self.handle_read = file_wrapper.publish
 
 
 if __name__ == '__main__':
