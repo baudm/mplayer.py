@@ -34,13 +34,13 @@ class MPlayer(object):
     MPlayer. Take note that MPlayer is always started in 'slave',
     'idle', and 'quiet' modes.
 
-    @class attribute executable: path to or filename of MPlayer
+    @class attribute path: full/relative path to or filename of MPlayer
     @property args: MPlayer arguments
     @property stdout: process' stdout (read-only)
     @property stderr: process' stderr (read-only)
     """
 
-    executable = 'mplayer'
+    path = 'mplayer'
 
     def __init__(self, args=()):
         self.args = args
@@ -109,7 +109,7 @@ class MPlayer(object):
 
         Returns True if successful, False otherwise.
         """
-        args = [cls.executable, '-input', 'cmdlist', '-really-quiet']
+        args = [cls.path, '-input', 'cmdlist', '-really-quiet']
         try:
             mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE,
                 universal_newlines=True)
@@ -162,7 +162,7 @@ class MPlayer(object):
         assert stderr in (subprocess.PIPE, subprocess.STDOUT, None), \
             'stderr should be one of PIPE, STDOUT, or None'
         if not self.is_alive():
-            args = [self.__class__.executable]
+            args = [self.__class__.path]
             args.extend(self._args)
             # Force PIPE if subscribers were added
             if self._stdout._subscribers:
