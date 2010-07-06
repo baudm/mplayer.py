@@ -22,15 +22,3 @@ except ImportError: # fcntl unavailable in non-Unix systems
     pass
 else:
     __all__.append('AsyncMPlayer')
-try:
-    from mplayer.gtk2 import GtkMPlayer
-except ImportError: # PyGTK not available
-    pass
-else:
-    __all__.append('GtkMPlayer')
-try:
-    from mplayer.qt4 import QtMPlayer
-except ImportError: # PyQt4 not available
-    pass
-else:
-    __all__.append('QtMPlayer')
