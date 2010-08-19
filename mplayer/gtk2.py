@@ -22,21 +22,48 @@ import gobject
 from mplayer.core import MPlayer
 
 
-__all__ = ['GtkMPlayer']
+__all__ = ['GtkMPlayer', 'GtkMPlayerWidget']
 
 
-class GtkMPlayer(gtk.Socket):
+class GtkMPlayer(MPlayer):
+    """GtkMPlayer(args=())
+
+    MPlayer subclass with GTK+ integration.
+    """
+
+    def __init__(self, args=()):
+        super(GtkMPlayer, self).__init__(args)
+        self._tags = []
+
+    def start(self, stdout=None, stderr=None):
+        retcode = super(GtkMPlayer, self).start(stdout, stderr)
+        if self._stdout._file is not None:
+            tag = gobject.io_add_watch(self._stdout.fileno(),
+                gobject.IO_IN | gobject.IO_PRI, self._stdout)
+            self._tags.append(tag)
+        if self._stderr._file is not None:
+            tag = gobject.io_add_watch(self._stderr.fileno(),
+                gobject.IO_IN | gobject.IO_PRI, self._stderr)
+            self._tags.append(tag)
+        return retcode
+
+    def quit(self, retcode=0):
+        map(gobject.source_remove, self._tags)
+        self._tags = []
+        return super(GtkMPlayer, self).quit(retcode)
+
+
+class GtkMPlayerWidget(gtk.Socket):
 
     __gsignals__ = {
         'complete': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
     }
 
     def __init__(self):
-        super(GtkMPlayer, self).__init__()
-        self._mplayer = MPlayer(args=['-idx', '-fs', '-osdlevel', '0',
+        super(GtkMPlayerWidget, self).__init__()
+        self._mplayer = GtkMPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
         self._mplayer.stdout.hook(self._handle_data)
-        self._tag = None
         self.source = ''
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
@@ -48,14 +75,10 @@ class GtkMPlayer(gtk.Socket):
         if self.parent is not None:
             self._mplayer.args += ['-wid', str(self.get_id())]
             self._mplayer.start()
-            self._tag = gobject.io_add_watch(self._mplayer.stdout.fileno(),
-                gobject.IO_IN | gobject.IO_PRI, self._mplayer.stdout)
         else:
             self._on_destroy()
 
     def _on_destroy(self, *args):
-        if self._tag is not None:
-            gobject.source_remove(self._tag)
         self._mplayer.quit()
 
     def _handle_data(self, data):
@@ -71,7 +94,7 @@ class GtkMPlayer(gtk.Socket):
 
 
 # Register as a PyGTK type.
-gobject.type_register(GtkMPlayer)
+gobject.type_register(GtkMPlayerWidget)
 
 
 if __name__ == '__main__':
@@ -81,7 +104,7 @@ if __name__ == '__main__':
     w.set_size_request(640, 480)
     w.set_title('GtkMPlayer')
     w.connect('destroy', gtk.main_quit)
-    m = GtkMPlayer()
+    m = GtkMPlayerWidget()
     m.source = sys.argv[1]
     w.add(m)
     w.show_all()

@@ -30,7 +30,6 @@ class AsyncMPlayer(MPlayer):
     """AsyncMPlayer(args=())
 
     MPlayer subclass with asyncore integration.
-    Use this in conjuction with asyncore.loop() (or a similar function)
     """
 
     def __init__(self, args=()):

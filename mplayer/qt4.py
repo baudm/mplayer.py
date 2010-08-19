@@ -21,23 +21,51 @@ from PyQt4 import QtCore, QtGui
 from mplayer.core import MPlayer
 
 
-__all__ = ['QtMPlayer']
+__all__ = ['QtMPlayer', 'QtMPlayerWidget']
 
 
-class QtMPlayer(QtGui.QX11EmbedContainer):
+class QtMPlayer(MPlayer):
+    """QtMPlayer(args=())
+
+    MPlayer subclass with Qt integration.
+    """
+
+    def __init__(self, args=()):
+        super(QtMPlayer, self).__init__(args)
+        self._notifiers = []
+
+    def start(self, stdout=None, stderr=None):
+        retcode = super(QtMPlayer, self).start(stdout, stderr)
+        if self._stdout._file is not None:
+            sn = QtCore.QSocketNotifier(self._stdout.fileno(),
+                QtCore.QSocketNotifier.Read)
+            sn.activated.connect(self._stdout)
+            self._notifiers.append(sn)
+        if self._stderr._file is not None:
+            sn = QtCore.QSocketNotifier(self._stderr.fileno(),
+                QtCore.QSocketNotifier.Read)
+            sn.activated.connect(self._stderr)
+            self._notifiers.append(sn)
+        return retcode
+
+    def quit(self, retcode=0):
+        for sn in self._notifiers:
+            sn.setEnabled(False)
+        self._notifiers = []
+        return super(QtMPlayer, self).quit(retcode)
+
+
+class QtMPlayerWidget(QtGui.QX11EmbedContainer):
 
     complete = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
-        super(QtMPlayer, self).__init__(parent)
-        self._mplayer = MPlayer(['-idx', '-fs', '-osdlevel', '0',
+        super(QtMPlayerWidget, self).__init__(parent)
+        self._mplayer = QtMPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', str(self.winId())])
         self._mplayer.stdout.hook(self._handle_data)
         self._mplayer.start()
-        self._notifier = QtCore.QSocketNotifier(self._mplayer.stdout.fileno(),
-            QtCore.QSocketNotifier.Read)
-        self._notifier.activated.connect(self._mplayer.stdout)
         self.source = ''
         self.destroyed.connect(self._on_destroy)
 
@@ -45,7 +73,6 @@ class QtMPlayer(QtGui.QX11EmbedContainer):
         self._on_destroy()
 
     def _on_destroy(self, *args):
-        self._notifier.setEnabled(False)
         self._mplayer.quit()
 
     def _handle_data(self, data):
@@ -68,7 +95,7 @@ if __name__ == '__main__':
     w.resize(640, 480)
     w.setWindowTitle('QtMPlayer')
     w.destroyed.connect(app.quit)
-    m = QtMPlayer(w)
+    m = QtMPlayerWidget(w)
     m.source = sys.argv[1]
     m.resize(640, 480)
     w.show()
