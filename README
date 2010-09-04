@@ -1,4 +1,4 @@
-PyMPlayer: A thin, out-of-source wrapper and client/server for MPlayer written in Python
+PyMPlayer: A lightweight, out-of-source wrapper for MPlayer written in Python
 
 PyMPlayer provides a class for easily using MPlayer in Python. It also contains two
 other classes, namely Client and Server, to easily create client/server applications
@@ -6,16 +6,13 @@ using the MPlayer class.
 
 * Requirements
 
-    - MPlayer >= 1.0rc1  http://www.mplayerhq.hu/
-    - Python >= 2.5      http://www.python.org/
+    - MPlayer >= 1.0rc3  http://www.mplayerhq.hu/
+    - Python >= 2.6      http://www.python.org/
 
   Optional
 
-    - GTK+ >= 2.12    http://www.gtk.org/
     - PyGTK >= 2.12   http://www.pygtk.org/
-
-  The GTK-based PyMPlayer client (gtkclient.py) in the examples requires
-  the optional dependencies listed above.
+    - PyQt4 >= 4.5    http://www.riverbankcomputing.co.uk/
 
 * Installation
 
@@ -34,7 +31,7 @@ using the MPlayer class.
     The pydoc-generated documentation (HTML) is included in doc/.
     It serves as an API reference. You can also browse the online version at:
 
-        http://unplug.eee.upd.edu.ph/pymplayer/
+        http://code.google.com/p/python-mplayer/
 
 * Directory Layout
 
@@ -49,8 +46,8 @@ using the MPlayer class.
 
 * Copyright and Licensing
 
-    The PyMPlayer module (pymplayer.py) is released under the terms of LGPL 3.
-    See COPYING for the full license.
+    The PyMPlayer package and submodules (mplayer/*.py) are released under
+    the terms of LGPL 3. See LICENSE for the full license.
 
     The Python programs in examples/ are all released under the terms of GPL 3.
     See examples/COPYING for the full license.
@@ -58,7 +55,7 @@ using the MPlayer class.
     All the code (Python module and programs) and related data (Glade file) are
     Copyright (C) 2007-2008  University of the Philippines, Electrical and
     Electronics Engineering Institute, Computer Networks Laboratory (UP EEEI CNL).
-    Copyright (C) 2007-2009  Darwin M. Bautista.
+    Copyright (C) 2007-2010  Darwin M. Bautista.
 
     The GPL and LGPL licenses are Copyright (C) Free Software Foundation.
 
@@ -67,6 +64,3 @@ using the MPlayer class.
     URL and download: http://pypi.python.org/pypi/PyMPlayer/
 
     Author and Maintainer: Darwin M. Bautista <djclue917@gmail.com>
-
-
-(This file was based on Kiwi's README)
