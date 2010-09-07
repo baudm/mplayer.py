@@ -19,24 +19,24 @@
 import gtk
 import gobject
 
-from mplayer.core import MPlayer
+from mplayer.core import Player
 
 
-__all__ = ['GtkMPlayer', 'GtkMPlayerWidget']
+__all__ = ['GtkPlayer', 'GtkPlayerWidget']
 
 
-class GtkMPlayer(MPlayer):
-    """GtkMPlayer(args=())
+class GtkPlayer(Player):
+    """GtkPlayer(args=())
 
-    MPlayer subclass with GTK+ integration.
+    Player subclass with GTK+ integration.
     """
 
     def __init__(self, args=()):
-        super(GtkMPlayer, self).__init__(args)
+        super(GtkPlayer, self).__init__(args)
         self._tags = []
 
     def start(self, stdout=None, stderr=None):
-        retcode = super(GtkMPlayer, self).start(stdout, stderr)
+        retcode = super(GtkPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
             tag = gobject.io_add_watch(self._stdout.fileno(),
                 gobject.IO_IN | gobject.IO_PRI, self._stdout)
@@ -50,18 +50,18 @@ class GtkMPlayer(MPlayer):
     def quit(self, retcode=0):
         map(gobject.source_remove, self._tags)
         self._tags = []
-        return super(GtkMPlayer, self).quit(retcode)
+        return super(GtkPlayer, self).quit(retcode)
 
 
-class GtkMPlayerWidget(gtk.Socket):
+class GtkPlayerWidget(gtk.Socket):
 
     __gsignals__ = {
         'complete': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
     }
 
     def __init__(self):
-        super(GtkMPlayerWidget, self).__init__()
-        self._mplayer = GtkMPlayer(args=['-idx', '-fs', '-osdlevel', '0',
+        super(GtkPlayerWidget, self).__init__()
+        self._mplayer = GtkPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
         self._mplayer.stdout.hook(self._handle_data)
         self.source = ''
@@ -94,7 +94,7 @@ class GtkMPlayerWidget(gtk.Socket):
 
 
 # Register as a PyGTK type.
-gobject.type_register(GtkMPlayerWidget)
+gobject.type_register(GtkPlayerWidget)
 
 
 if __name__ == '__main__':
@@ -102,9 +102,9 @@ if __name__ == '__main__':
 
     w = gtk.Window()
     w.set_size_request(640, 480)
-    w.set_title('GtkMPlayer')
+    w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
-    m = GtkMPlayerWidget()
+    m = GtkPlayerWidget()
     m.source = sys.argv[1]
     w.add(m)
     w.show_all()

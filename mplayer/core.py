@@ -24,11 +24,11 @@ if not subprocess.mswindows:
     import select
 
 
-__all__ = ['MPlayer']
+__all__ = ['Player']
 
 
-class MPlayer(object):
-    """MPlayer(args=())
+class Player(object):
+    """Player(args=())
 
     An out-of-process wrapper for MPlayer. It provides the basic
     interface for sending commands and receiving responses to and from
@@ -324,7 +324,7 @@ class _FileWrapper(object):
 if __name__ == '__main__':
     import sys
 
-    player = MPlayer()
+    player = Player()
     player.args = sys.argv[1:]
     player.start()
     # block execution

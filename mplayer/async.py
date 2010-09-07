@@ -20,24 +20,24 @@ import os
 import fcntl
 import asyncore
 
-from mplayer.core import MPlayer
+from mplayer.core import Player
 
 
-__all__ = ['AsyncMPlayer']
+__all__ = ['AsyncPlayer']
 
 
-class AsyncMPlayer(MPlayer):
-    """AsyncMPlayer(args=())
+class AsyncPlayer(Player):
+    """AsyncPlayer(args=())
 
-    MPlayer subclass with asyncore integration.
+    Player subclass with asyncore integration.
     """
 
     def __init__(self, args=()):
-        super(AsyncMPlayer, self).__init__(args)
+        super(AsyncPlayer, self).__init__(args)
         self._fd = []
 
     def start(self, stdout=None, stderr=None):
-        retcode = super(AsyncMPlayer, self).start(stdout, stderr)
+        retcode = super(AsyncPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
             self._fd.append(_FileDispatcher(self._stdout).fileno())
         if self._stderr._file is not None:
@@ -50,7 +50,7 @@ class AsyncMPlayer(MPlayer):
         except KeyError:
             pass
         self._fd = []
-        return super(AsyncMPlayer, self).quit(retcode)
+        return super(AsyncPlayer, self).quit(retcode)
 
 
 class _FileDispatcher(asyncore.file_dispatcher):
@@ -69,7 +69,7 @@ class _FileDispatcher(asyncore.file_dispatcher):
 if __name__ == '__main__':
     import sys
 
-    player = AsyncMPlayer()
+    player = AsyncPlayer()
     player.args = ['-really-quiet', '-msglevel', 'global=6'] + sys.argv[1:]
 
     def handle_data(data):

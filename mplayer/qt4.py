@@ -18,24 +18,24 @@
 
 from PyQt4 import QtCore, QtGui
 
-from mplayer.core import MPlayer
+from mplayer.core import Player
 
 
-__all__ = ['QtMPlayer', 'QtMPlayerWidget']
+__all__ = ['QtPlayer', 'QtPlayerWidget']
 
 
-class QtMPlayer(MPlayer):
-    """QtMPlayer(args=())
+class QtPlayer(Player):
+    """QtPlayer(args=())
 
-    MPlayer subclass with Qt integration.
+    Player subclass with Qt integration.
     """
 
     def __init__(self, args=()):
-        super(QtMPlayer, self).__init__(args)
+        super(QtPlayer, self).__init__(args)
         self._notifiers = []
 
     def start(self, stdout=None, stderr=None):
-        retcode = super(QtMPlayer, self).start(stdout, stderr)
+        retcode = super(QtPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
             sn = QtCore.QSocketNotifier(self._stdout.fileno(),
                 QtCore.QSocketNotifier.Read)
@@ -52,16 +52,16 @@ class QtMPlayer(MPlayer):
         for sn in self._notifiers:
             sn.setEnabled(False)
         self._notifiers = []
-        return super(QtMPlayer, self).quit(retcode)
+        return super(QtPlayer, self).quit(retcode)
 
 
-class QtMPlayerWidget(QtGui.QX11EmbedContainer):
+class QtPlayerWidget(QtGui.QX11EmbedContainer):
 
     complete = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
-        super(QtMPlayerWidget, self).__init__(parent)
-        self._mplayer = QtMPlayer(['-idx', '-fs', '-osdlevel', '0',
+        super(QtPlayerWidget, self).__init__(parent)
+        self._mplayer = QtPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', str(self.winId())])
         self._mplayer.stdout.hook(self._handle_data)
@@ -93,9 +93,9 @@ if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     w = QtGui.QWidget()
     w.resize(640, 480)
-    w.setWindowTitle('QtMPlayer')
+    w.setWindowTitle('QtPlayer')
     w.destroyed.connect(app.quit)
-    m = QtMPlayerWidget(w)
+    m = QtPlayerWidget(w)
     m.source = sys.argv[1]
     m.resize(640, 480)
     w.show()
