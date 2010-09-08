@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# $Id$
 #
 # Copyright (C) 2007-2008  UP EEEI Computer Networks Laboratory
 # Copyright (C) 2007-2010  Darwin M. Bautista <djclue917@gmail.com>

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# $Id$
 #
 # Copyright (C) 2010  Darwin M. Bautista <djclue917@gmail.com>
 #
