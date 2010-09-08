@@ -27,21 +27,24 @@ __all__ = ['AsyncPlayer']
 
 
 class AsyncPlayer(Player):
-    """AsyncPlayer(args=())
+    """AsyncPlayer(args=(), socket_map=None)
 
     Player subclass with asyncore integration.
     """
 
-    def __init__(self, args=()):
+    def __init__(self, args=(), socket_map=None):
         super(AsyncPlayer, self).__init__(args)
         self._fd = []
+        self._socket_map = socket_map
 
     def start(self, stdout=None, stderr=None):
         retcode = super(AsyncPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
-            self._fd.append(_FileDispatcher(self._stdout).fileno())
+            fd = _FileDispatcher(self._stdout, self._socket_map).fileno()
+            self._fd.append(fd)
         if self._stderr._file is not None:
-            self._fd.append(_FileDispatcher(self._stderr).fileno())
+            fd = _FileDispatcher(self._stderr, self._socket_map).fileno()
+            self._fd.append(fd)
         return retcode
 
     def quit(self, retcode=0):
@@ -56,10 +59,10 @@ class AsyncPlayer(Player):
 class _FileDispatcher(asyncore.file_dispatcher):
     """file_dispatcher-like class with blocking fd"""
 
-    def __init__(self, file_wrapper):
+    def __init__(self, file_wrapper, socket_map):
         self.handle_read = file_wrapper
         fd = file_wrapper.fileno()
-        asyncore.file_dispatcher.__init__(self, fd)
+        asyncore.file_dispatcher.__init__(self, fd, socket_map)
         # Set fd back to blocking mode since
         # a blocking fd causes problems with MPlayer.
         flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
