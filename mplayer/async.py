@@ -34,21 +34,20 @@ class AsyncPlayer(Player):
     def __init__(self, args=(), socket_map=None):
         super(AsyncPlayer, self).__init__(args)
         self._fd = []
-        self._socket_map = socket_map
+        self._map = socket_map
 
     def start(self, stdout=None, stderr=None):
         retcode = super(AsyncPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
-            fd = _FileDispatcher(self._stdout, self._socket_map).fileno()
-            self._fd.append(fd)
+            self._fd.append(_FileDispatcher(self._stdout, self._map).fileno())
         if self._stderr._file is not None:
-            fd = _FileDispatcher(self._stderr, self._socket_map).fileno()
-            self._fd.append(fd)
+            self._fd.append(_FileDispatcher(self._stderr, self._map).fileno())
         return retcode
 
     def quit(self, retcode=0):
+        socket_map = (self._map if self._map is not None else asyncore.socket_map)
         try:
-            map(asyncore.socket_map.pop, self._fd)
+            map(socket_map.pop, self._fd)
         except KeyError:
             pass
         self._fd = []
