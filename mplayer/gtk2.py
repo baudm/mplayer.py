@@ -25,13 +25,13 @@ __all__ = ['GPlayer', 'GtkPlayerView']
 
 
 class GPlayer(Player):
-    """GPlayer(args=())
+    """GPlayer(args=(), introspect=True)
 
     Player subclass with GTK/GObject integration.
     """
 
-    def __init__(self, args=()):
-        super(GPlayer, self).__init__(args)
+    def __init__(self, args=(), introspect=True):
+        super(GPlayer, self).__init__(args, introspect)
         self._tags = []
 
     def start(self, stdout=None, stderr=None):
