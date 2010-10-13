@@ -21,21 +21,21 @@ import gobject
 from mplayer.core import Player
 
 
-__all__ = ['GtkPlayer', 'GtkPlayerWidget']
+__all__ = ['GPlayer', 'GtkPlayerWidget']
 
 
-class GtkPlayer(Player):
-    """GtkPlayer(args=())
+class GPlayer(Player):
+    """GPlayer(args=())
 
-    Player subclass with GTK+ integration.
+    Player subclass with GTK/GObject integration.
     """
 
     def __init__(self, args=()):
-        super(GtkPlayer, self).__init__(args)
+        super(GPlayer, self).__init__(args)
         self._tags = []
 
     def start(self, stdout=None, stderr=None):
-        retcode = super(GtkPlayer, self).start(stdout, stderr)
+        retcode = super(GPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
             tag = gobject.io_add_watch(self._stdout.fileno(),
                 gobject.IO_IN | gobject.IO_PRI, self._stdout)
@@ -49,7 +49,7 @@ class GtkPlayer(Player):
     def quit(self, retcode=0):
         map(gobject.source_remove, self._tags)
         self._tags = []
-        return super(GtkPlayer, self).quit(retcode)
+        return super(GPlayer, self).quit(retcode)
 
 
 class GtkPlayerWidget(gtk.Socket):
@@ -60,7 +60,7 @@ class GtkPlayerWidget(gtk.Socket):
 
     def __init__(self):
         super(GtkPlayerWidget, self).__init__()
-        self._mplayer = GtkPlayer(args=['-idx', '-fs', '-osdlevel', '0',
+        self._mplayer = GPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
         self._mplayer.stdout.hook(self._handle_data)
         self.source = ''
