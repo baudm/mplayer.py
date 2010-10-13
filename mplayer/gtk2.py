@@ -21,7 +21,7 @@ import gobject
 from mplayer.core import Player
 
 
-__all__ = ['GPlayer', 'GtkPlayerWidget']
+__all__ = ['GPlayer', 'GtkPlayerView']
 
 
 class GPlayer(Player):
@@ -52,14 +52,14 @@ class GPlayer(Player):
         return super(GPlayer, self).quit(retcode)
 
 
-class GtkPlayerWidget(gtk.Socket):
+class GtkPlayerView(gtk.Socket):
 
     __gsignals__ = {
         'complete': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
     }
 
     def __init__(self):
-        super(GtkPlayerWidget, self).__init__()
+        super(GtkPlayerView, self).__init__()
         self._mplayer = GPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
         self._mplayer.stdout.hook(self._handle_data)
@@ -93,7 +93,7 @@ class GtkPlayerWidget(gtk.Socket):
 
 
 # Register as a PyGTK type.
-gobject.type_register(GtkPlayerWidget)
+gobject.type_register(GtkPlayerView)
 
 
 if __name__ == '__main__':
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     w.set_size_request(640, 480)
     w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
-    m = GtkPlayerWidget()
+    m = GtkPlayerView()
     m.source = sys.argv[1]
     w.add(m)
     w.show_all()

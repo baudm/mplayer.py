@@ -20,7 +20,7 @@ from PyQt4 import QtCore, QtGui
 from mplayer.core import Player
 
 
-__all__ = ['QtPlayer', 'QtPlayerWidget']
+__all__ = ['QtPlayer', 'QPlayerView']
 
 
 class QtPlayer(Player):
@@ -54,12 +54,12 @@ class QtPlayer(Player):
         return super(QtPlayer, self).quit(retcode)
 
 
-class QtPlayerWidget(QtGui.QX11EmbedContainer):
+class QPlayerView(QtGui.QX11EmbedContainer):
 
     complete = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
-        super(QtPlayerWidget, self).__init__(parent)
+        super(QPlayerView, self).__init__(parent)
         self._mplayer = QtPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', str(self.winId())])
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     w.resize(640, 480)
     w.setWindowTitle('QtPlayer')
     w.destroyed.connect(app.quit)
-    m = QtPlayerWidget(w)
+    m = QPlayerView(w)
     m.source = sys.argv[1]
     m.resize(640, 480)
     w.show()
