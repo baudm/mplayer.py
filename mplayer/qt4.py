@@ -38,12 +38,12 @@ class QtPlayer(Player):
         if self._stdout._file is not None:
             sn = QtCore.QSocketNotifier(self._stdout.fileno(),
                 QtCore.QSocketNotifier.Read)
-            sn.activated.connect(self._stdout)
+            sn.activated.connect(self._stdout.publish)
             self._notifiers.append(sn)
         if self._stderr._file is not None:
             sn = QtCore.QSocketNotifier(self._stderr.fileno(),
                 QtCore.QSocketNotifier.Read)
-            sn.activated.connect(self._stderr)
+            sn.activated.connect(self._stderr.publish)
             self._notifiers.append(sn)
         return retcode
 

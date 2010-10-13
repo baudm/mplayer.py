@@ -38,11 +38,11 @@ class GPlayer(Player):
         retcode = super(GPlayer, self).start(stdout, stderr)
         if self._stdout._file is not None:
             tag = gobject.io_add_watch(self._stdout.fileno(),
-                gobject.IO_IN | gobject.IO_PRI, self._stdout)
+                gobject.IO_IN | gobject.IO_PRI, self._stdout.publish)
             self._tags.append(tag)
         if self._stderr._file is not None:
             tag = gobject.io_add_watch(self._stderr.fileno(),
-                gobject.IO_IN | gobject.IO_PRI, self._stderr)
+                gobject.IO_IN | gobject.IO_PRI, self._stderr.publish)
             self._tags.append(tag)
         return retcode
 
