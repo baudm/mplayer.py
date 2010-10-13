@@ -6,8 +6,10 @@ Classes:
 
 Player -- provides a basic and low-level interface to MPlayer
 AsyncPlayer -- Player subclass with asyncore integration (POSIX only)
-GtkPlayer -- provides a basic (as of now) PyGTK widget that embeds MPlayer
-QtPlayer -- provides a PyQt4 widget similar to GtkPlayer in functionality
+GPlayer -- Player subclass with GTK/GObject integration
+QtPlayer -- Player subclass with Qt integration
+GtkPlayerView -- provides a basic (as of now) PyGTK widget that embeds MPlayer
+QPlayerView -- provides a PyQt4 widget similar to GtkPlayerView in functionality
 
 Constants:
 
