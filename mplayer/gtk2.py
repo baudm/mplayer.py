@@ -63,12 +63,24 @@ class GtkPlayerView(gtk.Socket):
         self._mplayer = GPlayer(args=['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
         self._mplayer.stdout.hook(self._handle_data)
-        self.source = ''
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
     def __del__(self):
         self._on_destroy()
+
+    def __getattr__(self, name):
+        # Don't expose some properties
+        if name in ['args', 'introspect', 'start', 'quit']:
+            # Raise an AttributeError
+            return self.__getattribute__(name)
+        try:
+            attr = getattr(self._mplayer, name)
+        except AttributeError:
+            # Raise an AttributeError
+            return self.__getattribute__(name)
+        else:
+            return attr
 
     def _on_hierarchy_changed(self, *args):
         if self.parent is not None:
@@ -84,13 +96,6 @@ class GtkPlayerView(gtk.Socket):
         if data.startswith('EOF code'):
             self.emit('complete')
 
-    def pause(self):
-        self._mplayer.command('pause')
-
-    def play(self):
-        if self.source:
-            self._mplayer.command('loadfile', self.source)
-
 
 # Register as a PyGTK type.
 gobject.type_register(GtkPlayerView)
@@ -103,9 +108,8 @@ if __name__ == '__main__':
     w.set_size_request(640, 480)
     w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
-    m = GtkPlayerView()
-    m.source = sys.argv[1]
-    w.add(m)
+    p = GtkPlayerView()
+    w.add(p)
     w.show_all()
-    m.play()
+    p.loadfile(sys.argv[1])
     gtk.main()

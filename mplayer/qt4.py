@@ -65,11 +65,23 @@ class QPlayerView(QtGui.QX11EmbedContainer):
             '-wid', str(self.winId())])
         self._mplayer.stdout.hook(self._handle_data)
         self._mplayer.start()
-        self.source = ''
         self.destroyed.connect(self._on_destroy)
 
     def __del__(self):
         self._on_destroy()
+
+    def __getattr__(self, name):
+        # Don't expose some properties
+        if name in ['args', 'introspect', 'start', 'quit']:
+            # Raise an AttributeError
+            return self.__getattribute__(name)
+        try:
+            attr = getattr(self._mplayer, name)
+        except AttributeError:
+            # Raise an AttributeError
+            return self.__getattribute__(name)
+        else:
+            return attr
 
     def _on_destroy(self, *args):
         self._mplayer.quit()
@@ -77,13 +89,6 @@ class QPlayerView(QtGui.QX11EmbedContainer):
     def _handle_data(self, data):
         if data.startswith('EOF code'):
             self.complete.emit()
-
-    def pause(self):
-        self._mplayer.command('pause')
-
-    def play(self):
-        if self.source:
-            self._mplayer.command('loadfile', self.source)
 
 
 if __name__ == '__main__':
@@ -94,9 +99,8 @@ if __name__ == '__main__':
     w.resize(640, 480)
     w.setWindowTitle('QtPlayer')
     w.destroyed.connect(app.quit)
-    m = QPlayerView(w)
-    m.source = sys.argv[1]
-    m.resize(640, 480)
+    p = QPlayerView(w)
+    p.resize(640, 480)
     w.show()
-    m.play()
+    p.loadfile(sys.argv[1])
     sys.exit(app.exec_())
