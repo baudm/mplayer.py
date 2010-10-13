@@ -5,20 +5,21 @@ Changes since 0.4.0
  General
 ---------
 
-* Added basic PyGTK and PyQt widgets for embedding MPlayer
 * Renamed module/package from 'pymplayer' to 'mplayer'
-* Moved asyncore integration code into a separate class (AsyncMPlayer)
-* Removed Client-Server stuff
-* asyncore.loop() no longer imported by default (i.e., imported for convenience)
+* Moved asyncore integration code into a separate class (AsyncPlayer)
+* Added GPlayer and QtPlayer for GTK/GObject and Qt integration respectively
+* Added GtkPlayerView and QPlayerView widgets for embedding MPlayer
+* Removed Client-Server code
+* asyncore.loop() no longer imported into the mplayer module
 * Windows support
 * Python 3 compatibility
 * Explicit TypeErrors/ValueErrors replaced with asserts
-* Use threading.Lock() for MPlayer.query and _FileWrapper.readline methods (thread-safe?)
+* Use threading.Lock() for Player.query and _FileWrapper.readline methods (thread-safe?)
 
 ----------
  Behavior
 ----------
-MPlayer
+Player
  - _check_command_args() no longer checks for argument types (less strict and more flexible)
  - added '-input nodefault-bindings -noconfig all' to default args
  - Aside from iterables, the 'args' property now accepts strings (command line)
@@ -44,7 +45,6 @@ Deletions:
 _FileWrapper (used in MPlayer.stdout/stderr)
 
 
- - 'publish' method renamed to '__call__' ()
  - attach/detach methods renamed to hook/unhook respectively
 
 
@@ -52,9 +52,9 @@ There are now three ways of obtaining data from MPlayer.
 
 1. via readline() method:
 
-m = mplayer.MPlayer()
-m.start(stdout=mplayer.PIPE)
-line = m.stdout.readline()
+p = mplayer.Player()
+p.start(stdout=mplayer.PIPE)
+line = p.stdout.readline()
 
 This method simply returns whatever is in the pipe buffers.
 Although this is convenient, using this method is not recommended because
@@ -66,10 +66,10 @@ You can also use this with #3.
 
 2. via query() method:
 
-m = mplayer.MPlayer()
-m.start(stdout=mplayer.PIPE)
-m.command('loadfile', '/path/to/some/file.mkv')
-time_length = m.query('get_time_length')
+p = mplayer.Player()
+p.start(stdout=mplayer.PIPE)
+p.command('loadfile', '/path/to/some/file.mkv')
+time_length = p.query('get_time_length')
 # if successful, time_length should now contain a float object
 
 Using only this method has the same problems as the readline() method above.
@@ -99,24 +99,24 @@ Example for typical usage of methods:
 def __init__(self):
   super(SomeClass, self).__init__()
   self.pl = playlist_generator()
-  self.m = mplayer.MPlayer()
+  self.p = mplayer.Player()
   # introspect MPlayer executable so that we can just use additional methods
   # instead of using command() or query() directly
-  self.m.introspect()
-  self.m.stdout.hook(self.check_mplayer_eof)
+  self.p.introspect()
+  self.p.stdout.hook(self.check_mplayer_eof)
   self.timer = SomeTimer(timeout=1000, callback=self.update_status)
 
 def __del__(self):
   # not really needed. just here for demo purposes
-  self.m.stdout.unhook(self.check_mplayer_eof)
+  self.p.stdout.unhook(self.check_mplayer_eof)
   # make sure MPlayer is terminated properly
-  self.m.quit()
+  self.p.quit()
 
 def load_video(self):
   video = self.pl.next() # get next video
-  self.m.loadfile(video) # uses command() internally
-  filename = self.m.get_file_name() # uses query() internally
-  time_length = self.m.get_time_length() # uses query() internally
+  self.p.loadfile(video) # uses command() internally
+  filename = self.p.get_file_name() # uses query() internally
+  time_length = self.p.get_time_length() # uses query() internally
   self.statusbar.set_text('Now playing: %s (%d seconds)' % (filename, time_length))
 
 def check_mplayer_eof(self, data):
@@ -124,13 +124,13 @@ def check_mplayer_eof(self, data):
     self.load_video()
 
 def update_status(self):
-  pos = self.m.get_time_pos()
+  pos = self.p.get_time_pos()
   self.statusbar2.set_text('Current Time: %d' % (pos, ))
 
 def run(self):
   # subscribers were attached to stdout, no need to explicitly set stdout to PIPE
-  self.m.start()
+  self.p.start()
   # echo first 5 lines of MPlayer's output
   for i in xrange(5):
-    print 'debug: ', self.m.stdout.readline()
+    print 'debug: ', self.p.stdout.readline()
 ...
