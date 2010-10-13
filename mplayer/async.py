@@ -46,10 +46,11 @@ class AsyncPlayer(Player):
 
     def quit(self, retcode=0):
         socket_map = (self._map if self._map is not None else asyncore.socket_map)
-        try:
-            map(socket_map.pop, self._fd)
-        except KeyError:
-            pass
+        for fd in self._fd:
+            try:
+                socket_map.pop(fd)
+            except KeyError:
+                continue
         self._fd = []
         return super(AsyncPlayer, self).quit(retcode)
 
