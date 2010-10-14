@@ -306,8 +306,8 @@ class _FileWrapper(object):
 
     def hook(self, subscriber):
         if not hasattr(subscriber, '__call__'):
-            raise TypeError("'%s' object is not callable" %
-                (str(type(subscriber)).split("'")[1], ))
+            # Raise TypeError
+            subscriber()
         try:
             self._subscribers.index(subscriber)
         except ValueError:
