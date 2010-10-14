@@ -118,7 +118,7 @@ class Player(object):
 
         Returns True if successful, False otherwise.
         """
-        args = [cls.path, '-input', 'cmdlist', '-really-quiet']
+        args = [cls.path, '-input', 'cmdlist']
         try:
             mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE,
                 universal_newlines=True)
@@ -126,13 +126,12 @@ class Player(object):
             return False
         cls._introspected = True
         for line in mplayer.communicate()[0].split('\n'):
-            if not line or line.startswith('quit') or \
-               line.startswith('get_property'):
-                continue
             args = line.lower().split()
+            if not args or args[0] == 'quit' or args[0].endswith('_property'):
+                continue
             name = args.pop(0)
             if not name.startswith('get_'):
-                required = len(args) - str(args).count("'[")
+                required = len(args) - str(args).count('[')
                 code = '''
                 def %(name)s(self, *args):
                     """%(name)s(%(args)s)"""
@@ -264,6 +263,14 @@ class Player(object):
     def get_property(self, name, timeout=0.25):
         """get_property(name, timeout=0.25)"""
         return self.query(' '.join(['get_property', name]), timeout)
+
+    def set_property(self, name, value):
+        """set_property(name, value)"""
+        return self.command('set_property', name, value)
+
+    def step_property(self, name, value=0.0, direction=0):
+        """step_property(name, value=0.0, direction=0)"""
+        return self.command('step_property', name, value, direction)
 
 
 class _FileWrapper(object):
