@@ -1,8 +1,6 @@
 PyMPlayer: A lightweight, out-of-source wrapper for MPlayer written in Python
 
-PyMPlayer provides a class for easily using MPlayer in Python. It also contains two
-other classes, namely Client and Server, to easily create client/server applications
-using the MPlayer class.
+PyMPlayer provides several classes for easily using MPlayer in Python.
 
 * Requirements
 
@@ -26,41 +24,21 @@ using the MPlayer class.
 
         python setup.py install [--prefix=<prefix>]
 
-* Documentation
-
-    The pydoc-generated documentation (HTML) is included in doc/.
-    It serves as an API reference. You can also browse the online version at:
-
-        http://code.google.com/p/python-mplayer/
-
-* Directory Layout
-
-    examples/
-
-        Contains a number of examples, most of which are referenced in
-        the documentation.
-
-    doc/
-
-        Contains pydoc-generated HTML documentation for PyMPlayer.
-
 * Copyright and Licensing
 
     The PyMPlayer package and submodules (mplayer/*.py) are released under
     the terms of LGPL 3. See LICENSE for the full license.
 
-    The Python programs in examples/ are all released under the terms of GPL 3.
-    See examples/COPYING for the full license.
-
-    All the code (Python module and programs) and related data (Glade file) are
+    PyMPlayer is
     Copyright (C) 2007-2008  University of the Philippines, Electrical and
     Electronics Engineering Institute, Computer Networks Laboratory (UP EEEI CNL).
     Copyright (C) 2007-2010  Darwin M. Bautista.
 
-    The GPL and LGPL licenses are Copyright (C) Free Software Foundation.
+    The LGPL is Copyright (C) Free Software Foundation.
 
 * Contact Info
 
+    Project Page: http://code.google.com/p/python-mplayer/
     URL and download: http://pypi.python.org/pypi/PyMPlayer/
 
     Author and Maintainer: Darwin M. Bautista <djclue917@gmail.com>
