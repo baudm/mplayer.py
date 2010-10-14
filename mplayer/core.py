@@ -102,8 +102,7 @@ class Player(object):
     def introspect(cls):
         """Introspect the MPlayer executable
 
-        Generate methods based on the available commands. The generated
-        methods check the number and type of the passed parameters.
+        Generate methods based on the available commands.
 
         Returns True if successful, False otherwise.
         """
@@ -224,10 +223,10 @@ class Player(object):
         if self._stdout._file is not None and name.lower().startswith('get_'):
             self._stdout._lock.acquire()
             # Consume all data in stdout before proceeding
-            while self._stdout.readline() is not None:
+            while self._stdout._readline() is not None:
                 pass
             self.command(name)
-            response = self._stdout.readline(timeout) or ''
+            response = self._stdout._readline(timeout) or ''
             self._stdout._lock.release()
             if not response.startswith('ANS_'):
                 return None
@@ -259,8 +258,7 @@ class Player(object):
 class _FileWrapper(object):
     """Wrapper for stdout and stderr
 
-    Exposes the fileno() and readline() methods
-    Provides methods for management of subscribers (data handlers)
+    Implements the publisher-subscriber design pattern.
     """
 
     def __init__(self):
@@ -268,23 +266,35 @@ class _FileWrapper(object):
         self._lock = Lock()
         self._subscribers = []
 
-    def fileno(self):
-        if self._file is not None:
-            return self._file.fileno()
-
     if subprocess.mswindows:
-        def readline(self, timeout=0):
+        def _readline(self, timeout=0):
             """This method will block in MS Windows"""
             if self._file is not None:
                 return self._file.readline().rstrip()
     else:
-        def readline(self, timeout=0):
+        def _readline(self, timeout=0):
             if self._file is not None and \
                select.select([self._file], [], [], timeout)[0]:
                 return self._file.readline().rstrip()
 
+    def fileno(self):
+        if self._file is not None:
+            return self._file.fileno()
+
     def publish(self, *args):
-        """Publish data to subscribers"""
+        """Publish data to subscribers
+
+        This is a callback for use with event loops of other frameworks.
+        It is NOT meant to be called manually. Sample usage:
+
+        m.stdout.hook(callback1)
+        m.start()
+
+        fd = m.stdout.fileno()
+        cb = m.stdout.publish
+
+        tkinter.createfilehandler(fd, tkinter.READABLE, cb)
+        """
         if self._lock.locked() or self._file is None:
             return True
         data = self._file.readline().rstrip()
