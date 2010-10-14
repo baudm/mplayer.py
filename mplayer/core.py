@@ -325,6 +325,10 @@ class _FileWrapper(object):
             return False
 
 
+# Introspect on module load
+Player.introspect()
+
+
 if __name__ == '__main__':
     import sys
 
