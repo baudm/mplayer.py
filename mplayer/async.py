@@ -26,13 +26,13 @@ __all__ = ['AsyncPlayer']
 
 
 class AsyncPlayer(Player):
-    """AsyncPlayer(args=(), introspect=True, socket_map=None)
+    """AsyncPlayer(args=(), socket_map=None)
 
     Player subclass with asyncore integration.
     """
 
-    def __init__(self, args=(), introspect=True, socket_map=None):
-        super(AsyncPlayer, self).__init__(args, introspect)
+    def __init__(self, args=(), socket_map=None):
+        super(AsyncPlayer, self).__init__(args)
         self._fd = []
         self._map = socket_map
 

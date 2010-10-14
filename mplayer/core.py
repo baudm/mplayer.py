@@ -27,7 +27,7 @@ __all__ = ['Player']
 
 
 class Player(object):
-    """Player(args=(), introspect=True)
+    """Player(args=())
 
     An out-of-process wrapper for MPlayer. It provides the basic
     interface for sending commands and receiving responses to and from
@@ -41,16 +41,12 @@ class Player(object):
     """
 
     path = 'mplayer'
-    _introspected = False
 
-    def __init__(self, args=(), introspect=True):
+    def __init__(self, args=()):
         self.args = args
         self._process = None
         self._stdout = _FileWrapper()
         self._stderr = _FileWrapper()
-        # Introspect by default if not yet successfully done for the first time
-        if not self._introspected and introspect:
-            self.introspect()
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -124,7 +120,6 @@ class Player(object):
                 universal_newlines=True)
         except OSError:
             return False
-        cls._introspected = True
         for line in mplayer.communicate()[0].split('\n'):
             if not line or line.startswith('quit') or \
                line.startswith('get_property'):

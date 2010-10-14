@@ -24,13 +24,13 @@ __all__ = ['QtPlayer', 'QPlayerView']
 
 
 class QtPlayer(Player):
-    """QtPlayer(args=(), introspect=True)
+    """QtPlayer(args=())
 
     Player subclass with Qt integration.
     """
 
-    def __init__(self, args=(), introspect=True):
-        super(QtPlayer, self).__init__(args, introspect)
+    def __init__(self, args=()):
+        super(QtPlayer, self).__init__(args)
         self._notifiers = []
 
     def start(self, stdout=None, stderr=None):
