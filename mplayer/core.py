@@ -125,7 +125,7 @@ class Player(object):
                 code = '''
                 def %(name)s(self, %(sig)s):
                     """%(name)s(%(args)s)"""
-                    return self.command('%(name)s', %(params)s)
+                    return self._command('%(name)s', %(params)s)
                 ''' % dict(
                     name=name, args=', '.join(args),
                     sig=sig, params=sig.replace('=""', '')
@@ -134,7 +134,7 @@ class Player(object):
                 code = '''
                 def %(name)s(self, timeout=0.25):
                     """%(name)s(timeout=0.25)"""
-                    return self.query('%(name)s', timeout)
+                    return self._query('%(name)s', timeout)
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
@@ -196,7 +196,7 @@ class Player(object):
         else:
             return False
 
-    def command(self, name, *args):
+    def _command(self, name, *args):
         """Send a command to MPlayer.
 
         @param name: command string
@@ -214,7 +214,7 @@ class Player(object):
             self._process.stdin.write(' '.join(command))
             self._process.stdin.flush()
 
-    def query(self, name, timeout=0.25):
+    def _query(self, name, timeout=0.25):
         """Send a query to MPlayer. The result is returned, if there is any.
 
         query() will first consume all data in stdout before proceeding.
@@ -228,7 +228,7 @@ class Player(object):
             # Consume all data in stdout before proceeding
             while self._stdout._readline() is not None:
                 pass
-            self.command(name)
+            self._command(name)
             response = self._stdout._readline(timeout) or ''
             self._stdout._lock.release()
             if not response.startswith('ANS_'):
@@ -247,15 +247,15 @@ class Player(object):
 
     def get_property(self, name, timeout=0.25):
         """get_property(name, timeout=0.25)"""
-        return self.query(' '.join(['get_property', name]), timeout)
+        return self._query(' '.join(['get_property', name]), timeout)
 
     def set_property(self, name, value):
         """set_property(name, value)"""
-        return self.command('set_property', name, value)
+        return self._command('set_property', name, value)
 
     def step_property(self, name, value=0.0, direction=0):
         """step_property(name, value=0.0, direction=0)"""
-        return self.command('step_property', name, value, direction)
+        return self._command('step_property', name, value, direction)
 
 
 class _FileWrapper(object):
