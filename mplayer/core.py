@@ -60,23 +60,16 @@ class Player(object):
         return '<%s.%s %s>' % (__name__, self.__class__.__name__, status)
 
     @staticmethod
-    def _check_command_args(name, min_argc, max_argc, args):
-        argc = len(args) + 1
-        if not min_argc and argc:
-            raise TypeError('%s() takes no arguments (%d given)' %
-                (name, argc))
-        if argc < min_argc:
-            s = ('s' if min_argc > 1 else '')
-            raise TypeError('%s() takes at least %d argument%s (%d given)' %
-                (name, min_argc, s, argc))
-        if min_argc == max_argc and argc != max_argc:
-            s = ('s' if max_argc > 1 else '')
-            raise TypeError('%s() takes exactly %d argument%s (%d given)' %
-                (name, max_argc, s, argc))
-        if argc > max_argc:
-            s = ('s' if max_argc > 1 else '')
-            raise TypeError('%s() takes at most %d argument%s (%d given)' %
-                (name, max_argc, s, argc))
+    def _get_sig(args):
+        sig = []
+        for i, arg in enumerate(args):
+            if arg.startswith('['):
+                arg = arg.strip('[]')
+                arg = '%s%d=""' % (arg, i)
+            else:
+                arg = '%s%d' % (arg, i)
+            sig.append(arg)
+        return ', '.join(sig)
 
     def _get_args(self):
         return self._args[7:]
@@ -114,32 +107,26 @@ class Player(object):
 
         Returns True if successful, False otherwise.
         """
-        args = [cls.path, '-input', 'cmdlist', '-really-quiet']
+        args = [cls.path, '-input', 'cmdlist']
         try:
             mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE,
                 universal_newlines=True)
         except OSError:
             return False
         for line in mplayer.communicate()[0].split('\n'):
-            if not line or line.startswith('quit') or \
-               line.startswith('get_property'):
-                continue
             args = line.lower().split()
+            if not args or args[0] == 'quit' or args[0].endswith('_property'):
+                continue
             name = args.pop(0)
             if not name.startswith('get_'):
-                required = len(args) - str(args).count("'[")
+                sig = cls._get_sig(args)
                 code = '''
-                def %(name)s(self, *args):
+                def %(name)s(self, %(sig)s):
                     """%(name)s(%(args)s)"""
-                    try:
-                        self._check_command_args('%(name)s', %(min_argc)d,
-                            %(max_argc)d, args)
-                    except TypeError as msg:
-                        raise TypeError(msg)
-                    return self.command('%(name)s', *args)
+                    return self.command('%(name)s', %(params)s)
                 ''' % dict(
                     name=name, args=', '.join(args),
-                    min_argc=(required + 1), max_argc=(len(args) + 1)
+                    sig=sig, params=sig.replace('=""', '')
                 )
             else:
                 code = '''
@@ -260,6 +247,14 @@ class Player(object):
         """get_property(name, timeout=0.25)"""
         return self.query(' '.join(['get_property', name]), timeout)
 
+    def set_property(self, name, value):
+        """set_property(name, value)"""
+        return self.command('set_property', name, value)
+
+    def step_property(self, name, value=0.0, direction=0):
+        """step_property(name, value=0.0, direction=0)"""
+        return self.command('step_property', name, value, direction)
+
 
 class _FileWrapper(object):
     """Wrapper for stdout and stderr
@@ -301,23 +296,20 @@ class _FileWrapper(object):
 
     def hook(self, subscriber):
         if not hasattr(subscriber, '__call__'):
-            raise TypeError("'%s' object is not callable" %
-                (str(type(subscriber)).split("'")[1], ))
-        try:
-            self._subscribers.index(subscriber)
-        except ValueError:
+            # Raise TypeError
+            subscriber()
+        if subscriber not in self._subscribers:
             self._subscribers.append(subscriber)
             return True
         else:
             return False
 
     def unhook(self, subscriber):
-        try:
+        if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
-        except ValueError:
-            return False
-        else:
             return True
+        else:
+            return False
 
 
 if __name__ == '__main__':

@@ -26,9 +26,3 @@ __all__ = ['PIPE', 'STDOUT', 'Player']
 from subprocess import PIPE, STDOUT
 
 from mplayer.core import Player
-try:
-    from mplayer.async import AsyncPlayer
-except ImportError: # fcntl unavailable in non-Unix systems
-    pass
-else:
-    __all__.append('AsyncPlayer')
