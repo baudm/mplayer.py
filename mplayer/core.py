@@ -118,6 +118,9 @@ class Player(object):
                 continue
             name = args.pop(0)
             if not name.startswith('get_'):
+                # Fix truncated command name
+                if name.startswith('osd_show_property_'):
+                    name = 'osd_show_property_text'
                 sig = cls._get_sig(args)
                 code = '''
                 def %(name)s(self, %(sig)s):
