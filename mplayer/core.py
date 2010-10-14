@@ -253,8 +253,8 @@ class Player(object):
         """set_property(name, value)"""
         return self._command('set_property', name, value)
 
-    def step_property(self, name, value=0.0, direction=0):
-        """step_property(name, value=0.0, direction=0)"""
+    def step_property(self, name, value='', direction=''):
+        """step_property(name, [value], [direction])"""
         return self._command('step_property', name, value, direction)
 
 
