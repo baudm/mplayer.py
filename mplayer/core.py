@@ -308,21 +308,18 @@ class _FileWrapper(object):
         if not hasattr(subscriber, '__call__'):
             # Raise TypeError
             subscriber()
-        try:
-            self._subscribers.index(subscriber)
-        except ValueError:
+        if subscriber not in self._subscribers:
             self._subscribers.append(subscriber)
             return True
         else:
             return False
 
     def unhook(self, subscriber):
-        try:
+        if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
-        except ValueError:
-            return False
-        else:
             return True
+        else:
+            return False
 
 
 if __name__ == '__main__':
