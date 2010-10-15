@@ -58,7 +58,7 @@ class QtPlayer(Player):
 
 class QPlayerView(QtGui.QX11EmbedContainer):
 
-    complete = QtCore.pyqtSignal()
+    completed = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super(QPlayerView, self).__init__(parent)
@@ -90,7 +90,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
 
     def _handle_data(self, data):
         if data.startswith('EOF code'):
-            self.complete.emit()
+            self.completed.emit()
 
 
 if __name__ == '__main__':
