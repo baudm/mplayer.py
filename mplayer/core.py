@@ -47,7 +47,7 @@ class Player(object):
 
     def __init__(self, args=(), stdout=None, stderr=None):
         self.args = args
-        self._process = None
+        self._proc = None
         assert stdout in (subprocess.PIPE, None), \
             'stdout should either be PIPE or None'
         assert stderr in (subprocess.PIPE, subprocess.STDOUT, None), \
@@ -61,7 +61,7 @@ class Player(object):
 
     def __repr__(self):
         if self.is_alive():
-            status = 'with pid = %d' % (self._process.pid)
+            status = 'with pid = %d' % (self._proc.pid)
         else:
             status = 'not running'
         return '<%s.%s %s>' % (__name__, self.__class__.__name__, status)
@@ -105,7 +105,7 @@ class Player(object):
     def _gen_propdoc(ptype, pmin, pmax, propset):
         type_map = {
             'Flag': 'bool', 'Float': 'float', 'Integer': 'int',
-            'Position': 'int', 'String': 'str', 'Time': 'int'
+            'Position': 'int', 'String': 'str', 'Time': 'float'
         }
         doc = ['Type: %s' % (type_map[ptype], )]
         if propset is not None and ptype != 'Flag':
@@ -222,11 +222,11 @@ class Player(object):
             args = [self.__class__.path]
             args.extend(self._args)
             # Start the MPlayer process (unbuffered)
-            self._process = subprocess.Popen(args, stdin=subprocess.PIPE,
+            self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
                 stdout=self._stdout._handle, stderr=self._stderr._handle,
                 universal_newlines=True)
-            self._stdout._file = self._process.stdout
-            self._stderr._file = self._process.stderr
+            self._stdout._file = self._proc.stdout
+            self._stderr._file = self._proc.stderr
 
     def quit(self, retcode=0):
         """Stop the MPlayer process.
@@ -236,17 +236,17 @@ class Player(object):
         if self.is_alive():
             self._stdout._file = None
             self._stderr._file = None
-            self._process.stdin.write('quit %d\n' % (retcode, ))
-            self._process.stdin.flush()
-            return self._process.wait()
+            self._proc.stdin.write('quit %d\n' % (retcode, ))
+            self._proc.stdin.flush()
+            return self._proc.wait()
 
     def is_alive(self):
         """Check if MPlayer process is alive.
 
         Returns True if alive, else, returns False.
         """
-        if self._process is not None:
-            return (self._process.poll() is None)
+        if self._proc is not None:
+            return (self._proc.poll() is None)
         else:
             return False
 
@@ -265,8 +265,8 @@ class Player(object):
             command = ['pausing_keep', name]
             command.extend(map(str, args))
             command.append('\n')
-            self._process.stdin.write(' '.join(command))
-            self._process.stdin.flush()
+            self._proc.stdin.write(' '.join(command))
+            self._proc.stdin.flush()
 
     def _query(self, name, timeout=0.25):
         """Send a query to MPlayer. The result is returned, if there is any.
