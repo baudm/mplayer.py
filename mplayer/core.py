@@ -80,6 +80,27 @@ class Player(object):
         params = sig.replace('=""', '')
         return sig, params
 
+    @staticmethod
+    def _gen_propget(pname, ptype):
+        if ptype != 'Flag':
+            def propget(self):
+                return self._query(' '.join(['get_property', pname]))
+        else:
+            def propget(self):
+                value = self._query(' '.join(['get_property', pname]))
+                return (value == 'yes')
+        return propget
+
+    @staticmethod
+    def _gen_propset(pname, ptype):
+        if ptype != 'Flag':
+            def propset(self, value):
+                return self._command('set_property', pname, value)
+        else:
+            def propset(self, value):
+                return self._command('set_property', pname, int(value))
+        return propset
+
     def _get_args(self):
         return self._args[7:]
 
@@ -111,14 +132,16 @@ class Player(object):
     def introspect(cls):
         """Introspect the MPlayer executable
 
-        Generate methods based on the available commands.
+        Generate available methods and properties.
         """
+        # Generate methods
         args = [cls.path, '-input', 'cmdlist']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
             universal_newlines=True)
         for line in mplayer.communicate()[0].split('\n'):
             args = line.lower().split()
-            if not args or args[0] == 'quit' or args[0].endswith('_property'):
+            if not args or args[0].startswith('get_') or \
+                    args[0].endswith('_property') or args[0] == 'quit':
                 continue
             name = args.pop(0)
             if not name.startswith('get_'):
@@ -143,6 +166,30 @@ class Player(object):
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
+        # Generate properties
+        get_include = ['length', 'pause', 'stream_end', 'stream_length',
+            'stream_start']
+        get_exclude = ['sub_delay']
+        rename = {'mute': 'muted', 'pause': 'paused', 'path': 'filepath'}
+        args = [cls.path, '-list-properties']
+        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
+            universal_newlines=True)
+        for line in mplayer.communicate()[0].split('\n'):
+            line = line.split()
+            if not len(line) == 4 or line[0] == 'Name':
+                continue
+            pname, ptype, pmin, pmax = line
+            propget = cls._gen_propget(pname, ptype)
+            if (pmin == pmax == 'No' and pname not in get_exclude) or pname in get_include:
+                propset = None
+            else:
+                propset = cls._gen_propset(pname, ptype)
+            doc = 'type: %s\nmin: %s\nmax: %s' % (ptype, pmin, pmax)
+            prop = property(propget, propset, doc=doc)
+            # Rename some properties to avoid conflict
+            if pname in rename:
+                pname = rename[pname]
+            setattr(cls, pname, prop)
 
     def start(self):
         """Start the MPlayer process.
@@ -229,14 +276,6 @@ class Player(object):
             elif ans == '(null)':
                 ans = None
             return ans
-
-    def get_property(self, name, timeout=0.25):
-        """get_property(name, timeout=0.25)"""
-        return self._query(' '.join(['get_property', name]), timeout)
-
-    def set_property(self, name, value):
-        """set_property(name, value)"""
-        return self._command('set_property', name, value)
 
     def step_property(self, name, value='', direction=''):
         """step_property(name, [value], [direction])"""
