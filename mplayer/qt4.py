@@ -24,17 +24,17 @@ __all__ = ['QtPlayer', 'QPlayerView']
 
 
 class QtPlayer(Player):
-    """QtPlayer(args=())
+    """QtPlayer(args=(), stdout=None, stderr=None)
 
     Player subclass with Qt integration.
     """
 
-    def __init__(self, args=()):
-        super(QtPlayer, self).__init__(args)
+    def __init__(self, args=(), stdout=None, stderr=None):
+        super(QtPlayer, self).__init__(args, stdout, stderr)
         self._notifiers = []
 
-    def start(self, stdout=None, stderr=None):
-        retcode = super(QtPlayer, self).start(stdout, stderr)
+    def start(self):
+        retcode = super(QtPlayer, self).start()
         if self._stdout._file is not None:
             sn = QtCore.QSocketNotifier(self._stdout.fileno(),
                 QtCore.QSocketNotifier.Read)

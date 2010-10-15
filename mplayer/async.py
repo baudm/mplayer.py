@@ -26,18 +26,18 @@ __all__ = ['AsyncPlayer']
 
 
 class AsyncPlayer(Player):
-    """AsyncPlayer(args=(), socket_map=None)
+    """AsyncPlayer(args=(), stdout=None, stderr=None, socket_map=None)
 
     Player subclass with asyncore integration.
     """
 
-    def __init__(self, args=(), socket_map=None):
-        super(AsyncPlayer, self).__init__(args)
-        self._fd = []
+    def __init__(self, args=(), stdout=None, stderr=None, socket_map=None):
+        super(AsyncPlayer, self).__init__(args, stdout, stderr)
         self._map = socket_map
+        self._fd = []
 
-    def start(self, stdout=None, stderr=None):
-        retcode = super(AsyncPlayer, self).start(stdout, stderr)
+    def start(self):
+        retcode = super(AsyncPlayer, self).start()
         if self._stdout._file is not None:
             self._fd.append(_FileDispatcher(self._stdout, self._map).fileno())
         if self._stderr._file is not None:

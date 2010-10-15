@@ -25,17 +25,17 @@ __all__ = ['GPlayer', 'GtkPlayerView']
 
 
 class GPlayer(Player):
-    """GPlayer(args=())
+    """GPlayer(args=(), stdout=None, stderr=None)
 
     Player subclass with GTK/GObject integration.
     """
 
-    def __init__(self, args=()):
-        super(GPlayer, self).__init__(args)
+    def __init__(self, args=(), stdout=None, stderr=None):
+        super(GPlayer, self).__init__(args, stdout, stderr)
         self._tags = []
 
-    def start(self, stdout=None, stderr=None):
-        retcode = super(GPlayer, self).start(stdout, stderr)
+    def start(self):
+        retcode = super(GPlayer, self).start()
         if self._stdout._file is not None:
             tag = gobject.io_add_watch(self._stdout.fileno(),
                 gobject.IO_IN | gobject.IO_PRI, self._stdout.publish)

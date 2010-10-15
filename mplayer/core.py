@@ -27,7 +27,10 @@ __all__ = ['Player']
 
 
 class Player(object):
-    """Player(args=())
+    """Player(args=(), stdout=None, stderr=None)
+
+    @param stdout: subprocess.PIPE | None
+    @param stderr: subprocess.PIPE | subprocess.STDOUT | None
 
     An out-of-process wrapper for MPlayer. It provides the basic
     interface for sending commands and receiving responses to and from
@@ -42,11 +45,15 @@ class Player(object):
 
     path = 'mplayer'
 
-    def __init__(self, args=()):
+    def __init__(self, args=(), stdout=None, stderr=None):
         self.args = args
         self._process = None
-        self._stdout = _FileWrapper()
-        self._stderr = _FileWrapper()
+        assert stdout in (subprocess.PIPE, None), \
+            'stdout should either be PIPE or None'
+        assert stderr in (subprocess.PIPE, subprocess.STDOUT, None), \
+            'stderr should be one of PIPE, STDOUT, or None'
+        self._stdout = _FileWrapper(stdout)
+        self._stderr = _FileWrapper(stderr)
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -141,23 +148,18 @@ class Player(object):
             setattr(cls, name, local[name])
         return True
 
-    def start(self, stdout=None, stderr=None):
+    def start(self):
         """Start the MPlayer process.
-
-        @param stdout: subprocess.PIPE | None
-        @param stderr: subprocess.PIPE | subprocess.STDOUT | None
 
         Returns True on success, False on failure, or None if MPlayer
         is already running. stdout/stderr will be PIPEd regardless of
         the passed parameters if subscribers were added to them.
         """
-        assert stdout in (subprocess.PIPE, None), \
-            'stdout should either be PIPE or None'
-        assert stderr in (subprocess.PIPE, subprocess.STDOUT, None), \
-            'stderr should be one of PIPE, STDOUT, or None'
         if not self.is_alive():
             args = [self.__class__.path]
             args.extend(self._args)
+            stdout = self._stdout._handle
+            stderr = self._stderr._handle
             # Force PIPE if subscribers were added
             if self._stdout._subscribers:
                 stdout = subprocess.PIPE
@@ -264,7 +266,8 @@ class _FileWrapper(object):
     Implements the publisher-subscriber design pattern.
     """
 
-    def __init__(self):
+    def __init__(self, handle):
+        self._handle = handle
         self._file = None
         self._lock = Lock()
         self._subscribers = []
