@@ -140,7 +140,8 @@ class Player(object):
             universal_newlines=True)
         for line in mplayer.communicate()[0].split('\n'):
             args = line.lower().split()
-            if not args or args[0].startswith('get_') or \
+            if not args or (args[0].startswith('get_') and \
+                    not args[0].startswith('get_meta')) or \
                     args[0].endswith('_property') or args[0] == 'quit':
                 continue
             name = args.pop(0)
@@ -165,6 +166,10 @@ class Player(object):
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
+            if name.startswith('get_meta'):
+                prop = property(local[name])
+                name = name.split('get_')[1]
+                local[name] = prop
             setattr(cls, name, local[name])
         # Generate properties
         get_include = ['length', 'pause', 'stream_end', 'stream_length',
@@ -176,13 +181,9 @@ class Player(object):
             universal_newlines=True)
         for line in mplayer.communicate()[0].split('\n'):
             line = line.split()
-            if (len(line) != 4 and 'list' not in line) or line[0] == 'Name':
+            if len(line) != 4 or line[0] == 'Name':
                 continue
-            if len(line) == 4:
-                pname, ptype, pmin, pmax = line
-            else:
-                pname, ptype, ptype2, pmin, pmax = line
-                ptype = ' '.join([ptype, ptype2])
+            pname, ptype, pmin, pmax = line
             propget = cls._gen_propget(pname, ptype)
             if (pmin == pmax == 'No' and pname not in get_exclude) or pname in get_include:
                 propset = None
