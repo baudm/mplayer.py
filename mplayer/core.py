@@ -76,7 +76,9 @@ class Player(object):
             else:
                 arg = '%s%d' % (arg, i)
             sig.append(arg)
-        return ', '.join(sig)
+        sig = ', '.join(sig)
+        params = sig.replace('=""', '')
+        return sig, params
 
     def _get_args(self):
         return self._args[7:]
@@ -123,14 +125,14 @@ class Player(object):
                 # Fix truncated command name
                 if name.startswith('osd_show_property_'):
                     name = 'osd_show_property_text'
-                sig = cls._get_sig(args)
+                sig, params = cls._get_sig(args)
                 code = '''
                 def %(name)s(self, %(sig)s):
                     """%(name)s(%(args)s)"""
                     return self._command('%(name)s', %(params)s)
                 ''' % dict(
                     name=name, args=', '.join(args),
-                    sig=sig, params=sig.replace('=""', '')
+                    sig=sig, params=params
                 )
             else:
                 code = '''
