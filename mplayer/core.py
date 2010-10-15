@@ -308,7 +308,7 @@ class _FileWrapper(object):
         return True
 
     def hook(self, subscriber):
-        if not hasattr(subscriber, '__call__'):
+        if not callable(subscriber):
             # Raise TypeError
             subscriber()
         if subscriber not in self._subscribers:
