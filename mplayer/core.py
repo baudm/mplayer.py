@@ -110,15 +110,10 @@ class Player(object):
         """Introspect the MPlayer executable
 
         Generate methods based on the available commands.
-
-        Returns True if successful, False otherwise.
         """
         args = [cls.path, '-input', 'cmdlist']
-        try:
-            mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
-                universal_newlines=True)
-        except OSError:
-            return False
+        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
+            universal_newlines=True)
         for line in mplayer.communicate()[0].split('\n'):
             args = line.lower().split()
             if not args or args[0] == 'quit' or args[0].endswith('_property'):
@@ -146,13 +141,12 @@ class Player(object):
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
-        return True
 
     def start(self):
         """Start the MPlayer process.
 
-        Returns True on success, False on failure, or None if MPlayer
-        is already running. stdout/stderr will be PIPEd regardless of
+        Returns None if MPlayer is already running.
+        stdout/stderr will be PIPEd regardless of
         the passed parameters if subscribers were added to them.
         """
         if not self.is_alive():
@@ -165,16 +159,11 @@ class Player(object):
                 stdout = subprocess.PIPE
             if self._stderr._subscribers:
                 stderr = subprocess.PIPE
-            try:
-                # Start the MPlayer process (unbuffered)
-                self._process = subprocess.Popen(args, stdin=subprocess.PIPE,
-                    stdout=stdout, stderr=stderr, universal_newlines=True)
-            except OSError:
-                return False
-            else:
-                self._stdout._file = self._process.stdout
-                self._stderr._file = self._process.stderr
-                return True
+            # Start the MPlayer process (unbuffered)
+            self._process = subprocess.Popen(args, stdin=subprocess.PIPE,
+                stdout=stdout, stderr=stderr, universal_newlines=True)
+            self._stdout._file = self._process.stdout
+            self._stderr._file = self._process.stderr
 
     def quit(self, retcode=0):
         """Stop the MPlayer process.
@@ -329,7 +318,10 @@ class _FileWrapper(object):
 
 
 # Introspect on module load
-Player.introspect()
+try:
+    Player.introspect()
+except OSError:
+    pass
 
 
 if __name__ == '__main__':
