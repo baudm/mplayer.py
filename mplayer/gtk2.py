@@ -111,6 +111,7 @@ if __name__ == '__main__':
     w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
     p = GtkPlayerView()
+    p.connect('complete', gtk.main_quit)
     w.add(p)
     w.show_all()
     p.loadfile(sys.argv[1])

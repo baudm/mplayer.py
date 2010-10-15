@@ -102,6 +102,7 @@ if __name__ == '__main__':
     w.setWindowTitle('QtPlayer')
     w.destroyed.connect(app.quit)
     p = QPlayerView(w)
+    p.completed.connect(app.quit)
     p.resize(640, 480)
     w.show()
     p.loadfile(sys.argv[1])
