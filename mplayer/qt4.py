@@ -74,7 +74,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
 
     def __getattr__(self, name):
         # Don't expose some properties
-        if name in ['args', 'introspect', 'start', 'quit']:
+        if name in ['args', 'start', 'quit']:
             # Raise an AttributeError
             return self.__getattribute__(name)
         try:
