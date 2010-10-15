@@ -176,9 +176,13 @@ class Player(object):
             universal_newlines=True)
         for line in mplayer.communicate()[0].split('\n'):
             line = line.split()
-            if not len(line) == 4 or line[0] == 'Name':
+            if (len(line) != 4 and 'list' not in line) or line[0] == 'Name':
                 continue
-            pname, ptype, pmin, pmax = line
+            if len(line) == 4:
+                pname, ptype, pmin, pmax = line
+            else:
+                pname, ptype, ptype2, pmin, pmax = line
+                ptype = ' '.join([ptype, ptype2])
             propget = cls._gen_propget(pname, ptype)
             if (pmin == pmax == 'No' and pname not in get_exclude) or pname in get_include:
                 propset = None
