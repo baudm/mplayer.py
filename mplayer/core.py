@@ -108,7 +108,7 @@ class Player(object):
         """
         args = [cls.path, '-input', 'cmdlist']
         try:
-            mplayer = subprocess.Popen(args, bufsize=1, stdout=subprocess.PIPE,
+            mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
                 universal_newlines=True)
         except OSError:
             return False
