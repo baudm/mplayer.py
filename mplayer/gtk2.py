@@ -68,9 +68,6 @@ class GtkPlayerView(gtk.Socket):
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
-    def __del__(self):
-        self._on_destroy()
-
     def __getattr__(self, name):
         # Don't expose some properties
         if name in ['args', 'introspect', 'start', 'quit']:
