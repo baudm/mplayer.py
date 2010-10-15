@@ -18,6 +18,7 @@
 import os
 import fcntl
 import asyncore
+from subprocess import PIPE
 
 from mplayer.core import Player
 
@@ -26,12 +27,12 @@ __all__ = ['AsyncPlayer']
 
 
 class AsyncPlayer(Player):
-    """AsyncPlayer(args=(), stdout=None, stderr=None, socket_map=None)
+    """AsyncPlayer(args=(), stdout=PIPE, stderr=None, socket_map=None)
 
     Player subclass with asyncore integration.
     """
 
-    def __init__(self, args=(), stdout=None, stderr=None, socket_map=None):
+    def __init__(self, args=(), stdout=PIPE, stderr=None, socket_map=None):
         super(AsyncPlayer, self).__init__(args, stdout, stderr)
         self._map = socket_map
         self._fd = []

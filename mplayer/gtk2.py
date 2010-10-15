@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from subprocess import PIPE
+
 import gtk
 import gobject
 
@@ -25,12 +27,12 @@ __all__ = ['GPlayer', 'GtkPlayerView']
 
 
 class GPlayer(Player):
-    """GPlayer(args=(), stdout=None, stderr=None)
+    """GPlayer(args=(), stdout=PIPE, stderr=None)
 
     Player subclass with GTK/GObject integration.
     """
 
-    def __init__(self, args=(), stdout=None, stderr=None):
+    def __init__(self, args=(), stdout=PIPE, stderr=None):
         super(GPlayer, self).__init__(args, stdout, stderr)
         self._tags = []
 
@@ -60,7 +62,7 @@ class GtkPlayerView(gtk.Socket):
 
     def __init__(self):
         super(GtkPlayerView, self).__init__()
-        self._mplayer = GPlayer(args=['-idx', '-fs', '-osdlevel', '0',
+        self._mplayer = GPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
         self._mplayer.stdout.hook(self._handle_data)
         self.connect('destroy', self._on_destroy)

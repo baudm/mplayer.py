@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from subprocess import PIPE
+
 from PyQt4 import QtCore, QtGui
 
 from mplayer.core import Player
@@ -24,12 +26,12 @@ __all__ = ['QtPlayer', 'QPlayerView']
 
 
 class QtPlayer(Player):
-    """QtPlayer(args=(), stdout=None, stderr=None)
+    """QtPlayer(args=(), stdout=PIPE, stderr=None)
 
     Player subclass with Qt integration.
     """
 
-    def __init__(self, args=(), stdout=None, stderr=None):
+    def __init__(self, args=(), stdout=PIPE, stderr=None):
         super(QtPlayer, self).__init__(args, stdout, stderr)
         self._notifiers = []
 
