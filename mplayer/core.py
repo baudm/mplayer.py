@@ -146,22 +146,14 @@ class Player(object):
         """Start the MPlayer process.
 
         Returns None if MPlayer is already running.
-        stdout/stderr will be PIPEd regardless of
-        the passed parameters if subscribers were added to them.
         """
         if not self.is_alive():
             args = [self.__class__.path]
             args.extend(self._args)
-            stdout = self._stdout._handle
-            stderr = self._stderr._handle
-            # Force PIPE if subscribers were added
-            if self._stdout._subscribers:
-                stdout = subprocess.PIPE
-            if self._stderr._subscribers:
-                stderr = subprocess.PIPE
             # Start the MPlayer process (unbuffered)
             self._process = subprocess.Popen(args, stdin=subprocess.PIPE,
-                stdout=stdout, stderr=stderr, universal_newlines=True)
+                stdout=self._stdout._handle, stderr=self._stderr._handle,
+                universal_newlines=True)
             self._stdout._file = self._process.stdout
             self._stderr._file = self._process.stderr
 
