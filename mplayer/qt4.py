@@ -67,10 +67,10 @@ class QPlayerView(QtGui.QX11EmbedContainer):
             '-wid', str(self.winId())])
         self._mplayer.stdout.hook(self._handle_data)
         self._mplayer.start()
-        self.destroyed.connect(self._on_destroy)
-
-    def __del__(self):
-        self._on_destroy()
+        @QtCore.pyqtSlot(QtCore.QObject)
+        def on_destroy(obj):
+            self._mplayer.quit()
+        self.destroyed.connect(on_destroy)
 
     def __getattr__(self, name):
         # Don't expose some properties
@@ -85,9 +85,6 @@ class QPlayerView(QtGui.QX11EmbedContainer):
         else:
             return attr
 
-    def _on_destroy(self, *args):
-        self._mplayer.quit()
-
     def _handle_data(self, data):
         if data.startswith('EOF code'):
             self.completed.emit()
@@ -100,9 +97,8 @@ if __name__ == '__main__':
     w = QtGui.QWidget()
     w.resize(640, 480)
     w.setWindowTitle('QtPlayer')
-    w.destroyed.connect(app.quit)
     p = QPlayerView(w)
-    p.completed.connect(app.quit)
+    p.completed.connect(app.closeAllWindows)
     p.resize(640, 480)
     w.show()
     p.loadfile(sys.argv[1])
