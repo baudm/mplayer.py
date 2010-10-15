@@ -101,6 +101,22 @@ class Player(object):
                 return self._command('set_property', pname, int(value))
         return propset
 
+    @staticmethod
+    def _gen_propdoc(ptype, pmin, pmax, propset):
+        type_map = {
+            'Flag': 'bool', 'Float': 'float', 'Integer': 'int',
+            'Position': 'int', 'String': 'str', 'Time': 'int'
+        }
+        doc = ['Type: %s' % (type_map[ptype], )]
+        if propset is not None and ptype != 'Flag':
+            if pmin != 'No':
+                doc.append('Min: %s' % (pmin, ))
+            if pmax != 'No':
+                doc.append('Max: %s' % (pmax, ))
+        if propset is None:
+            doc.append('* Read-only')
+        return '\n'.join(doc)
+
     def _get_args(self):
         return self._args[7:]
 
@@ -166,8 +182,9 @@ class Player(object):
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
+            # Rename get_meta_* properties
             if name.startswith('get_meta'):
-                prop = property(local[name])
+                prop = property(local[name], doc='Type: str\n* Read-only')
                 name = name.split('get_')[1]
                 local[name] = prop
             setattr(cls, name, local[name])
@@ -189,8 +206,8 @@ class Player(object):
                 propset = None
             else:
                 propset = cls._gen_propset(pname, ptype)
-            doc = 'type: %s\nmin: %s\nmax: %s' % (ptype, pmin, pmax)
-            prop = property(propget, propset, doc=doc)
+            docstring = cls._gen_propdoc(ptype, pmin, pmax, propset)
+            prop = property(propget, propset, doc=docstring)
             # Rename some properties to avoid conflict
             if pname in rename:
                 pname = rename[pname]
