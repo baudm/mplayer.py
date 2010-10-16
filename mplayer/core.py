@@ -297,7 +297,7 @@ class Player(object):
             if not response.startswith('ANS_'):
                 return None
             ans = response.partition('=')[2].strip('\'"')
-            if ans.isdigit():
+            if ans.isdigit() or (ans.startswith('-') and ans[1:].isdigit()):
                 ans = int(ans)
             elif ans.count('.') == 1:
                 try:
