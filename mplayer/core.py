@@ -175,6 +175,9 @@ class Player(object):
                 pname = rename[pname]
             setattr(cls, pname, prop)
         # Generate methods
+        exclude = ['tv_set_brightness', 'tv_set_contrast', 'tv_set_saturation',
+            'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
+            'osd', 'frame_drop']
         args = [cls.path, '-input', 'cmdlist']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
             universal_newlines=True)
@@ -186,7 +189,7 @@ class Player(object):
                 continue
             name = args.pop(0)
             # Skip conflicts with properties
-            if hasattr(cls, name):
+            if hasattr(cls, name) or name in exclude:
                 continue
             if not name.startswith('get_'):
                 # Fix truncated command name
