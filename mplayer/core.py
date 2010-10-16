@@ -67,7 +67,7 @@ class Player(object):
         return '<%s.%s %s>' % (__name__, self.__class__.__name__, status)
 
     @staticmethod
-    def _get_sig(args):
+    def _gen_sig(args):
         sig = []
         for i, arg in enumerate(args):
             if arg.startswith('['):
@@ -195,7 +195,7 @@ class Player(object):
                 # Fix truncated command name
                 if name.startswith('osd_show_property_'):
                     name = 'osd_show_property_text'
-                sig, params = cls._get_sig(args)
+                sig, params = cls._gen_sig(args)
                 code = '''
                 def %(name)s(self, %(sig)s):
                     """%(name)s(%(args)s)"""
@@ -212,7 +212,7 @@ class Player(object):
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
-            # Rename get_meta_* properties
+            # Convert get_meta_* methods to meta_* properties
             if name.startswith('get_meta'):
                 prop = property(local[name], doc='Type: str\n* Read-only')
                 name = name.split('get_')[1]
@@ -271,6 +271,9 @@ class Player(object):
             command = ['pausing_keep', name]
             command.extend(map(str, args))
             command.append('\n')
+            # Special cases for 'pausing_keep_force'
+            if name in ['get_property pause', 'key_down_event', 'set_mouse_pos']:
+                command[0] = 'pausing_keep_force'
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
 
