@@ -82,20 +82,21 @@ class Player(object):
 
     @staticmethod
     def _gen_propget(pname, ptype):
-        if ptype != 'Flag':
+        if ptype != bool:
             def propget(self):
                 res = self._query(' '.join(['get_property', pname]))
-                if res != 'PROPERTY_UNAVAILABLE':
-                    return res
+                if res is not None:
+                    return ptype(res)
         else:
             def propget(self):
-                value = self._query(' '.join(['get_property', pname]))
-                return (value == 'yes')
+                res = self._query(' '.join(['get_property', pname]))
+                if res is not None:
+                    return (res == 'yes')
         return propget
 
     @staticmethod
     def _gen_propset(pname, ptype):
-        if ptype != 'Flag':
+        if ptype != bool:
             def propset(self, value):
                 return self._command('set_property', pname, value)
         else:
@@ -105,12 +106,8 @@ class Player(object):
 
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
-        type_map = {
-            'Flag': 'bool', 'Float': 'float', 'Integer': 'int',
-            'Position': 'int', 'String': 'str', 'Time': 'float'
-        }
-        doc = ['Type: %s' % (type_map[ptype], )]
-        if propset is not None and ptype != 'Flag':
+        doc = [str(ptype)]
+        if propset is not None and ptype != bool:
             if pmin != 'No':
                 doc.append('Min: %s' % (pmin, ))
             if pmax != 'No':
@@ -153,6 +150,10 @@ class Player(object):
         Generate available methods and properties.
         """
         # Generate properties
+        type_map = {
+            'Flag': bool, 'Float': float, 'Integer': int,
+            'Position': int, 'String': str, 'Time': float
+        }
         get_include = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start']
         get_exclude = ['sub_delay']
@@ -165,6 +166,7 @@ class Player(object):
             if len(line) != 4 or line[0] == 'Name':
                 continue
             pname, ptype, pmin, pmax = line
+            ptype = type_map[ptype]
             propget = cls._gen_propget(pname, ptype)
             if (pmin == pmax == 'No' and pname not in get_exclude) or pname in get_include:
                 propset = None
@@ -299,14 +301,7 @@ class Player(object):
             if not response.startswith('ANS_'):
                 return None
             ans = response.partition('=')[2].strip('\'"')
-            if ans.isdigit() or (ans.startswith('-') and ans[1:].isdigit()):
-                ans = int(ans)
-            elif ans.count('.') == 1:
-                try:
-                    ans = float(ans)
-                except ValueError:
-                    pass
-            elif ans == '(null)':
+            if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
                 ans = None
             return ans
 
