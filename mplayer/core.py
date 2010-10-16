@@ -150,6 +150,30 @@ class Player(object):
 
         Generate available methods and properties.
         """
+        # Generate properties
+        get_include = ['length', 'pause', 'stream_end', 'stream_length',
+            'stream_start']
+        get_exclude = ['sub_delay']
+        rename = {'mute': 'muted', 'pause': 'paused', 'path': 'filepath'}
+        args = [cls.path, '-list-properties']
+        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
+            universal_newlines=True)
+        for line in mplayer.communicate()[0].split('\n'):
+            line = line.split()
+            if len(line) != 4 or line[0] == 'Name':
+                continue
+            pname, ptype, pmin, pmax = line
+            propget = cls._gen_propget(pname, ptype)
+            if (pmin == pmax == 'No' and pname not in get_exclude) or pname in get_include:
+                propset = None
+            else:
+                propset = cls._gen_propset(pname, ptype)
+            docstring = cls._gen_propdoc(ptype, pmin, pmax, propset)
+            prop = property(propget, propset, doc=docstring)
+            # Rename some properties to avoid conflict
+            if pname in rename:
+                pname = rename[pname]
+            setattr(cls, pname, prop)
         # Generate methods
         args = [cls.path, '-input', 'cmdlist']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
@@ -161,6 +185,9 @@ class Player(object):
                     args[0].endswith('_property') or args[0] == 'quit':
                 continue
             name = args.pop(0)
+            # Skip conflicts with properties
+            if hasattr(cls, name):
+                continue
             if not name.startswith('get_'):
                 # Fix truncated command name
                 if name.startswith('osd_show_property_'):
@@ -188,30 +215,6 @@ class Player(object):
                 name = name.split('get_')[1]
                 local[name] = prop
             setattr(cls, name, local[name])
-        # Generate properties
-        get_include = ['length', 'pause', 'stream_end', 'stream_length',
-            'stream_start']
-        get_exclude = ['sub_delay']
-        rename = {'mute': 'muted', 'pause': 'paused', 'path': 'filepath'}
-        args = [cls.path, '-list-properties']
-        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
-            universal_newlines=True)
-        for line in mplayer.communicate()[0].split('\n'):
-            line = line.split()
-            if len(line) != 4 or line[0] == 'Name':
-                continue
-            pname, ptype, pmin, pmax = line
-            propget = cls._gen_propget(pname, ptype)
-            if (pmin == pmax == 'No' and pname not in get_exclude) or pname in get_include:
-                propset = None
-            else:
-                propset = cls._gen_propset(pname, ptype)
-            docstring = cls._gen_propdoc(ptype, pmin, pmax, propset)
-            prop = property(propget, propset, doc=docstring)
-            # Rename some properties to avoid conflict
-            if pname in rename:
-                pname = rename[pname]
-            setattr(cls, pname, prop)
 
     def start(self):
         """Start the MPlayer process.
