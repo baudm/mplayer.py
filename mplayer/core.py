@@ -154,7 +154,7 @@ class Player(object):
         get_include = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start']
         get_exclude = ['sub_delay']
-        rename = {'mute': 'muted', 'pause': 'paused', 'path': 'filepath'}
+        rename = {'pause': 'paused', 'path': 'filepath'}
         args = [cls.path, '-list-properties']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
             universal_newlines=True)
