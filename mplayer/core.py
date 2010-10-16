@@ -27,7 +27,7 @@ __all__ = ['Player']
 
 
 class Player(object):
-    """Player(args=(), stdout=None, stderr=None)
+    """Player(args=(), stdout=PIPE, stderr=None)
 
     @param stdout: subprocess.PIPE | None
     @param stderr: subprocess.PIPE | subprocess.STDOUT | None
@@ -45,7 +45,7 @@ class Player(object):
 
     path = 'mplayer'
 
-    def __init__(self, args=(), stdout=None, stderr=None):
+    def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
         self.args = args
         self._proc = None
         assert stdout in (subprocess.PIPE, None), \
