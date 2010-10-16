@@ -84,7 +84,9 @@ class Player(object):
     def _gen_propget(pname, ptype):
         if ptype != 'Flag':
             def propget(self):
-                return self._query(' '.join(['get_property', pname]))
+                res = self._query(' '.join(['get_property', pname]))
+                if res != 'PROPERTY_UNAVAILABLE':
+                    return res
         else:
             def propget(self):
                 value = self._query(' '.join(['get_property', pname]))
