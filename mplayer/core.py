@@ -106,7 +106,7 @@ class Player(object):
 
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
-        doc = [str(ptype)]
+        doc = ['Type: ' + str(ptype).split("'")[1]]
         if propset is not None and ptype != bool:
             if pmin != 'No':
                 doc.append('Min: %s' % (pmin, ))
@@ -219,7 +219,7 @@ class Player(object):
             exec(code.strip(), globals(), local)
             # Convert method to property
             if name.startswith('meta'):
-                local[name] = property(local[name], doc="<type 'str'>\n* Read-only")
+                local[name] = property(local[name], doc='Type: str\n* Read-only')
             setattr(cls, name, local[name])
 
     def start(self):
