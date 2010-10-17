@@ -1,0 +1,170 @@
+Changes since 0.4.0
+
+--------------------
+      General
+--------------------
+
+ * Renamed module/package from 'pymplayer' to 'mplayer'
+ * Renamed 'MPlayer' class to 'Player'
+ * Moved asyncore integration code into a separate class (AsyncPlayer)
+ * Added GPlayer and QtPlayer for GTK/GObject and Qt integration respectively
+ * Added GtkPlayerView and QPlayerView widgets for embedding MPlayer
+ * Removed Client-Server code
+ * asyncore.loop() no longer imported into the mplayer module
+ * Windows support
+ * Python 3 compatibility
+ * Explicit TypeErrors/ValueErrors replaced with asserts
+ * Use threading.Lock for Player.query() and _FileWrapper.pubish() methods (thread-safe?)
+
+--------------------
+        API
+--------------------
+
+Player
+
+Additions:
+ * get_property(self, name, timeout=0.25):
+   Specialized method for getting a property value
+
+
+Changes:
+ * 'executable' class property has been renamed to 'path'
+
+ * _FileWrapper.attach/detach methods renamed to hook/unhook respectively
+
+ * query(): return None if value is equal to '(null)'
+
+ * Aside from iterables, the 'args' property now accepts strings (command line)
+
+ * introspect() now called by default on the very first instantiation
+
+ * _check_command_args() no longer checks for argument types (less strict and more flexible)
+
+ * added '-input nodefault-bindings -noconfig all' to default args
+
+--------------------
+ Player interaction
+--------------------
+
+There are now three ways of obtaining data from MPlayer.
+
+1. via readline() method:
+
+p = mplayer.Player()
+p.start(stdout=mplayer.PIPE)
+line = p.stdout.readline()
+
+This method simply returns whatever is in the pipe buffers.
+Although this is convenient, using this method is not recommended because
+the MPlayer process may still hang if the pipe buffers get filled up and
+just sit there waiting to be read from. If you want to, you can define a
+timer for periodically calling readline() just to clear up the buffers.
+You can also use this with #3.
+
+
+2. via query() method:
+
+p = mplayer.Player()
+p.start(stdout=mplayer.PIPE)
+p.command('loadfile', '/path/to/some/file.mkv')
+time_length = p.query('get_time_length')
+# if successful, time_length should now contain a float object
+
+Using only this method has the same problems as the readline() method above.
+I personally use this method with the one described below (#3) since I won't
+have to worry about MPlayer hanging.
+
+*** IMPORTANT ***
+Upon execution, query() will temporarily suppress the transfer of data to the
+subscribers. Upon finishing, data transfer to the subscribers will be enabled
+again.
+
+
+3. via subscribers (asynchronous):
+
+This method is inspired by the Observer design pattern (aka publisher/subscriber)
+and is the replacement for handle_data() and handle_error() introduced in 0.3.0.
+Basically, subscribers are simply callback functions which accept a single
+parameter--the data published by whichever publisher (stdout/stderr) the
+subscribers are attached to.
+
+For applications using asyncore, GTK/GObject, or Qt, using the Player subclasses
+is the recommended way. Typical usage are as follows:
+
+asyncore:
+
+  p = mplayer.async.AsyncPlayer()
+  p.hook(subscriber1)
+  p.start()
+  asyncore.loop()
+
+
+GTK/GObject:
+
+  p = mplayer.gtk2.GPlayer()
+  p.hook(subscriber1)
+  p.start()
+  gtk.main()
+
+
+Qt:
+
+  app = QtGui.QApplication(sys.argv)
+  p = mplayer.qt4.QtPlayer()
+  p.hook(subscriber1)
+  p.start()
+  sys.exit(app.exec_())
+
+
+For other frameworks or toolkits, e.g. Tkinter, typical usage is as follows:
+
+  p = mplayer.Player()
+  p.hook(subscriber1)
+  p.start()
+
+  fd = p.stdout.fileno()
+  cb = p.stdout.publish
+
+  tkinter.createfilehandler(fd, tkinter.READABLE, cb)
+
+
+Example for typical usage of methods:
+
+"a hypothetical class for a GUI program"
+
+...
+def __init__(self):
+  super(SomeClass, self).__init__()
+  self.pl = playlist_generator()
+  self.p = mplayer.Player()
+  # introspect MPlayer executable so that we can just use additional methods
+  # instead of using command() or query() directly
+  self.p.introspect()
+  self.p.stdout.hook(self.check_mplayer_eof)
+  self.timer = SomeTimer(timeout=1000, callback=self.update_status)
+
+def __del__(self):
+  # not really needed. just here for demo purposes
+  self.p.stdout.unhook(self.check_mplayer_eof)
+  # make sure MPlayer is terminated properly
+  self.p.quit()
+
+def load_video(self):
+  video = self.pl.next() # get next video
+  self.p.loadfile(video) # uses command() internally
+  filename = self.p.get_file_name() # uses query() internally
+  time_length = self.p.get_time_length() # uses query() internally
+  self.statusbar.set_text('Now playing: %s (%d seconds)' % (filename, time_length))
+
+def check_mplayer_eof(self, data):
+  if data.startswith('EOF code'):
+    self.load_video()
+
+def update_status(self):
+  pos = self.p.get_time_pos()
+  self.statusbar2.set_text('Current Time: %d' % (pos, ))
+
+def run(self):
+  # subscribers were attached to stdout, no need to explicitly set stdout to PIPE
+  self.p.start()
+...
