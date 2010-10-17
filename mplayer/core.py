@@ -209,18 +209,17 @@ class Player(object):
                     sig=sig, params=params
                 )
             else:
+                cmd = name
+                name = name.split('get_')[1]
                 code = '''
-                def %(name)s(self, timeout=0.25):
-                    """%(name)s(timeout=0.25)"""
-                    return self._query('%(name)s', timeout)
-                ''' % dict(name=name)
+                def %(name)s(self):
+                    return self._query('%(cmd)s')
+                ''' % dict(name=name, cmd=cmd)
             local = {}
             exec(code.strip(), globals(), local)
-            # Convert get_meta_* methods to meta_* properties
-            if name.startswith('get_meta'):
-                prop = property(local[name], doc='Type: str\n* Read-only')
-                name = name.split('get_')[1]
-                local[name] = prop
+            # Convert method to property
+            if name.startswith('meta'):
+                local[name] = property(local[name], doc="<type 'str'>\n* Read-only")
             setattr(cls, name, local[name])
 
     def start(self):
