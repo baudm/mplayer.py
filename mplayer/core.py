@@ -23,7 +23,13 @@ if not subprocess.mswindows:
     import select
 
 
-__all__ = ['Player']
+__all__ = ['Player', 'StepSize']
+
+
+class StepSize(object):
+
+    def __init__(self, value=''):
+        self._value = value
 
 
 class Player(object):
@@ -98,10 +104,16 @@ class Player(object):
     def _gen_propset(pname, ptype):
         if ptype != bool:
             def propset(self, value):
-                return self._command('set_property', pname, value)
+                if not isinstance(value, StepSize):
+                    return self._command('set_property', pname, value)
+                else:
+                    return self._command('step_property', pname, value._value)
         else:
             def propset(self, value):
-                return self._command('set_property', pname, int(value))
+                if not isinstance(value, StepSize):
+                    return self._command('set_property', pname, int(value))
+                else:
+                    return self._command('step_property', pname)
         return propset
 
     @staticmethod
@@ -303,10 +315,6 @@ class Player(object):
             if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
                 ans = None
             return ans
-
-    def step_property(self, name, value='', direction=''):
-        """step_property(name, [value], [direction])"""
-        return self._command('step_property', name, value, direction)
 
 
 class _FileWrapper(object):

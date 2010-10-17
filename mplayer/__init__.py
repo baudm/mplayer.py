@@ -17,12 +17,12 @@ PIPE -- subprocess.PIPE, provided here for convenience
 STDOUT -- subprocess.STDOUT, provided here for convenience
 """
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 __author__ = 'Darwin M. Bautista <djclue917@gmail.com>'
-__all__ = ['PIPE', 'STDOUT', 'Player']
+__all__ = ['PIPE', 'STDOUT', 'Player', 'StepSize']
 
 
 # Import here for convenience.
 from subprocess import PIPE, STDOUT
 
-from mplayer.core import Player
+from mplayer.core import Player, StepSize
