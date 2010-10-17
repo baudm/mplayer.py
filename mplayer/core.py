@@ -22,10 +22,19 @@ if not subprocess.mswindows:
     import select
 
 
-__all__ = ['Player', 'StepSize']
+__all__ = ['Player', 'Step']
 
 
-class StepSize(object):
+class Step(object):
+    """Step(value=0, direction=0)
+
+    A vector which contains information about the step magnitude and direction.
+    This is meant to be used with property access to implement
+    the 'step_property' command like so:
+
+        p.fullscreen = Step()
+        p.time_pos = Step(50, -1)
+    """
 
     def __init__(self, value=0, direction=0):
         self._val = value
@@ -104,13 +113,13 @@ class Player(object):
     def _gen_propset(pname, ptype):
         if ptype != bool:
             def propset(self, value):
-                if not isinstance(value, StepSize):
+                if not isinstance(value, Step):
                     return self._command('set_property', pname, value)
                 else:
                     return self._command('step_property', pname, value._val, value._dir)
         else:
             def propset(self, value):
-                if not isinstance(value, StepSize):
+                if not isinstance(value, Step):
                     return self._command('set_property', pname, int(value))
                 else:
                     return self._command('step_property', pname)
