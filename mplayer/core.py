@@ -280,7 +280,7 @@ class Player(object):
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
 
-    def _query(self, name, timeout=0.25):
+    def _query(self, name, timeout=0.5):
         """Send a query to MPlayer. The result is returned, if there is any.
 
         query() will first consume all data in stdout before proceeding.
