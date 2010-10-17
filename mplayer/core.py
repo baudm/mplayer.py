@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2007-2008  UP EEEI Computer Networks Laboratory
 # Copyright (C) 2007-2010  Darwin M. Bautista <djclue917@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,8 +27,9 @@ __all__ = ['Player', 'StepSize']
 
 class StepSize(object):
 
-    def __init__(self, value=''):
-        self._value = value
+    def __init__(self, value=0, direction=0):
+        self._val = value
+        self._dir = direction
 
 
 class Player(object):
@@ -107,7 +107,7 @@ class Player(object):
                 if not isinstance(value, StepSize):
                     return self._command('set_property', pname, value)
                 else:
-                    return self._command('step_property', pname, value._value)
+                    return self._command('step_property', pname, value._val, value._dir)
         else:
             def propset(self, value):
                 if not isinstance(value, StepSize):
