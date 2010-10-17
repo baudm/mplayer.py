@@ -84,12 +84,12 @@ class Player(object):
     def _gen_propget(pname, ptype):
         if ptype != bool:
             def propget(self):
-                res = self._query(' '.join(['get_property', pname]))
+                res = self._query('get_property ' + pname)
                 if res is not None:
                     return ptype(res)
         else:
             def propget(self):
-                res = self._query(' '.join(['get_property', pname]))
+                res = self._query('get_property ' + pname)
                 if res is not None:
                     return (res == 'yes')
         return propget
