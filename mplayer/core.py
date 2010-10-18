@@ -292,12 +292,11 @@ class Player(object):
         assert not 'quit'.startswith(name.split()[0].lower()), \
             'use the quit() method instead'
         if self.is_alive() and name:
-            command = ['pausing_keep', name]
+            command = ['pausing_keep_force', name]
             command.extend(map(str, args))
             command.append('\n')
-            # Special cases for 'pausing_keep_force'
-            if name in ['get_property pause', 'key_down_event', 'set_mouse_pos']:
-                command[0] = 'pausing_keep_force'
+            if name in ['pause', 'stop']:
+                command.pop(0)
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
 
