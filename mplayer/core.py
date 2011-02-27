@@ -22,13 +22,20 @@ if not subprocess.mswindows:
     import select
 
 
-__all__ = ['Player', 'Step']
+__all__ = [
+    'PAUSING',
+    'PAUSING_TOGGLE',
+    'PAUSING_KEEP',
+    'PAUSING_KEEP_FORCE',
+    'Player',
+    'Step'
+    ]
 
 # Command prefixes
 PAUSING = 'pausing'
+PAUSING_TOGGLE = 'pausing_toggle'
 PAUSING_KEEP = 'pausing_keep'
 PAUSING_KEEP_FORCE = 'pausing_keep_force'
-PAUSING_TOGGLE = 'pausing_toggle'
 
 
 class Step(object):
