@@ -41,7 +41,7 @@ PyMPlayer provides several classes for easily using MPlayer in Python.
     The PyMPlayer package and submodules (mplayer/*.py) are released under
     the terms of LGPL 3. See LICENSE for the full license.
 
-    PyMPlayer is Copyright (C) 2007-2010  Darwin M. Bautista.
+    PyMPlayer is Copyright (C) 2007-2011  Darwin M. Bautista.
 
     The LGPL is Copyright (C) Free Software Foundation.
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2010  Darwin M. Bautista <djclue917@gmail.com>
+# Copyright (C) 2010-2011  Darwin M. Bautista <djclue917@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
