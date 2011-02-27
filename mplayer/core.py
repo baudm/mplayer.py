@@ -234,7 +234,6 @@ class Player(object):
                 code = '''
                 def %(name)s(self, %(sig)s prefix=None):
                     """%(name)s(%(args)s)"""
-                    prefix = prefix or self.command_prefix
                     return self._command('%(name)s', %(params)s prefix=prefix)
                 ''' % dict(
                     name=name, args=', '.join(args),
@@ -243,8 +242,8 @@ class Player(object):
             else:
                 code = '''
                 def %(name)s(self, prefix=None):
-                    prefix = prefix or self.command_prefix
-                    return self._query('%(name)s', prefix=prefix)
+                    """%(name)s()"""
+                    return self._query('%(name)s', prefix)
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
@@ -300,7 +299,9 @@ class Player(object):
             'use the quit() method instead'
         if self.is_alive() and name:
             prefix = kwargs.get('prefix', self.command_prefix)
-            command = [str(prefix), name]
+            if prefix is None:
+                prefix = self.command_prefix
+            command = [prefix, name]
             command.extend(map(str, args))
             command.append('\n')
             if name in ['pause', 'stop']:
@@ -322,7 +323,6 @@ class Player(object):
             # Consume all data in stdout before proceeding
             while self._stdout._readline() is not None:
                 pass
-            prefix = prefix or self.command_prefix
             self._command(name, prefix=prefix)
             response = self._stdout._readline(timeout) or ''
             self._stdout._lock.release()
