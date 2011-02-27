@@ -24,6 +24,12 @@ if not subprocess.mswindows:
 
 __all__ = ['Player', 'Step']
 
+# Command prefixes
+PAUSING = 'pausing'
+PAUSING_KEEP = 'pausing_keep'
+PAUSING_KEEP_FORCE = 'pausing_keep_force'
+PAUSING_TOGGLE = 'pausing_toggle'
+
 
 class Step(object):
     """Step(value=0, direction=0)
@@ -59,6 +65,7 @@ class Player(object):
     """
 
     path = 'mplayer'
+    command_prefix = PAUSING_KEEP_FORCE
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
         self.args = args
@@ -92,6 +99,9 @@ class Player(object):
                 arg = '%s%d' % (arg, i)
             sig.append(arg)
         sig = ', '.join(sig)
+        # Append an extra comma
+        if sig:
+            sig += ','
         params = sig.replace('=""', '')
         return sig, params
 
@@ -222,17 +232,19 @@ class Player(object):
                     name = 'osd_show_property_text'
                 sig, params = cls._gen_sig(args)
                 code = '''
-                def %(name)s(self, %(sig)s):
+                def %(name)s(self, %(sig)s prefix=None):
                     """%(name)s(%(args)s)"""
-                    return self._command('%(name)s', %(params)s)
+                    prefix = prefix or self.command_prefix
+                    return self._command('%(name)s', %(params)s prefix=prefix)
                 ''' % dict(
                     name=name, args=', '.join(args),
                     sig=sig, params=params
                 )
             else:
                 code = '''
-                def %(name)s(self):
-                    return self._query('%(name)s')
+                def %(name)s(self, prefix=None):
+                    prefix = prefix or self.command_prefix
+                    return self._query('%(name)s', prefix=prefix)
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
@@ -275,7 +287,7 @@ class Player(object):
         else:
             return False
 
-    def _command(self, name, *args):
+    def _command(self, name, *args, **kwargs):
         """Send a command to MPlayer.
 
         @param name: command string
@@ -287,7 +299,8 @@ class Player(object):
         assert not 'quit'.startswith(name.split()[0].lower()), \
             'use the quit() method instead'
         if self.is_alive() and name:
-            command = ['pausing_keep_force', name]
+            prefix = kwargs.get('prefix', self.command_prefix)
+            command = [str(prefix), name]
             command.extend(map(str, args))
             command.append('\n')
             if name in ['pause', 'stop']:
@@ -295,7 +308,7 @@ class Player(object):
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
 
-    def _query(self, name, timeout=0.5):
+    def _query(self, name, timeout=0.5, prefix=None):
         """Send a query to MPlayer. The result is returned, if there is any.
 
         query() will first consume all data in stdout before proceeding.
@@ -309,7 +322,8 @@ class Player(object):
             # Consume all data in stdout before proceeding
             while self._stdout._readline() is not None:
                 pass
-            self._command(name)
+            prefix = prefix or self.command_prefix
+            self._command(name, prefix=prefix)
             response = self._stdout._readline(timeout) or ''
             self._stdout._lock.release()
             if not response.startswith('ANS_'):
