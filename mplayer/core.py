@@ -66,6 +66,7 @@ class Player(object):
 
     path = 'mplayer'
     command_prefix = PAUSING_KEEP_FORCE
+    query_timeout = 0.5
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
         self.args = args
@@ -241,9 +242,9 @@ class Player(object):
                 )
             else:
                 code = '''
-                def %(name)s(self, prefix=None):
+                def %(name)s(self, timeout=None, prefix=None):
                     """%(name)s()"""
-                    return self._query('%(name)s', prefix)
+                    return self._query('%(name)s', timeout, prefix)
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
@@ -309,7 +310,7 @@ class Player(object):
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
 
-    def _query(self, name, timeout=0.5, prefix=None):
+    def _query(self, name, timeout=None, prefix=None):
         """Send a query to MPlayer. The result is returned, if there is any.
 
         query() will first consume all data in stdout before proceeding.
@@ -319,6 +320,8 @@ class Player(object):
         assert not subprocess.mswindows, "query() doesn't work in MS Windows"
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
         if self._stdout._file is not None and name.lower().startswith('get_'):
+            if timeout is None:
+                timeout = self.query_timeout
             self._stdout._lock.acquire()
             # Consume all data in stdout before proceeding
             while self._stdout._readline() is not None:
