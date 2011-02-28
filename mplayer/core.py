@@ -65,7 +65,10 @@ class Player(object):
     MPlayer. Take note that MPlayer is always started in 'slave',
     'idle', and 'quiet' modes.
 
-    @class attribute path: full/relative path to or filename of MPlayer
+    @class attr path: path to the MPlayer executable
+    @class attr command_prefix: prefix for MPlayer commands
+        PAUSING | PAUSING_TOGGLE | PAUSING_KEEP | PAUSING_KEEP_FORCE
+    @class attr query_timeout: timeout for commands which could return values
     @property args: MPlayer arguments
     @property stdout: process' stdout (read-only)
     @property stderr: process' stderr (read-only)
@@ -306,9 +309,9 @@ class Player(object):
         assert not 'quit'.startswith(name.split()[0].lower()), \
             'use the quit() method instead'
         if self.is_alive() and name:
-            prefix = kwargs.get('prefix', self.command_prefix)
+            prefix = kwargs.get('prefix', self.__class__.command_prefix)
             if prefix is None:
-                prefix = self.command_prefix
+                prefix = self.__class__.command_prefix
             command = [prefix, name]
             command.extend(map(str, args))
             command.append('\n')
@@ -328,7 +331,7 @@ class Player(object):
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
         if self._stdout._file is not None and name.lower().startswith('get_'):
             if timeout is None:
-                timeout = self.query_timeout
+                timeout = self.__class__.query_timeout
             self._stdout._lock.acquire()
             # Consume all data in stdout before proceeding
             while self._stdout._readline() is not None:
