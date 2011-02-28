@@ -120,12 +120,12 @@ class Player(object):
     def _gen_propget(pname, ptype):
         if ptype != bool:
             def propget(self):
-                res = self._query('get_property ' + pname)
+                res = self._query('get_property', pname)
                 if res is not None:
                     return ptype(res)
         else:
             def propget(self):
-                res = self._query('get_property ' + pname)
+                res = self._query('get_property', pname)
                 if res is not None:
                     return (res == 'yes')
         return propget
@@ -254,7 +254,7 @@ class Player(object):
                 code = '''
                 def %(name)s(self, timeout=None, prefix=None):
                     """%(name)s()"""
-                    return self._query('%(name)s', timeout, prefix)
+                    return self._query('%(name)s', timeout=timeout, prefix=prefix)
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
@@ -317,7 +317,7 @@ class Player(object):
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
 
-    def _query(self, name, timeout=None, prefix=None):
+    def _query(self, name, arg='', timeout=None, prefix=None):
         """Send a query to MPlayer. The result is returned, if there is any.
 
         query() will first consume all data in stdout before proceeding.
@@ -333,7 +333,7 @@ class Player(object):
             # Consume all data in stdout before proceeding
             while self._stdout._readline() is not None:
                 pass
-            self._command(name, prefix=prefix)
+            self._command(name, arg, prefix=prefix)
             response = self._stdout._readline(timeout) or ''
             self._stdout._lock.release()
             if not response.startswith('ANS_'):
