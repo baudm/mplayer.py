@@ -81,9 +81,9 @@ class Player(object):
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
         self.args = args
         self._proc = None
-        assert stdout in (subprocess.PIPE, None), \
+        assert stdout in [subprocess.PIPE, None], \
             'stdout should either be PIPE or None'
-        assert stderr in (subprocess.PIPE, subprocess.STDOUT, None), \
+        assert stderr in [subprocess.PIPE, subprocess.STDOUT, None], \
             'stderr should be one of PIPE, STDOUT, or None'
         self._stdout = _FileWrapper(stdout)
         self._stderr = _FileWrapper(stderr)
@@ -283,8 +283,7 @@ class Player(object):
         if self.is_alive():
             self._stdout._file = None
             self._stderr._file = None
-            self._proc.stdin.write('quit %d\n' % (retcode, ))
-            self._proc.stdin.flush()
+            self._command('quit', retcode)
             return self._proc.wait()
 
     def is_alive(self):
@@ -306,8 +305,6 @@ class Player(object):
         http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
         assert self.is_alive(), 'MPlayer not yet started'
-        assert not 'quit'.startswith(name.split()[0].lower()), \
-            'use the quit() method instead'
         if self.is_alive() and name:
             prefix = kwargs.get('prefix', self.__class__.command_prefix)
             if prefix is None:
@@ -315,7 +312,7 @@ class Player(object):
             command = [prefix, name]
             command.extend(map(str, args))
             command.append('\n')
-            if name in ['pause', 'stop']:
+            if name in ['quit', 'pause', 'stop']:
                 command.pop(0)
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
