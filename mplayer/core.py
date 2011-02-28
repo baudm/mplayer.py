@@ -190,15 +190,16 @@ class Player(object):
         """Introspect the MPlayer executable
 
         Generate available methods and properties.
+        See http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
         # Generate properties
         type_map = {
             'Flag': bool, 'Float': float, 'Integer': int,
             'Position': int, 'String': str, 'Time': float
         }
-        get_include = ['length', 'pause', 'stream_end', 'stream_length',
+        read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start']
-        get_exclude = ['sub_delay']
+        read_write = ['sub_delay']
         rename = {'pause': 'paused', 'path': 'filepath'}
         args = [cls.path, '-list-properties']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
@@ -210,7 +211,7 @@ class Player(object):
             pname, ptype, pmin, pmax = line
             ptype = type_map[ptype]
             propget = cls._gen_propget(pname, ptype)
-            if (pmin == pmax == 'No' and pname not in get_exclude) or pname in get_include:
+            if (pmin == pmax == 'No' and pname not in read_write) or pname in read_only:
                 propset = None
             else:
                 propset = cls._gen_propset(pname, ptype)
@@ -297,13 +298,7 @@ class Player(object):
             return False
 
     def _command(self, name, *args, **kwargs):
-        """Send a command to MPlayer.
-
-        @param name: command string
-
-        Valid MPlayer commands are documented in:
-        http://www.mplayerhq.hu/DOCS/tech/slave.txt
-        """
+        """Send a command to MPlayer"""
         assert self.is_alive(), 'MPlayer not yet started'
         if self.is_alive() and name:
             prefix = kwargs.get('prefix', self.__class__.command_prefix)
