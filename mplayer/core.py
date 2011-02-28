@@ -118,16 +118,23 @@ class Player(object):
 
     @staticmethod
     def _gen_propget(pname, ptype):
-        if ptype != bool:
+        if ptype not in [bool, list]:
             def propget(self):
                 res = self._query('get_property', pname)
                 if res is not None:
                     return ptype(res)
-        else:
+        elif ptype == bool:
             def propget(self):
                 res = self._query('get_property', pname)
                 if res is not None:
                     return (res == 'yes')
+        else:
+            def propget(self):
+                res = self._query('get_property', pname)
+                if res is not None:
+                    res = res.split(',')
+                    # For now, return list as a dict ('metadata' property)
+                    return dict(zip(res[::2], res[1::2]))
         return propget
 
     @staticmethod
@@ -194,8 +201,8 @@ class Player(object):
         """
         # Generate properties
         type_map = {
-            'Flag': bool, 'Float': float, 'Integer': int,
-            'Position': int, 'String': str, 'Time': float
+            'Flag': bool, 'Float': float, 'Integer': int, 'Position': int,
+            'Time': float, 'String': str, 'String list': list
         }
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start']
@@ -206,9 +213,13 @@ class Player(object):
             universal_newlines=True)
         for line in mplayer.communicate()[0].split('\n'):
             line = line.split()
-            if len(line) != 4 or line[0] == 'Name':
+            if not line or not line[0].islower():
                 continue
-            pname, ptype, pmin, pmax = line
+            try:
+                pname, ptype, pmin, pmax = line
+            except ValueError:
+                pname, ptype, ptype2, pmin, pmax = line
+                ptype = ' '.join([ptype, ptype2])
             ptype = type_map[ptype]
             propget = cls._gen_propget(pname, ptype)
             if (pmin == pmax == 'No' and pname not in read_write) or pname in read_only:
