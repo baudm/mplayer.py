@@ -76,7 +76,7 @@ class Player(object):
 
     path = 'mplayer'
     command_prefix = PAUSING_KEEP_FORCE
-    query_timeout = 0.5
+    query_timeout = 1.0
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
         self.args = args
