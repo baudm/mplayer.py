@@ -193,13 +193,7 @@ class Player(object):
         return self._stderr
 
     @classmethod
-    def introspect(cls):
-        """Introspect the MPlayer executable
-
-        Generate available methods and properties.
-        See http://www.mplayerhq.hu/DOCS/tech/slave.txt
-        """
-        # Generate properties
+    def _generate_properties(cls):
         type_map = {
             'Flag': bool, 'Float': float, 'Integer': int, 'Position': int,
             'Time': float, 'String': str, 'String list': list
@@ -226,13 +220,15 @@ class Player(object):
                 propset = None
             else:
                 propset = cls._gen_propset(pname, ptype)
-            docstring = cls._gen_propdoc(ptype, pmin, pmax, propset)
-            prop = property(propget, propset, doc=docstring)
+            propdoc = cls._gen_propdoc(ptype, pmin, pmax, propset)
+            prop = property(propget, propset, doc=propdoc)
             # Rename some properties to avoid conflict
             if pname in rename:
                 pname = rename[pname]
             setattr(cls, pname, prop)
-        # Generate methods
+
+    @classmethod
+    def _generate_methods(cls):
         exclude = ['tv_set_brightness', 'tv_set_contrast', 'tv_set_saturation',
             'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
             'osd', 'frame_drop']
@@ -271,6 +267,16 @@ class Player(object):
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
+
+    @classmethod
+    def introspect(cls):
+        """Introspect the MPlayer executable
+
+        Generate available methods and properties.
+        See http://www.mplayerhq.hu/DOCS/tech/slave.txt
+        """
+        cls._generate_properties()
+        cls._generate_methods()
 
     def start(self):
         """Start the MPlayer process.
