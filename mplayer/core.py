@@ -18,8 +18,6 @@
 import shlex
 import subprocess
 from threading import Lock
-if not subprocess.mswindows:
-    import select
 
 
 __all__ = [
@@ -68,7 +66,6 @@ class Player(object):
     @class attr path: path to the MPlayer executable
     @class attr command_prefix: prefix for MPlayer commands
         PAUSING | PAUSING_TOGGLE | PAUSING_KEEP | PAUSING_KEEP_FORCE
-    @class attr query_timeout: timeout for commands which could return values
     @property args: MPlayer arguments
     @property stdout: process' stdout (read-only)
     @property stderr: process' stderr (read-only)
@@ -76,7 +73,6 @@ class Player(object):
 
     path = 'mplayer'
     command_prefix = PAUSING_KEEP_FORCE
-    query_timeout = 1.0
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
         self.args = args
@@ -260,9 +256,9 @@ class Player(object):
                 )
             else:
                 code = '''
-                def %(name)s(self, timeout=None, prefix=None):
+                def %(name)s(self, prefix=None):
                     """%(name)s()"""
-                    return self._query('%(name)s', timeout=timeout, prefix=prefix)
+                    return self._query('%(name)s', prefix=prefix)
                 ''' % dict(name=name)
             local = {}
             exec(code.strip(), globals(), local)
@@ -329,27 +325,17 @@ class Player(object):
             self._proc.stdin.write(' '.join(command))
             self._proc.stdin.flush()
 
-    def _query(self, name, arg='', timeout=None, prefix=None):
-        """Send a query to MPlayer. The result is returned, if there is any.
-
-        query() will first consume all data in stdout before proceeding.
-        This is to ensure that it'll get the response from the command
-        given and not just some random data.
-        """
-        assert not subprocess.mswindows, "query() doesn't work in MS Windows"
+    def _query(self, name, arg='', prefix=None):
+        """Send a query to MPlayer. The result, if any, is returned."""
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
         if self._stdout._file is not None and name.lower().startswith('get_'):
-            if timeout is None:
-                timeout = self.__class__.query_timeout
             self._stdout._lock.acquire()
-            # Consume all data in stdout before proceeding
-            while self._stdout._readline() is not None:
-                pass
             self._command(name, arg, prefix=prefix)
-            response = self._stdout._readline(timeout) or ''
+            while True:
+                response = self._stdout._file.readline().rstrip()
+                if response.startswith('ANS_'):
+                    break
             self._stdout._lock.release()
-            if not response.startswith('ANS_'):
-                return None
             ans = response.partition('=')[2].strip('\'"')
             if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
                 ans = None
@@ -367,17 +353,6 @@ class _FileWrapper(object):
         self._file = None
         self._lock = Lock()
         self._subscribers = []
-
-    if subprocess.mswindows:
-        def _readline(self, timeout=0):
-            """This method will block in MS Windows"""
-            if self._file is not None:
-                return self._file.readline().rstrip()
-    else:
-        def _readline(self, timeout=0):
-            if self._file is not None and \
-               select.select([self._file], [], [], timeout)[0]:
-                return self._file.readline().rstrip()
 
     def fileno(self):
         if self._file is not None:
