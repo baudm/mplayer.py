@@ -285,7 +285,7 @@ class Player(object):
             # Start the MPlayer process (unbuffered)
             self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
                 stdout=self._stdout._handle, stderr=self._stderr._handle,
-                universal_newlines=True)
+                close_fds=(not subprocess.mswindows))
             self._stdout._file = self._proc.stdout
             self._stderr._file = self._proc.stderr
 
