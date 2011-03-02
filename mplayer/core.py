@@ -126,17 +126,17 @@ class Player(object):
     def _gen_propget(pname, ptype):
         if ptype not in [bool, dict]:
             def propget(self):
-                res = self._query('get_property', pname)
+                res = self._command('get_property', pname)
                 if res is not None:
                     return ptype(res)
         elif ptype == bool:
             def propget(self):
-                res = self._query('get_property', pname)
+                res = self._command('get_property', pname)
                 if res is not None:
                     return (res == 'yes')
         else:
             def propget(self):
-                res = self._query('get_property', pname)
+                res = self._command('get_property', pname)
                 if res is not None:
                     res = res.split(',')
                     # For now, return list as a dict ('metadata' property)
@@ -172,7 +172,7 @@ class Player(object):
         return '\n'.join(doc)
 
     @staticmethod
-    def _gen_sig(args):
+    def _gen_func_sig(args):
         sig = []
         for i, arg in enumerate(args):
             if arg.startswith('['):
@@ -239,23 +239,14 @@ class Player(object):
             # Skip conflicts with properties
             if hasattr(cls, name) or name in exclude:
                 continue
-            if not name.startswith('get_'):
-                # Fix truncated command name
-                if name.startswith('osd_show_property_'):
-                    name = 'osd_show_property_text'
-                sig, params = cls._gen_sig(args)
-                code = '''
-                def %(name)s(self, %(sig)s prefix=None):
-                    return self._command('%(name)s', %(params)s prefix=prefix)
-                ''' % dict(
-                    name=name, args=', '.join(args),
-                    sig=sig, params=params
-                )
-            else:
-                code = '''
-                def %(name)s(self, prefix=None):
-                    return self._query('%(name)s', prefix=prefix)
-                ''' % dict(name=name)
+            # Fix truncated command name
+            if name.startswith('osd_show_property_'):
+                name = 'osd_show_property_text'
+            sig, params = cls._gen_func_sig(args)
+            code = '''
+            def %(name)s(self, %(sig)s prefix=None):
+                return self._command('%(name)s', %(params)s prefix=prefix)
+            ''' % dict(name=name, sig=sig, params=params)
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
@@ -309,7 +300,7 @@ class Player(object):
             return False
 
     def _command(self, name, *args, **kwargs):
-        """Send a command to MPlayer"""
+        """Send a command to MPlayer. The result, if any, is returned."""
         assert self.is_alive(), 'MPlayer not running'
         if not self.is_alive() or not name:
             return
@@ -321,24 +312,23 @@ class Player(object):
         command.append('\n')
         if name in ['quit', 'pause', 'stop']:
             command.pop(0)
-        self._proc.stdin.write(' '.join(command))
-        self._proc.stdin.flush()
-
-    def _query(self, name, arg='', prefix=None):
-        """Send a query to MPlayer. The result, if any, is returned."""
-        assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
-        if self._stdout._file is None or not name.lower().startswith('get_'):
-            return
-        with self._stdout._lock:
-            self._command(name, arg, prefix=prefix)
-            while True:
-                response = self._stdout._file.readline().rstrip()
-                if response.startswith('ANS_'):
-                    break
-        ans = response.partition('=')[2].strip('\'"')
-        if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
-            ans = None
-        return ans
+        # For non-getter commands, simply send the command
+        if not name.startswith('get_'):
+            self._proc.stdin.write(' '.join(command))
+            self._proc.stdin.flush()
+        # For getter commands, expect a result
+        elif self._proc.stdout is not None:
+            with self._stdout._lock:
+                self._proc.stdin.write(' '.join(command))
+                self._proc.stdin.flush()
+                while True:
+                    response = self._proc.stdout.readline().rstrip()
+                    if response.startswith('ANS_'):
+                        break
+            ans = response.partition('=')[2].strip('\'"')
+            if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
+                ans = None
+            return ans
 
 
 class _FileWrapper(object):
