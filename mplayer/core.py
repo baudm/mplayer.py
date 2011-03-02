@@ -279,26 +279,28 @@ class Player(object):
 
         Returns None if MPlayer is already running.
         """
-        if not self.is_alive():
-            args = [self.__class__.path]
-            args.extend(self._args)
-            # Start the MPlayer process (unbuffered)
-            self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
-                stdout=self._stdout._handle, stderr=self._stderr._handle,
-                close_fds=(not subprocess.mswindows))
-            self._stdout._file = self._proc.stdout
-            self._stderr._file = self._proc.stderr
+        if self.is_alive():
+            return
+        args = [self.__class__.path]
+        args.extend(self._args)
+        # Start the MPlayer process (unbuffered)
+        self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
+            stdout=self._stdout._handle, stderr=self._stderr._handle,
+            close_fds=(not subprocess.mswindows))
+        self._stdout._file = self._proc.stdout
+        self._stderr._file = self._proc.stderr
 
     def quit(self, retcode=0):
         """Terminate the underlying MPlayer process.
 
         Returns the exit status of MPlayer or None if not running.
         """
-        if self.is_alive():
-            self._stdout._file = None
-            self._stderr._file = None
-            self._command('quit', retcode)
-            return self._proc.wait()
+        if not self.is_alive():
+            return
+        self._stdout._file = None
+        self._stderr._file = None
+        self._command('quit', retcode)
+        return self._proc.wait()
 
     def is_alive(self):
         """Check if MPlayer process is alive.
@@ -313,33 +315,35 @@ class Player(object):
     def _command(self, name, *args, **kwargs):
         """Send a command to MPlayer"""
         assert self.is_alive(), 'MPlayer not running'
-        if self.is_alive() and name:
-            prefix = kwargs.get('prefix', self.__class__.command_prefix)
-            if prefix is None:
-                prefix = self.__class__.command_prefix
-            command = [prefix, name]
-            command.extend(map(str, args))
-            command.append('\n')
-            if name in ['quit', 'pause', 'stop']:
-                command.pop(0)
-            self._proc.stdin.write(' '.join(command))
-            self._proc.stdin.flush()
+        if not self.is_alive() or not name:
+            return
+        prefix = kwargs.get('prefix', self.__class__.command_prefix)
+        if prefix is None:
+            prefix = self.__class__.command_prefix
+        command = [prefix, name]
+        command.extend(map(str, args))
+        command.append('\n')
+        if name in ['quit', 'pause', 'stop']:
+            command.pop(0)
+        self._proc.stdin.write(' '.join(command))
+        self._proc.stdin.flush()
 
     def _query(self, name, arg='', prefix=None):
         """Send a query to MPlayer. The result, if any, is returned."""
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
-        if self._stdout._file is not None and name.lower().startswith('get_'):
-            self._stdout._lock.acquire()
-            self._command(name, arg, prefix=prefix)
-            while True:
-                response = self._stdout._file.readline().rstrip()
-                if response.startswith('ANS_'):
-                    break
-            self._stdout._lock.release()
-            ans = response.partition('=')[2].strip('\'"')
-            if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
-                ans = None
-            return ans
+        if self._stdout._file is None or not name.lower().startswith('get_'):
+            return
+        self._stdout._lock.acquire()
+        self._command(name, arg, prefix=prefix)
+        while True:
+            response = self._stdout._file.readline().rstrip()
+            if response.startswith('ANS_'):
+                break
+        self._stdout._lock.release()
+        ans = response.partition('=')[2].strip('\'"')
+        if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
+            ans = None
+        return ans
 
 
 class _FileWrapper(object):
