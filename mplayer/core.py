@@ -30,9 +30,6 @@ __all__ = [
 class CommandPrefix(object):
     """MPlayer command prefixes"""
 
-    __slots__ = ['PAUSING', 'PAUSING_TOGGLE', 'PAUSING_KEEP',
-        'PAUSING_KEEP_FORCE']
-
     PAUSING = 'pausing'
     PAUSING_TOGGLE = 'pausing_toggle'
     PAUSING_KEEP = 'pausing_keep'
