@@ -37,8 +37,7 @@ class CommandPrefix(object):
 
 
 class Step(object):
-    """Step(value=0, direction=0)
-
+    """
     A vector which contains information about the step magnitude and direction.
     This is meant to be used with property access to implement
     the 'step_property' command like so:
@@ -53,15 +52,14 @@ class Step(object):
 
 
 class Player(object):
-    """Player(args=(), stdout=PIPE, stderr=None, autospawn=True)
-
-    @param stdout: subprocess.PIPE | None
-    @param stderr: subprocess.PIPE | subprocess.STDOUT | None
-
+    """
     An out-of-process wrapper for MPlayer. It provides the basic
     interface for sending commands and receiving responses to and from
     MPlayer. Take note that MPlayer is always started in 'slave',
     'idle', and 'quiet' modes.
+
+    @param stdout: subprocess.PIPE | None
+    @param stderr: subprocess.PIPE | subprocess.STDOUT | None
 
     @class attr path: path to the MPlayer executable
     @class attr command_prefix: prefix for MPlayer commands (see CommandPrefix)
@@ -248,7 +246,6 @@ class Player(object):
                 sig, params = cls._gen_sig(args)
                 code = '''
                 def %(name)s(self, %(sig)s prefix=None):
-                    """%(name)s(%(args)s)"""
                     return self._command('%(name)s', %(params)s prefix=prefix)
                 ''' % dict(
                     name=name, args=', '.join(args),
@@ -257,7 +254,6 @@ class Player(object):
             else:
                 code = '''
                 def %(name)s(self, prefix=None):
-                    """%(name)s()"""
                     return self._query('%(name)s', prefix=prefix)
                 ''' % dict(name=name)
             local = {}

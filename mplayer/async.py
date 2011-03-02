@@ -27,10 +27,7 @@ __all__ = ['AsyncPlayer']
 
 
 class AsyncPlayer(Player):
-    """AsyncPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None)
-
-    Player subclass with asyncore integration.
-    """
+    """Player subclass with asyncore integration."""
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None):
         self._map = socket_map

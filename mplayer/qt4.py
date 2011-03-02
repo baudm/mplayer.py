@@ -26,10 +26,7 @@ __all__ = ['QtPlayer', 'QPlayerView']
 
 
 class QtPlayer(Player):
-    """QtPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True)
-
-    Player subclass with Qt integration.
-    """
+    """Player subclass with Qt integration."""
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         self._notifiers = []

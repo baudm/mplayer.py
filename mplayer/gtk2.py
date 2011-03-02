@@ -27,10 +27,7 @@ __all__ = ['GPlayer', 'GtkPlayerView']
 
 
 class GPlayer(Player):
-    """GPlayer(args=(), stdout=PIPE, stderr=None)
-
-    Player subclass with GTK/GObject integration.
-    """
+    """Player subclass with GTK/GObject integration."""
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         self._tags = []
