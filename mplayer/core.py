@@ -94,22 +94,33 @@ class Player(object):
             status = 'not running'
         return '<%s.%s %s>' % (__name__, self.__class__.__name__, status)
 
-    @staticmethod
-    def _gen_sig(args):
-        sig = []
-        for i, arg in enumerate(args):
-            if arg.startswith('['):
-                arg = arg.strip('[]')
-                arg = '%s%d=""' % (arg, i)
-            else:
-                arg = '%s%d' % (arg, i)
-            sig.append(arg)
-        sig = ', '.join(sig)
-        # Append an extra comma
-        if sig:
-            sig += ','
-        params = sig.replace('=""', '')
-        return sig, params
+    @property
+    def args(self):
+        """list of MPlayer arguments"""
+        return self._args[7:]
+
+    @args.setter
+    def args(self, args):
+        _args = ['-slave', '-idle', '-quiet', '-input', 'nodefault-bindings',
+            '-noconfig', 'all']
+        # Assume that args is a string.
+        try:
+            args = shlex.split(args)
+        except AttributeError: # args is not a string
+            # Force all args to string
+            args = map(str, args)
+        _args.extend(args)
+        self._args = _args
+
+    @property
+    def stdout(self):
+        """stdout of the MPlayer process"""
+        return self._stdout
+
+    @property
+    def stderr(self):
+        """stderr of the MPlayer process"""
+        return self._stderr
 
     @staticmethod
     def _gen_propget(pname, ptype):
@@ -160,33 +171,22 @@ class Player(object):
             doc.append('* Read-only')
         return '\n'.join(doc)
 
-    @property
-    def args(self):
-        """list of MPlayer arguments"""
-        return self._args[7:]
-
-    @args.setter
-    def args(self, args):
-        _args = ['-slave', '-idle', '-quiet', '-input', 'nodefault-bindings',
-            '-noconfig', 'all']
-        # Assume that args is a string.
-        try:
-            args = shlex.split(args)
-        except AttributeError: # args is not a string
-            # Force all args to string
-            args = map(str, args)
-        _args.extend(args)
-        self._args = _args
-
-    @property
-    def stdout(self):
-        """stdout of the MPlayer process"""
-        return self._stdout
-
-    @property
-    def stderr(self):
-        """stderr of the MPlayer process"""
-        return self._stderr
+    @staticmethod
+    def _gen_sig(args):
+        sig = []
+        for i, arg in enumerate(args):
+            if arg.startswith('['):
+                arg = arg.strip('[]')
+                arg = '%s%d=""' % (arg, i)
+            else:
+                arg = '%s%d' % (arg, i)
+            sig.append(arg)
+        sig = ', '.join(sig)
+        # Append an extra comma
+        if sig:
+            sig += ','
+        params = sig.replace('=""', '')
+        return sig, params
 
     @classmethod
     def _generate_properties(cls):
