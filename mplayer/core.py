@@ -199,9 +199,8 @@ class Player(object):
         read_write = ['sub_delay']
         rename = {'pause': 'paused', 'path': 'filepath'}
         args = [cls.path, '-list-properties']
-        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
-            universal_newlines=True)
-        for line in mplayer.communicate()[0].split('\n'):
+        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        for line in mplayer.stdout:
             line = line.split()
             if not line or not line[0].islower():
                 continue
@@ -229,9 +228,8 @@ class Player(object):
             'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
             'osd', 'frame_drop']
         args = [cls.path, '-input', 'cmdlist']
-        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE,
-            universal_newlines=True)
-        for line in mplayer.communicate()[0].split('\n'):
+        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        for line in mplayer.stdout:
             args = line.lower().split()
             if not args or (args[0].startswith('get_') and \
                     not args[0].startswith('get_meta')) or \
