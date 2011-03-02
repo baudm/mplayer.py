@@ -333,13 +333,12 @@ class Player(object):
         assert (self._stdout._file is not None), 'MPlayer stdout not PIPEd'
         if self._stdout._file is None or not name.lower().startswith('get_'):
             return
-        self._stdout._lock.acquire()
-        self._command(name, arg, prefix=prefix)
-        while True:
-            response = self._stdout._file.readline().rstrip()
-            if response.startswith('ANS_'):
-                break
-        self._stdout._lock.release()
+        with self._stdout._lock:
+            self._command(name, arg, prefix=prefix)
+            while True:
+                response = self._stdout._file.readline().rstrip()
+                if response.startswith('ANS_'):
+                    break
         ans = response.partition('=')[2].strip('\'"')
         if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
             ans = None
