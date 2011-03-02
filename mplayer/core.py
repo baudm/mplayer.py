@@ -21,19 +21,22 @@ from threading import Lock
 
 
 __all__ = [
-    'PAUSING',
-    'PAUSING_TOGGLE',
-    'PAUSING_KEEP',
-    'PAUSING_KEEP_FORCE',
     'Player',
+    'CommandPrefix',
     'Step'
     ]
 
-# Command prefixes
-PAUSING = 'pausing'
-PAUSING_TOGGLE = 'pausing_toggle'
-PAUSING_KEEP = 'pausing_keep'
-PAUSING_KEEP_FORCE = 'pausing_keep_force'
+
+class CommandPrefix(object):
+    """MPlayer command prefixes"""
+
+    __slots__ = ['PAUSING', 'PAUSING_TOGGLE', 'PAUSING_KEEP',
+        'PAUSING_KEEP_FORCE']
+
+    PAUSING = 'pausing'
+    PAUSING_TOGGLE = 'pausing_toggle'
+    PAUSING_KEEP = 'pausing_keep'
+    PAUSING_KEEP_FORCE = 'pausing_keep_force'
 
 
 class Step(object):
@@ -64,15 +67,14 @@ class Player(object):
     'idle', and 'quiet' modes.
 
     @class attr path: path to the MPlayer executable
-    @class attr command_prefix: prefix for MPlayer commands
-        PAUSING | PAUSING_TOGGLE | PAUSING_KEEP | PAUSING_KEEP_FORCE
+    @class attr command_prefix: prefix for MPlayer commands (see CommandPrefix)
     @property args: MPlayer arguments
     @property stdout: process' stdout (read-only)
     @property stderr: process' stderr (read-only)
     """
 
     path = 'mplayer'
-    command_prefix = PAUSING_KEEP_FORCE
+    command_prefix = CommandPrefix.PAUSING_KEEP_FORCE
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
         self.args = args
