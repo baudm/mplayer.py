@@ -163,10 +163,13 @@ class Player(object):
             doc.append('* Read-only')
         return '\n'.join(doc)
 
-    def _get_args(self):
+    @property
+    def args(self):
+        """list of MPlayer arguments"""
         return self._args[7:]
 
-    def _set_args(self, args):
+    @args.setter
+    def args(self, args):
         _args = ['-slave', '-idle', '-quiet', '-input', 'nodefault-bindings',
             '-noconfig', 'all']
         # Assume that args is a string.
@@ -177,8 +180,6 @@ class Player(object):
             args = map(str, args)
         _args.extend(args)
         self._args = _args
-
-    args = property(_get_args, _set_args, doc='list of MPlayer arguments')
 
     @property
     def stdout(self):
