@@ -53,7 +53,7 @@ class Step(object):
 
 
 class Player(object):
-    """Player(args=(), stdout=PIPE, stderr=None)
+    """Player(args=(), stdout=PIPE, stderr=None, autospawn=True)
 
     @param stdout: subprocess.PIPE | None
     @param stderr: subprocess.PIPE | subprocess.STDOUT | None
@@ -73,7 +73,7 @@ class Player(object):
     path = 'mplayer'
     command_prefix = CommandPrefix.PAUSING_KEEP_FORCE
 
-    def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None):
+    def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
         self.args = args
         self._proc = None
         assert stdout in [subprocess.PIPE, None], \
@@ -82,6 +82,8 @@ class Player(object):
             'stderr should be one of PIPE, STDOUT, or None'
         self._stdout = _FileWrapper(stdout)
         self._stderr = _FileWrapper(stderr)
+        if autospawn:
+            self.spawn()
 
     def __del__(self):
         # Be sure to stop the MPlayer process.
@@ -272,8 +274,8 @@ class Player(object):
         cls._generate_properties()
         cls._generate_methods()
 
-    def start(self):
-        """Start the MPlayer process.
+    def spawn(self):
+        """Spawn the underlying MPlayer process.
 
         Returns None if MPlayer is already running.
         """
@@ -288,7 +290,7 @@ class Player(object):
             self._stderr._file = self._proc.stderr
 
     def quit(self, retcode=0):
-        """Stop the MPlayer process.
+        """Terminate the underlying MPlayer process.
 
         Returns the exit status of MPlayer or None if not running.
         """
@@ -310,7 +312,7 @@ class Player(object):
 
     def _command(self, name, *args, **kwargs):
         """Send a command to MPlayer"""
-        assert self.is_alive(), 'MPlayer not yet started'
+        assert self.is_alive(), 'MPlayer not running'
         if self.is_alive() and name:
             prefix = kwargs.get('prefix', self.__class__.command_prefix)
             if prefix is None:
@@ -363,7 +365,6 @@ class _FileWrapper(object):
         It is NOT meant to be called manually. Sample usage:
 
         m.stdout.hook(callback1)
-        m.start()
 
         fd = m.stdout.fileno()
         cb = m.stdout.publish
@@ -407,9 +408,7 @@ except OSError:
 if __name__ == '__main__':
     import sys
 
-    player = Player()
-    player.args = sys.argv[1:]
-    player.start()
+    player = Player(sys.argv[1:])
     # block execution
     try:
         raw_input()

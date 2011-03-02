@@ -27,18 +27,18 @@ __all__ = ['AsyncPlayer']
 
 
 class AsyncPlayer(Player):
-    """AsyncPlayer(args=(), stdout=PIPE, stderr=None, socket_map=None)
+    """AsyncPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None)
 
     Player subclass with asyncore integration.
     """
 
-    def __init__(self, args=(), stdout=PIPE, stderr=None, socket_map=None):
-        super(AsyncPlayer, self).__init__(args, stdout, stderr)
+    def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None):
         self._map = socket_map
         self._fd = []
+        super(AsyncPlayer, self).__init__(args, stdout, stderr, autospawn)
 
-    def start(self):
-        retcode = super(AsyncPlayer, self).start()
+    def spawn(self):
+        retcode = super(AsyncPlayer, self).spawn()
         if self._stdout._file is not None:
             self._fd.append(_FileDispatcher(self._stdout, self._map).fileno())
         if self._stderr._file is not None:
@@ -73,8 +73,7 @@ class _FileDispatcher(asyncore.file_dispatcher):
 if __name__ == '__main__':
     import sys
 
-    player = AsyncPlayer()
-    player.args = ['-really-quiet', '-msglevel', 'global=6'] + sys.argv[1:]
+    player = AsyncPlayer(['-really-quiet', '-msglevel', 'global=6'] + sys.argv[1:])
 
     def handle_data(data):
         if not data.startswith('EOF code'):
@@ -83,5 +82,4 @@ if __name__ == '__main__':
             player.quit()
 
     player.stdout.hook(handle_data)
-    player.start()
     asyncore.loop()

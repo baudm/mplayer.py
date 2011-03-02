@@ -32,12 +32,12 @@ class GPlayer(Player):
     Player subclass with GTK/GObject integration.
     """
 
-    def __init__(self, args=(), stdout=PIPE, stderr=None):
-        super(GPlayer, self).__init__(args, stdout, stderr)
+    def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         self._tags = []
+        super(GPlayer, self).__init__(args, stdout, stderr, autospawn)
 
-    def start(self):
-        retcode = super(GPlayer, self).start()
+    def spawn(self):
+        retcode = super(GPlayer, self).spawn()
         if self._stdout._file is not None:
             tag = gobject.io_add_watch(self._stdout.fileno(),
                 gobject.IO_IN | gobject.IO_PRI, self._stdout.publish)
@@ -63,14 +63,14 @@ class GtkPlayerView(gtk.Socket):
     def __init__(self):
         super(GtkPlayerView, self).__init__()
         self._mplayer = GPlayer(['-idx', '-fs', '-osdlevel', '0',
-            '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'])
+            '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'], autospawn=False)
         self._mplayer.stdout.hook(self._handle_data)
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
     def __getattr__(self, name):
         # Don't expose some properties
-        if name in ['args', 'start', 'quit']:
+        if name in ['args', 'spawn', 'quit']:
             # Raise an AttributeError
             return self.__getattribute__(name)
         try:
@@ -84,7 +84,7 @@ class GtkPlayerView(gtk.Socket):
     def _on_hierarchy_changed(self, *args):
         if self.parent is not None:
             self._mplayer.args += ['-wid', str(self.get_id())]
-            self._mplayer.start()
+            self._mplayer.spawn()
         else:
             self._on_destroy()
 

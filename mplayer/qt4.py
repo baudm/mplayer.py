@@ -26,17 +26,17 @@ __all__ = ['QtPlayer', 'QPlayerView']
 
 
 class QtPlayer(Player):
-    """QtPlayer(args=(), stdout=PIPE, stderr=None)
+    """QtPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True)
 
     Player subclass with Qt integration.
     """
 
-    def __init__(self, args=(), stdout=PIPE, stderr=None):
-        super(QtPlayer, self).__init__(args, stdout, stderr)
+    def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         self._notifiers = []
+        super(QtPlayer, self).__init__(args, stdout, stderr, autospawn)
 
-    def start(self):
-        retcode = super(QtPlayer, self).start()
+    def spawn(self):
+        retcode = super(QtPlayer, self).spawn()
         if self._stdout._file is not None:
             sn = QtCore.QSocketNotifier(self._stdout.fileno(),
                 QtCore.QSocketNotifier.Read)
@@ -66,7 +66,6 @@ class QPlayerView(QtGui.QX11EmbedContainer):
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', str(self.winId())])
         self._mplayer.stdout.hook(self._handle_data)
-        self._mplayer.start()
         @QtCore.pyqtSlot(QtCore.QObject)
         def on_destroy(obj):
             self._mplayer.quit()
@@ -74,7 +73,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
 
     def __getattr__(self, name):
         # Don't expose some properties
-        if name in ['args', 'start', 'quit']:
+        if name in ['args', 'spawn', 'quit']:
             # Raise an AttributeError
             return self.__getattribute__(name)
         try:
