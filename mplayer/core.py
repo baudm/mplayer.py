@@ -124,7 +124,7 @@ class Player(object):
 
     @staticmethod
     def _gen_propget(pname, ptype):
-        if ptype not in [bool, list]:
+        if ptype not in [bool, dict]:
             def propget(self):
                 res = self._query('get_property', pname)
                 if res is not None:
@@ -192,7 +192,7 @@ class Player(object):
     def _generate_properties(cls):
         type_map = {
             'Flag': bool, 'Float': float, 'Integer': int, 'Position': int,
-            'Time': float, 'String': str, 'String list': list
+            'Time': float, 'String': str, 'String list': dict
         }
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start']
