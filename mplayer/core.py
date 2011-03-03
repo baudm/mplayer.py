@@ -194,7 +194,7 @@ class Player(object):
         args = [cls.path, '-list-properties']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in mplayer.stdout:
-            line = line.split()
+            line = line.decode().split()
             if not line or not line[0].islower():
                 continue
             try:
@@ -223,7 +223,8 @@ class Player(object):
         args = [cls.path, '-input', 'cmdlist']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in mplayer.stdout:
-            args = line.lower().split()
+            args = line.decode().lower().split()
+            # Skip get_* (except get_meta_*), *_property, and quit commands
             if not args or (args[0].startswith('get_') and \
                     not args[0].startswith('get_meta')) or \
                     args[0].endswith('_property') or args[0] == 'quit':
@@ -304,17 +305,18 @@ class Player(object):
         command.append('\n')
         if name in ['quit', 'pause', 'stop']:
             command.pop(0)
+        command = ' '.join(command).encode()
         # For non-getter commands, simply send the command
         if not name.startswith('get_'):
-            self._proc.stdin.write(' '.join(command))
+            self._proc.stdin.write(command)
             self._proc.stdin.flush()
         # For getter commands, expect a result
         elif self._proc.stdout is not None:
             with self._stdout._lock:
-                self._proc.stdin.write(' '.join(command))
+                self._proc.stdin.write(command)
                 self._proc.stdin.flush()
                 while True:
-                    response = self._proc.stdout.readline().rstrip()
+                    response = self._proc.stdout.readline().decode().rstrip()
                     if response.startswith('ANS_'):
                         break
             ans = response.partition('=')[2].strip('\'"')
@@ -354,7 +356,7 @@ class _FileWrapper(object):
         """
         if self._lock.locked() or self._file is None:
             return True
-        data = self._file.readline().rstrip()
+        data = self._file.readline().decode().rstrip()
         if not data:
             return True
         for subscriber in self._subscribers:
@@ -362,7 +364,7 @@ class _FileWrapper(object):
         return True
 
     def hook(self, subscriber):
-        if not callable(subscriber):
+        if not hasattr(subscriber, '__call__'):
             # Raise TypeError
             subscriber()
         if subscriber not in self._subscribers:
