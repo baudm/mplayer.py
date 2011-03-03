@@ -319,7 +319,7 @@ class Player(object):
                     if response.startswith('ANS_'):
                         break
             ans = response.partition('=')[2].strip('\'"')
-            if ans in ['(null)', 'PROPERTY_UNAVAILABLE']:
+            if ans in ['(null)', 'PROPERTY_UNAVAILABLE', 'PROPERTY_UNKNOWN']:
                 ans = None
             return ans
 
