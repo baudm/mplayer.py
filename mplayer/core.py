@@ -58,9 +58,6 @@ class Player(object):
     MPlayer. Take note that MPlayer is always started in 'slave',
     'idle', and 'quiet' modes.
 
-    @param stdout: subprocess.PIPE | None
-    @param stderr: subprocess.PIPE | subprocess.STDOUT | None
-
     @class attr path: path to the MPlayer executable
     @class attr command_prefix: prefix for MPlayer commands (see CommandPrefix)
     @property args: MPlayer arguments
@@ -73,13 +70,9 @@ class Player(object):
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
         self.args = args
-        self._proc = None
-        assert stdout in [subprocess.PIPE, None], \
-            'stdout should either be PIPE or None'
-        assert stderr in [subprocess.PIPE, subprocess.STDOUT, None], \
-            'stderr should be one of PIPE, STDOUT, or None'
         self._stdout = _FileWrapper(stdout)
         self._stderr = _FileWrapper(stderr)
+        self._proc = None
         if autospawn:
             self.spawn()
 
@@ -301,7 +294,6 @@ class Player(object):
 
     def _command(self, name, *args, **kwargs):
         """Send a command to MPlayer. The result, if any, is returned."""
-        assert self.is_alive(), 'MPlayer not running'
         if not self.is_alive() or not name:
             return
         prefix = kwargs.get('prefix', self.__class__.command_prefix)
