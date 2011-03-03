@@ -258,10 +258,7 @@ class Player(object):
         cls._generate_methods()
 
     def spawn(self):
-        """Spawn the underlying MPlayer process.
-
-        Returns None if MPlayer is already running.
-        """
+        """Spawn the underlying MPlayer process."""
         if self.is_alive():
             return
         args = [self.__class__.path]
