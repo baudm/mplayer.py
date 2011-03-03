@@ -1,4 +1,4 @@
-PyMPlayer: A lightweight, out-of-source wrapper for MPlayer written in Python
+PyMPlayer: Lightweight and dynamic MPlayer wrapper with a Pythonic API
 
 PyMPlayer provides several classes for easily using MPlayer in Python.
 

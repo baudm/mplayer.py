@@ -8,7 +8,7 @@ from mplayer import __version__
 setup(
     name='PyMPlayer',
     version=__version__,
-    description='Lightweight, out-of-source wrapper for MPlayer',
+    description='Lightweight and dynamic MPlayer wrapper with a Pythonic API',
     author='Darwin M. Bautista',
     author_email='djclue917@gmail.com',
     url='http://code.google.com/p/python-mplayer/',

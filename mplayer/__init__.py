@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Lightweight, out-of-source wrapper for MPlayer
+"""Lightweight and dynamic MPlayer wrapper with a Pythonic API
 
 Classes:
 
