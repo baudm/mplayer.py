@@ -321,12 +321,15 @@ class Player(object):
             self._proc.stdin.flush()
         # For getter commands, expect a result
         elif self._proc.stdout is not None:
+            key = 'ANS_'
+            if args:
+                key += args[0]
             with self._stdout._lock:
                 self._proc.stdin.write(command)
                 self._proc.stdin.flush()
                 while True:
                     response = self._proc.stdout.readline().decode().rstrip()
-                    if response.startswith('ANS_'):
+                    if response.startswith(key):
                         break
             ans = response.partition('=')[2].strip('\'"')
             if ans in ['(null)', 'PROPERTY_UNAVAILABLE', 'PROPERTY_UNKNOWN']:
