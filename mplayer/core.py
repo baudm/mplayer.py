@@ -139,31 +139,41 @@ class Player(object):
         return propget
 
     @staticmethod
-    def _gen_propset(pname, ptype):
+    def _gen_propset(pname, ptype, pmin, pmax):
         if ptype != bool:
+            pmin = ptype(pmin) if pmin != 'No' else None
+            pmax = ptype(pmax) if pmax != 'No' else None
             def propset(self, value):
                 if not isinstance(value, Step):
-                    return self._command('set_property', pname, value)
+                    if not isinstance(value, ptype):
+                        raise TypeError('expected %s' % (str(ptype).split("'")[1], ))
+                    if pmin is not None and value < pmin:
+                        raise ValueError('value must be at least %s' % (str(pmin), ))
+                    elif pmax is not None and value > pmax:
+                        raise ValueError('value must be at most %s' % (str(pmax), ))
+                    self._command('set_property', pname, value)
                 else:
-                    return self._command('step_property', pname, value._val, value._dir)
+                    self._command('step_property', pname, value._val, value._dir)
         else:
             def propset(self, value):
                 if not isinstance(value, Step):
-                    return self._command('set_property', pname, int(value))
+                    if not isinstance(value, bool):
+                        raise TypeError('expected bool')
+                    self._command('set_property', pname, int(value))
                 else:
-                    return self._command('step_property', pname)
+                    self._command('step_property', pname)
         return propset
 
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
-        doc = ['Type: ' + str(ptype).split("'")[1]]
+        doc = ['type: %s' % (str(ptype).split("'")[1], )]
         if propset is not None and ptype != bool:
             if pmin != 'No':
-                doc.append('Min: %s' % (pmin, ))
+                doc.append('min: %s' % (pmin, ))
             if pmax != 'No':
-                doc.append('Max: %s' % (pmax, ))
+                doc.append('max: %s' % (pmax, ))
         if propset is None:
-            doc.append('* Read-only')
+            doc.append('(read-only)')
         return '\n'.join(doc)
 
     @staticmethod
@@ -209,7 +219,7 @@ class Player(object):
             if (pmin == pmax == 'No' and pname not in read_write) or pname in read_only:
                 propset = None
             else:
-                propset = cls._gen_propset(pname, ptype)
+                propset = cls._gen_propset(pname, ptype, pmin, pmax)
             propdoc = cls._gen_propdoc(ptype, pmin, pmax, propset)
             prop = property(propget, propset, doc=propdoc)
             # Rename some properties to avoid conflict
