@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
     def handle_data(data):
         if not data.startswith('EOF code'):
-            print('log: %s' % (data, ))
+            print('log: {0}'.format(data))
         else:
             player.quit()
 

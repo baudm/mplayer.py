@@ -84,10 +84,10 @@ class Player(object):
 
     def __repr__(self):
         if self.is_alive():
-            status = 'with pid = %d' % (self._proc.pid)
+            status = 'with pid = {0}'.format(self._proc.pid)
         else:
             status = 'not running'
-        return '<%s.%s %s>' % (__name__, self.__class__.__name__, status)
+        return '<{0} {1}>'.format(self.__class__.__name__, status)
 
     @property
     def args(self):
@@ -146,11 +146,11 @@ class Player(object):
             def propset(self, value):
                 if not isinstance(value, Step):
                     if not isinstance(value, ptype):
-                        raise TypeError('expected %s' % (str(ptype).split("'")[1], ))
+                        raise TypeError('expected {0.__name__}'.format(ptype))
                     if pmin is not None and value < pmin:
-                        raise ValueError('value must be at least %s' % (str(pmin), ))
+                        raise ValueError('value must be at least {0}'.format(pmin))
                     elif pmax is not None and value > pmax:
-                        raise ValueError('value must be at most %s' % (str(pmax), ))
+                        raise ValueError('value must be at most {0}'.format(pmax))
                     self._command('set_property', pname, value)
                 else:
                     self._command('step_property', pname, value._val, value._dir)
@@ -166,12 +166,12 @@ class Player(object):
 
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
-        doc = ['type: %s' % (str(ptype).split("'")[1], )]
+        doc = ['type: {0.__name__}'.format(ptype)]
         if propset is not None and ptype != bool:
             if pmin != 'No':
-                doc.append('min: %s' % (pmin, ))
+                doc.append('min: {0}'.format(pmin))
             if pmax != 'No':
-                doc.append('max: %s' % (pmax, ))
+                doc.append('max: {0}'.format(pmax))
         if propset is None:
             doc.append('(read-only)')
         return '\n'.join(doc)
@@ -182,14 +182,11 @@ class Player(object):
         for i, arg in enumerate(args):
             if arg.startswith('['):
                 arg = arg.strip('[]')
-                arg = '%s%d=""' % (arg, i)
+                arg = '{0}{1}="",'.format(arg, i)
             else:
-                arg = '%s%d' % (arg, i)
+                arg = '{0}{1},'.format(arg, i)
             sig.append(arg)
-        sig = ', '.join(sig)
-        # Append an extra comma
-        if sig:
-            sig += ','
+        sig = ''.join(sig)
         params = sig.replace('=""', '')
         return sig, params
 
@@ -213,7 +210,7 @@ class Player(object):
                 pname, ptype, pmin, pmax = line
             except ValueError:
                 pname, ptype, ptype2, pmin, pmax = line
-                ptype = ' '.join([ptype, ptype2])
+                ptype += ' ' + ptype2
             ptype = type_map[ptype]
             propget = cls._gen_propget(pname, ptype)
             if (pmin == pmax == 'No' and pname not in read_write) or pname in read_only:
@@ -250,9 +247,9 @@ class Player(object):
                 name = 'osd_show_property_text'
             sig, params = cls._gen_func_sig(args)
             code = '''
-            def %(name)s(self, %(sig)s prefix=None):
-                return self._command('%(name)s', %(params)s prefix=prefix)
-            ''' % dict(name=name, sig=sig, params=params)
+            def {name}(self, {sig} prefix=None):
+                return self._command('{name}', {params} prefix=prefix)
+            '''.format(name=name, sig=sig, params=params)
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
@@ -322,8 +319,9 @@ class Player(object):
         # For getter commands, expect a result
         elif self._proc.stdout is not None:
             key = 'ANS_'
+            # Append property name
             if args:
-                key += args[0]
+                key += str(args[0])
             with self._stdout._lock:
                 self._proc.stdin.write(command)
                 self._proc.stdin.flush()
