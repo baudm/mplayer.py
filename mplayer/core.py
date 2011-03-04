@@ -59,10 +59,10 @@ class Step(object):
 
 class Player(object):
     """
-    An out-of-process wrapper for MPlayer. It provides the basic
-    interface for sending commands and receiving responses to and from
-    MPlayer. Take note that MPlayer is always started in 'slave',
-    'idle', and 'quiet' modes.
+    An out-of-process wrapper for MPlayer. It exposes MPlayer commands and
+    properties as Python methods and properties, respectively.
+
+    Take note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
 
     @class attr path: path to the MPlayer executable
     @class attr command_prefix: prefix for MPlayer commands (see CommandPrefix)

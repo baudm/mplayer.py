@@ -4,7 +4,7 @@
 
 Classes:
 
-Player -- provides a basic and low-level interface to MPlayer
+Player -- provides a clean, Pythonic interface to MPlayer
 CommandPrefix -- contains the prefixes that can be used with MPlayer commands
 Step -- use with property access to implement the 'step_property' command
 
