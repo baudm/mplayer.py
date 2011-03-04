@@ -49,6 +49,10 @@ class Step(object):
     """
 
     def __init__(self, value=0, direction=0):
+        if not isinstance(value, (int, float)):
+            raise TypeError('expected int or float for value')
+        if not isinstance(direction, int):
+            raise TypeError('expected int for direction')
         self._val = value
         self._dir = direction
 
