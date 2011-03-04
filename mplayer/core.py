@@ -123,17 +123,17 @@ class Player(object):
         return self._stderr
 
     def _propget(self, pname, ptype):
-        res = self._command('get_property', pname)
+        res = self._run_command('get_property', pname)
         if res is not None:
             return ptype(res)
 
     def _propget_bool(self, pname):
-        res = self._command('get_property', pname)
+        res = self._run_command('get_property', pname)
         if res is not None:
             return (res == 'yes')
 
     def _propget_dict(self, pname):
-        res = self._command('get_property', pname)
+        res = self._run_command('get_property', pname)
         if res is not None:
             res = res.split(',')
             # For now, return list as a dict ('metadata' property)
@@ -147,17 +147,17 @@ class Player(object):
                 raise ValueError('value must be at least {0}'.format(pmin))
             elif pmax is not None and value > pmax:
                 raise ValueError('value must be at most {0}'.format(pmax))
-            self._command('set_property', pname, value)
+            self._run_command('set_property', pname, value)
         else:
-            self._command('step_property', pname, value._val, value._dir)
+            self._run_command('step_property', pname, value._val, value._dir)
 
     def _propset_bool(self, value, pname):
         if not isinstance(value, Step):
             if not isinstance(value, bool):
                 raise TypeError('expected bool')
-            self._command('set_property', pname, value)
+            self._run_command('set_property', pname, value)
         else:
-            self._command('step_property', pname)
+            self._run_command('step_property', pname)
 
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
@@ -259,7 +259,7 @@ class Player(object):
             sig, params, types = cls._gen_func_sig(args, type_map)
             code = '''
             def {name}(self, {sig} prefix=None):
-                return self._command('{name}', {params} types={types}, prefix=prefix)
+                return self._run_command('{name}', {params} types={types}, prefix=prefix)
             '''.format(name=name, sig=sig, params=params, types=types)
             local = {}
             exec(code.strip(), globals(), local)
@@ -301,7 +301,7 @@ class Player(object):
             return
         self._stdout._file = None
         self._stderr._file = None
-        self._command('quit', retcode)
+        self._run_command('quit', retcode)
         return self._proc.wait()
 
     def is_alive(self):
@@ -314,21 +314,21 @@ class Player(object):
         else:
             return False
 
-    def _command(self, name, *args, **kwargs):
+    def _run_command(self, name, *args, **kwargs):
         """Send a command to MPlayer. The result, if any, is returned."""
         if not self.is_alive() or not name:
             return
-        types = kwargs.get('types', ())
-        prefix = kwargs.get('prefix', self.__class__.command_prefix)
-        if prefix is None:
-            prefix = self.__class__.command_prefix
         # Discard None from args
         args = tuple((x for x in args if x is not None))
+        types = kwargs.get('types', ())
         if types:
             result = map(isinstance, args, types[:len(args)])
             if not all(result):
                 i = result.index(False)
                 raise TypeError('expected {0} for argument {1}'.format(types[i].__name__, i + 1))
+        prefix = kwargs.get('prefix', None)
+        if prefix is None:
+            prefix = self.__class__.command_prefix
         command = [prefix, name]
         command.extend(map(lambda x: str(int(x)) if isinstance(x, bool) else str(x), args))
         command.append('\n')
