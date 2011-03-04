@@ -142,7 +142,7 @@ class Player(object):
     def _propset(self, value, pname, ptype, pmin, pmax):
         if not isinstance(value, Step):
             if not isinstance(value, ptype):
-                raise TypeError('expected {0.__name__}'.format(ptype))
+                raise TypeError('expected {0}'.format(ptype.__name__))
             if pmin is not None and value < pmin:
                 raise ValueError('value must be at least {0}'.format(pmin))
             elif pmax is not None and value > pmax:
@@ -177,12 +177,12 @@ class Player(object):
         for i, arg in enumerate(args):
             if arg.startswith('['):
                 arg = arg.strip('[]')
-                arg = '{0}{1}="",'.format(arg, i)
+                arg = '{0}{1}=None,'.format(arg, i)
             else:
                 arg = '{0}{1},'.format(arg, i)
             sig.append(arg)
         sig = ''.join(sig)
-        params = sig.replace('=""', '')
+        params = sig.replace('=None', '')
         return sig, params
 
     @classmethod
@@ -316,6 +316,8 @@ class Player(object):
         prefix = kwargs.get('prefix', self.__class__.command_prefix)
         if prefix is None:
             prefix = self.__class__.command_prefix
+        # Discard None from args
+        args = tuple((x for x in args if x is not None))
         command = [prefix, name]
         command.extend(map(lambda x: str(int(x)) if isinstance(x, bool) else str(x), args))
         command.append('\n')
