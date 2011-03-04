@@ -163,7 +163,7 @@ class Player(object):
                 if not isinstance(value, Step):
                     if not isinstance(value, bool):
                         raise TypeError('expected bool')
-                    self._command('set_property', pname, int(value))
+                    self._command('set_property', pname, value)
                 else:
                     self._command('step_property', pname)
         return propset
@@ -311,7 +311,7 @@ class Player(object):
         if prefix is None:
             prefix = self.__class__.command_prefix
         command = [prefix, name]
-        command.extend(map(str, args))
+        command.extend(map(lambda x: str(int(x)) if isinstance(x, bool) else str(x), args))
         command.append('\n')
         if name in ['quit', 'pause', 'stop']:
             command.pop(0)
