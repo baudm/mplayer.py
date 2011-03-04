@@ -336,10 +336,10 @@ class Player(object):
                 self._proc.stdin.write(command)
                 self._proc.stdin.flush()
                 while True:
-                    response = self._proc.stdout.readline().decode().rstrip()
-                    if response.startswith(key):
+                    res = self._proc.stdout.readline().decode().rstrip()
+                    if res.startswith(key) or res.startswith('ANS_ERROR'):
                         break
-            ans = response.partition('=')[2].strip('\'"')
+            ans = res.partition('=')[2].strip('\'"')
             if ans in ['(null)', 'PROPERTY_UNAVAILABLE', 'PROPERTY_UNKNOWN']:
                 ans = None
             return ans
