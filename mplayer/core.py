@@ -21,6 +21,13 @@ import shlex
 import subprocess
 from functools import partial
 from threading import Lock
+# For Python 2.x, be consistent with the handling of strings
+try:
+    basestring
+except NameError:
+    basestring = _str = str
+else:
+    _str = unicode
 
 
 __all__ = [
@@ -176,14 +183,16 @@ class Player(object):
         sig = []
         types = []
         for i, arg in enumerate(args):
-            if arg.startswith('['):
-                arg = arg.strip('[]')
-                t = type_map[arg].__name__
-                arg = '{0}{1}=None,'.format(t, i)
+            if not arg.startswith('['):
+                optional = ''
             else:
-                t = type_map[arg].__name__
-                arg = '{0}{1},'.format(t, i)
+                arg = arg.strip('[]')
+                optional = '=None'
+            t = type_map[arg]
+            arg = '{0}{1}{2},'.format(t.__name__, i, optional)
             sig.append(arg)
+            # In Python 2.x, check for strings using basestring
+            t = t.__name__ if t != str else basestring.__name__
             types.append(t)
         sig = ''.join(sig)
         params = sig.replace('=None', '')
@@ -213,6 +222,8 @@ class Player(object):
             pmax = ptype(pmax) if pmax != 'No' else None
             # Generate property fget
             if ptype not in [bool, dict]:
+                # In Python 2.x, we're working with unicode; don't change that.
+                ptype = ptype if ptype != str else _str
                 propget = partial(cls._propget, pname=pname, ptype=ptype)
             elif ptype == bool:
                 propget = partial(cls._propget_bool, pname=pname)
