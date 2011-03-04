@@ -172,25 +172,26 @@ class Player(object):
         return '\n'.join(doc)
 
     @staticmethod
-    def _gen_func_sig(args):
+    def _gen_func_sig(args, type_map):
         sig = []
+        types = []
         for i, arg in enumerate(args):
             if arg.startswith('['):
                 arg = arg.strip('[]')
-                arg = '{0}{1}=None,'.format(arg, i)
+                t = type_map[arg].__name__
+                arg = '{0}{1}=None,'.format(t, i)
             else:
-                arg = '{0}{1},'.format(arg, i)
+                t = type_map[arg].__name__
+                arg = '{0}{1},'.format(t, i)
             sig.append(arg)
+            types.append(t)
         sig = ''.join(sig)
         params = sig.replace('=None', '')
-        return sig, params
+        types = '({0})'.format(','.join(types))
+        return sig, params, types
 
     @classmethod
-    def _generate_properties(cls):
-        type_map = {
-            'Flag': bool, 'Float': float, 'Integer': int, 'Position': int,
-            'Time': float, 'String': str, 'String list': dict
-        }
+    def _generate_properties(cls, type_map):
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start']
         read_write = ['sub_delay']
@@ -235,14 +236,14 @@ class Player(object):
             setattr(cls, pname, prop)
 
     @classmethod
-    def _generate_methods(cls):
+    def _generate_methods(cls, type_map):
         exclude = ['tv_set_brightness', 'tv_set_contrast', 'tv_set_saturation',
             'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
             'osd', 'frame_drop']
         args = [cls.path, '-input', 'cmdlist']
         mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in mplayer.stdout:
-            args = line.decode().lower().split()
+            args = line.decode().split()
             # Skip get_* (except get_meta_*), *_property, and quit commands
             if not args or (args[0].startswith('get_') and \
                     not args[0].startswith('get_meta')) or \
@@ -255,11 +256,11 @@ class Player(object):
             # Fix truncated command name
             if name.startswith('osd_show_property_'):
                 name = 'osd_show_property_text'
-            sig, params = cls._gen_func_sig(args)
+            sig, params, types = cls._gen_func_sig(args, type_map)
             code = '''
             def {name}(self, {sig} prefix=None):
-                return self._command('{name}', {params} prefix=prefix)
-            '''.format(name=name, sig=sig, params=params)
+                return self._command('{name}', {params} types={types}, prefix=prefix)
+            '''.format(name=name, sig=sig, params=params, types=types)
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
@@ -271,8 +272,12 @@ class Player(object):
         Generate available methods and properties.
         See http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
-        cls._generate_properties()
-        cls._generate_methods()
+        type_map = {
+            'Flag': bool, 'Float': float, 'Integer': int, 'Position': int,
+            'Time': float, 'String': str, 'String list': dict
+        }
+        cls._generate_properties(type_map)
+        cls._generate_methods(type_map)
 
     def spawn(self):
         """Spawn the underlying MPlayer process."""
@@ -313,11 +318,17 @@ class Player(object):
         """Send a command to MPlayer. The result, if any, is returned."""
         if not self.is_alive() or not name:
             return
+        types = kwargs.get('types', ())
         prefix = kwargs.get('prefix', self.__class__.command_prefix)
         if prefix is None:
             prefix = self.__class__.command_prefix
         # Discard None from args
         args = tuple((x for x in args if x is not None))
+        if types:
+            result = map(isinstance, args, types[:len(args)])
+            if not all(result):
+                i = result.index(False)
+                raise TypeError('expected {0} for argument {1}'.format(types[i].__name__, i + 1))
         command = [prefix, name]
         command.extend(map(lambda x: str(int(x)) if isinstance(x, bool) else str(x), args))
         command.append('\n')
