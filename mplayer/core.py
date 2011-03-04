@@ -19,6 +19,7 @@
 
 import shlex
 import subprocess
+from functools import partial
 from threading import Lock
 
 
@@ -121,60 +122,50 @@ class Player(object):
         """stderr of the MPlayer process"""
         return self._stderr
 
-    @staticmethod
-    def _gen_propget(pname, ptype):
-        if ptype not in [bool, dict]:
-            def propget(self):
-                res = self._command('get_property', pname)
-                if res is not None:
-                    return ptype(res)
-        elif ptype == bool:
-            def propget(self):
-                res = self._command('get_property', pname)
-                if res is not None:
-                    return (res == 'yes')
-        else:
-            def propget(self):
-                res = self._command('get_property', pname)
-                if res is not None:
-                    res = res.split(',')
-                    # For now, return list as a dict ('metadata' property)
-                    return dict(zip(res[::2], res[1::2]))
-        return propget
+    def _propget(self, pname, ptype):
+        res = self._command('get_property', pname)
+        if res is not None:
+            return ptype(res)
 
-    @staticmethod
-    def _gen_propset(pname, ptype, pmin, pmax):
-        if ptype != bool:
-            pmin = ptype(pmin) if pmin != 'No' else None
-            pmax = ptype(pmax) if pmax != 'No' else None
-            def propset(self, value):
-                if not isinstance(value, Step):
-                    if not isinstance(value, ptype):
-                        raise TypeError('expected {0.__name__}'.format(ptype))
-                    if pmin is not None and value < pmin:
-                        raise ValueError('value must be at least {0}'.format(pmin))
-                    elif pmax is not None and value > pmax:
-                        raise ValueError('value must be at most {0}'.format(pmax))
-                    self._command('set_property', pname, value)
-                else:
-                    self._command('step_property', pname, value._val, value._dir)
+    def _propget_bool(self, pname):
+        res = self._command('get_property', pname)
+        if res is not None:
+            return (res == 'yes')
+
+    def _propget_dict(self, pname):
+        res = self._command('get_property', pname)
+        if res is not None:
+            res = res.split(',')
+            # For now, return list as a dict ('metadata' property)
+            return dict(zip(res[::2], res[1::2]))
+
+    def _propset(self, value, pname, ptype, pmin, pmax):
+        if not isinstance(value, Step):
+            if not isinstance(value, ptype):
+                raise TypeError('expected {0.__name__}'.format(ptype))
+            if pmin is not None and value < pmin:
+                raise ValueError('value must be at least {0}'.format(pmin))
+            elif pmax is not None and value > pmax:
+                raise ValueError('value must be at most {0}'.format(pmax))
+            self._command('set_property', pname, value)
         else:
-            def propset(self, value):
-                if not isinstance(value, Step):
-                    if not isinstance(value, bool):
-                        raise TypeError('expected bool')
-                    self._command('set_property', pname, value)
-                else:
-                    self._command('step_property', pname)
-        return propset
+            self._command('step_property', pname, value._val, value._dir)
+
+    def _propset_bool(self, value, pname):
+        if not isinstance(value, Step):
+            if not isinstance(value, bool):
+                raise TypeError('expected bool')
+            self._command('set_property', pname, value)
+        else:
+            self._command('step_property', pname)
 
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
         doc = ['type: {0.__name__}'.format(ptype)]
         if propset is not None and ptype != bool:
-            if pmin != 'No':
+            if pmin is not None:
                 doc.append('min: {0}'.format(pmin))
-            if pmax != 'No':
+            if pmax is not None:
                 doc.append('max: {0}'.format(pmax))
         if propset is None:
             doc.append('(read-only)')
@@ -215,12 +206,27 @@ class Player(object):
             except ValueError:
                 pname, ptype, ptype2, pmin, pmax = line
                 ptype += ' ' + ptype2
+            # Get the corresponding Python type and convert pmin and pmax
             ptype = type_map[ptype]
-            propget = cls._gen_propget(pname, ptype)
-            if (pmin == pmax == 'No' and pname not in read_write) or pname in read_only:
-                propset = None
+            pmin = ptype(pmin) if pmin != 'No' else None
+            pmax = ptype(pmax) if pmax != 'No' else None
+            # Generate property fget
+            if ptype not in [bool, dict]:
+                propget = partial(cls._propget, pname=pname, ptype=ptype)
+            elif ptype == bool:
+                propget = partial(cls._propget_bool, pname=pname)
             else:
-                propset = cls._gen_propset(pname, ptype, pmin, pmax)
+                propget = partial(cls._propget_dict, pname=pname)
+            # Generate property fset
+            if ((pmin, pmax) != (None, None) or pname in read_write) and pname not in read_only:
+                if ptype != bool:
+                    propset = partial(cls._propset, pname=pname, ptype=ptype,
+                                      pmin=pmin, pmax=pmax)
+                else:
+                    propset = partial(cls._propset_bool, pname=pname)
+            else:
+                propset = None
+            # Generate property doc
             propdoc = cls._gen_propdoc(ptype, pmin, pmax, propset)
             prop = property(propget, propset, doc=propdoc)
             # Rename some properties to avoid conflict
