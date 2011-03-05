@@ -223,9 +223,8 @@ class Player(object):
             # Generate property fget
             if ptype not in [bool, dict]:
                 # In Python 2.x, we're working with unicode; don't change that.
-                if ptype is str:
-                    ptype = _str
-                propget = partial(cls._propget, pname=pname, ptype=ptype)
+                _ptype = ptype if ptype is not str else _str
+                propget = partial(cls._propget, pname=pname, ptype=_ptype)
             elif ptype is bool:
                 propget = partial(cls._propget_bool, pname=pname)
             else:
