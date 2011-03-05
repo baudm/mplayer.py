@@ -147,7 +147,7 @@ class Player(object):
     def _propset(self, value, pname, ptype, pmin, pmax):
         if not isinstance(value, Step):
             if not isinstance(value, ptype):
-                raise TypeError('expected {0}'.format(ptype.__name__))
+                raise TypeError('expected {0}'.format(ptype.__name__.lower()))
             if pmin is not None and value < pmin:
                 raise ValueError('value must be at least {0}'.format(pmin))
             elif pmax is not None and value > pmax:
@@ -284,8 +284,11 @@ class Player(object):
     def introspect(cls):
         """Introspect the MPlayer executable
 
-        Generate available methods and properties.
-        See http://www.mplayerhq.hu/DOCS/tech/slave.txt
+        Generate available methods and properties based on:
+        $ mplayer -input cmdlist
+        $ mplayer -list-properties
+
+        See also http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
         type_map = {
             'Flag': bool, 'Float': float, 'Integer': int, 'Position': int,
