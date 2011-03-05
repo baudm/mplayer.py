@@ -168,8 +168,8 @@ class Player(object):
 
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
-        doc = ['type: {0.__name__}'.format(ptype)]
-        if propset is not None and ptype != bool:
+        doc = ['type: {0}'.format(ptype.__name__)]
+        if propset is not None and ptype is not bool:
             if pmin is not None:
                 doc.append('min: {0}'.format(pmin))
             if pmax is not None:
@@ -192,7 +192,7 @@ class Player(object):
             arg = '{0}{1}{2},'.format(t.__name__, i, optional)
             sig.append(arg)
             # In Python 2.x, check for strings using basestring
-            t = t.__name__ if t != str else basestring.__name__
+            t = t.__name__ if t is not str else basestring.__name__
             types.append(t)
         sig = ''.join(sig)
         params = sig.replace('=None', '')
@@ -223,15 +223,16 @@ class Player(object):
             # Generate property fget
             if ptype not in [bool, dict]:
                 # In Python 2.x, we're working with unicode; don't change that.
-                ptype = ptype if ptype != str else _str
+                if ptype is str:
+                    ptype = _str
                 propget = partial(cls._propget, pname=pname, ptype=ptype)
-            elif ptype == bool:
+            elif ptype is bool:
                 propget = partial(cls._propget_bool, pname=pname)
             else:
                 propget = partial(cls._propget_dict, pname=pname)
             # Generate property fset
             if ((pmin, pmax) != (None, None) or pname in read_write) and pname not in read_only:
-                if ptype != bool:
+                if ptype is not bool:
                     propset = partial(cls._propset, pname=pname, ptype=ptype,
                                       pmin=pmin, pmax=pmax)
                 else:
@@ -332,9 +333,11 @@ class Player(object):
         # Discard None from args
         args = tuple((x for x in args if x is not None))
         types = kwargs.get('types', ())
+        # Check types if specified
         if types:
             result = map(isinstance, args, types[:len(args)])
             if not all(result):
+                # Raise TypeError for the first type mismatch
                 i = result.index(False)
                 raise TypeError('expected {0} for argument {1}'.format(types[i].__name__, i + 1))
         prefix = kwargs.get('prefix', None)
