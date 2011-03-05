@@ -21,6 +21,7 @@ import shlex
 import subprocess
 from functools import partial
 from threading import Lock
+from numbers import Number
 # For Python 2.x, be consistent with the handling of strings
 try:
     basestring
@@ -74,9 +75,6 @@ class Player(object):
 
     @class attr path: path to the MPlayer executable
     @class attr command_prefix: prefix for MPlayer commands (see CommandPrefix)
-    @property args: MPlayer arguments
-    @property stdout: process' stdout (read-only)
-    @property stderr: process' stderr (read-only)
     """
 
     path = 'mplayer'
@@ -191,8 +189,12 @@ class Player(object):
             t = type_map[arg]
             arg = '{0}{1}{2},'.format(t.__name__, i, optional)
             sig.append(arg)
-            # In Python 2.x, check for strings using basestring
-            t = t.__name__ if t is not str else basestring.__name__
+            # In Python 2.x, check for strings using basestring.
+            # For floats, accept any instance of Number (i.e. int and float)
+            if t is not str:
+                t = t.__name__ if t is not float else Number.__name__
+            else:
+                t = basestring.__name__
             types.append(t)
         sig = ''.join(sig)
         params = sig.replace('=None', '')
@@ -232,7 +234,9 @@ class Player(object):
             # Generate property fset
             if ((pmin, pmax) != (None, None) or pname in read_write) and pname not in read_only:
                 if ptype is not bool:
-                    propset = partial(cls._propset, pname=pname, ptype=ptype,
+                    # For floats, accept any instance of Number (i.e. int and float)
+                    _ptype = ptype if ptype is not float else Number
+                    propset = partial(cls._propset, pname=pname, ptype=_ptype,
                                       pmin=pmin, pmax=pmax)
                 else:
                     propset = partial(cls._propset_bool, pname=pname)
@@ -338,7 +342,8 @@ class Player(object):
             if not all(result):
                 # Raise TypeError for the first type mismatch
                 i = result.index(False)
-                raise TypeError('expected {0} for argument {1}'.format(types[i].__name__, i + 1))
+                msg = 'expected {0} for argument {1}'.format(types[i].__name__.lower(), i + 1)
+                raise TypeError(msg)
         prefix = kwargs.get('prefix', None)
         if prefix is None:
             prefix = self.__class__.command_prefix
