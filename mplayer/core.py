@@ -196,7 +196,7 @@ class Player(object):
             types.append(t)
         sig = ''.join(sig)
         params = sig.replace('=None', '')
-        types = '({0})'.format(','.join(types))
+        types = '({0},)'.format(','.join(types)) if types else '()'
         return sig, params, types
 
     @classmethod
