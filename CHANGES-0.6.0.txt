@@ -1,3 +1,5 @@
+PyMPlayer 0.6.0 - March 3, 2011
+
 Changes since 0.5.0
 
 --------------------
