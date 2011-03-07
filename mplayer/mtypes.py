@@ -26,49 +26,48 @@ except NameError:
 
 class MPlayerType(object):
 
-    encode = staticmethod(str)
-
-    @classmethod
-    def has_instance(cls, value):
-        """Check if value isinstance of type"""
-        return isinstance(value, cls.types)
+    name = None
+    type = None
+    convert = None
+    adapt = staticmethod(str)
 
 
 class FlagType(MPlayerType):
 
     name = 'bool'
-    types = bool
+    type = bool
 
     @staticmethod
-    def decode(value):
+    def convert(value):
         return ('yes' == value)
 
     @staticmethod
-    def encode(value):
-        return MPlayerType.encode(int(value))
+    def adapt(value):
+        return MPlayerType.adapt(int(value))
 
 
 class IntegerType(MPlayerType):
 
     name = 'int'
-    types = int
-    decode = staticmethod(int)
+    type = int
+    convert = staticmethod(int)
 
 
 class FloatType(MPlayerType):
 
     name = 'float'
-    types = (float, int)
-    decode = staticmethod(float)
+    type = (float, int)
+    convert = staticmethod(float)
 
 
 class StringType(MPlayerType):
 
     name = 'str'
-    types = basestring
+    type = basestring
 
     @staticmethod
-    def decode(value):
+    def convert(value):
+        """Value is already a string"""
         return value
 
 
@@ -77,13 +76,13 @@ class StringListType(MPlayerType):
     name = 'dict'
 
     @staticmethod
-    def decode(value):
+    def convert(value):
         value = value.split(',')
         # For now, return list as a dict ('metadata' property)
         return dict(zip(value[::2], value[1::2]))
 
     @staticmethod
-    def encode(value):
+    def adapt(value):
         raise NotImplementedError('not supported by MPlayer')
 
 

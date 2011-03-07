@@ -52,13 +52,13 @@ class Step(object):
     """
 
     def __init__(self, value=0, direction=0):
-        if not mtypes.FloatType.has_instance(value):
+        if not isinstance(value, mtypes.FloatType.type):
             raise TypeError('expected float for value')
-        if not mtypes.IntegerType.has_instance(value):
+        if not isinstance(value, mtypes.IntegerType.type):
             raise TypeError('expected int for direction')
-        # Encode data for MPlayer
-        self._val = mtypes.FloatType.encode(value)
-        self._dir = mtypes.IntegerType.encode(direction)
+        # Adapt data for MPlayer
+        self._val = mtypes.FloatType.adapt(value)
+        self._dir = mtypes.IntegerType.adapt(direction)
 
 
 class Player(object):
@@ -125,18 +125,18 @@ class Player(object):
     def _propget(self, pname, ptype):
         res = self._run_command('get_property', pname)
         if res is not None:
-            return ptype.decode(res)
+            return ptype.convert(res)
 
     def _propset(self, value, pname, ptype, pmin, pmax):
         if not isinstance(value, Step):
-            if not ptype.has_instance(value):
+            if not isinstance(value, ptype.type):
                 raise TypeError('expected {0}'.format(ptype.name))
             if pmin is not None and value < pmin:
                 raise ValueError('value must be at least {0}'.format(pmin))
             elif pmax is not None and value > pmax:
                 raise ValueError('value must be at most {0}'.format(pmax))
-            # Encode for MPlayer
-            value = ptype.encode(value)
+            # Adapt for MPlayer
+            value = ptype.adapt(value)
             self._run_command('set_property', pname, value)
         else:
             self._run_command('step_property', pname, value._val, value._dir)
@@ -191,8 +191,8 @@ class Player(object):
                 ptype += ' ' + ptype2
             # Get the corresponding Python type and convert pmin and pmax
             ptype = mtypes.type_map[ptype]
-            pmin = ptype.decode(pmin) if pmin != 'No' else None
-            pmax = ptype.decode(pmax) if pmax != 'No' else None
+            pmin = ptype.convert(pmin) if pmin != 'No' else None
+            pmax = ptype.convert(pmax) if pmax != 'No' else None
             # Generate property fget
             propget = partial(cls._propget, pname=pname, ptype=ptype)
             # Generate property fset
@@ -214,18 +214,18 @@ class Player(object):
 
     @staticmethod
     def _process_args(*args, **kwargs):
-        """Discard None args, check types, then encode"""
+        """Discard None args, check types, then adapt for MPlayer"""
         # Discard None from args
         args = [x for x in args if x is not None]
         types = kwargs['types']
         for i, arg in enumerate(args):
             # Check arg type
-            if not types[i].has_instance(arg):
+            if not isinstance(arg, types[i].type):
                 msg = 'expected {0} for argument {1}'.format(types[i].name, i + 1)
                 raise TypeError(msg)
-            # Encode arg for MPlayer
-            args[i] = types[i].encode(arg)
-        return args
+            # Adapt arg for MPlayer
+            args[i] = types[i].adapt(arg)
+        return tuple(args)
 
     @classmethod
     def _generate_methods(cls):
