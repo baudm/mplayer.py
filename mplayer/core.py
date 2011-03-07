@@ -192,6 +192,7 @@ class Player(object):
             # Rename some properties to avoid conflict
             if pname in rename:
                 pname = rename[pname]
+            assert not hasattr(cls, pname), "name conflict for '{0}'".format(pname)
             setattr(cls, pname, prop)
 
     @staticmethod
