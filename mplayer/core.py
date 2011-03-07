@@ -68,11 +68,11 @@ class Player(object):
 
     Take note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
 
-    @class attr path: path to the MPlayer executable
+    @class attr exec_path: path to the MPlayer executable
     @class attr command_prefix: prefix for MPlayer commands (see CommandPrefix)
     """
 
-    path = 'mplayer'
+    exec_path = 'mplayer'
     command_prefix = CommandPrefix.PAUSING_KEEP_FORCE
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
@@ -158,8 +158,8 @@ class Player(object):
     def _generate_properties(cls):
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start', 'stream_time_pos']
-        rename = {'pause': 'paused', 'path': 'filepath'}
-        args = [cls.path, '-list-properties']
+        rename = {'pause': 'paused'}
+        args = [cls.exec_path, '-list-properties']
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
             line = line.decode().split()
@@ -239,7 +239,7 @@ class Player(object):
             'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
             'osd', 'frame_drop']
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
-        args = [cls.path, '-input', 'cmdlist']
+        args = [cls.exec_path, '-input', 'cmdlist']
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
             args = line.decode().split()
@@ -281,7 +281,7 @@ class Player(object):
         """Spawn the underlying MPlayer process."""
         if self.is_alive():
             return
-        args = [self.__class__.path]
+        args = [self.__class__.exec_path]
         args.extend(self._args)
         # Start the MPlayer process (unbuffered)
         self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
