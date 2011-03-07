@@ -157,9 +157,11 @@ class Player(object):
     def _gen_func_sig(args):
         sig = []
         types = []
+        required = 0
         for i, arg in enumerate(args):
             if not arg.startswith('['):
                 optional = ''
+                required += 1
             else:
                 arg = arg.strip('[]')
                 optional = '=None'
@@ -170,7 +172,7 @@ class Player(object):
         sig = ''.join(sig)
         params = sig.replace('=None', '')
         types = '({0},)'.format(','.join(types)) if types else '()'
-        return sig, params, types
+        return sig, params, types, required
 
     @classmethod
     def _generate_properties(cls):
@@ -215,8 +217,9 @@ class Player(object):
     @staticmethod
     def _process_args(*args, **kwargs):
         """Discard None args, check types, then adapt for MPlayer"""
-        # Discard None from args
-        args = [x for x in args if x is not None]
+        req = kwargs['req']
+        # Discard None only from optional args
+        args = list(args[:req]) + [x for x in args[req:] if x is not None]
         types = kwargs['types']
         for i, arg in enumerate(args):
             # Check arg type
@@ -248,12 +251,12 @@ class Player(object):
             # Fix truncated command name
             if name.startswith('osd_show_property_'):
                 name = 'osd_show_property_text'
-            sig, params, types = cls._gen_func_sig(args)
+            sig, params, types, req = cls._gen_func_sig(args)
             code = '''
             def {name}(self, {sig}):
-                args = self._process_args({params} types={types})
+                args = self._process_args({params} types={types}, req={req})
                 return self._run_command('{name}', *args)
-            '''.format(name=name, sig=sig, params=params, types=types)
+            '''.format(name=name, sig=sig, params=params, types=types, req=req)
             local = {}
             exec(code.strip(), globals(), local)
             setattr(cls, name, local[name])
@@ -329,7 +332,7 @@ class Player(object):
             key = 'ANS_'
             # Append property name
             if args:
-                key += str(args[0])
+                key += args[0]
             with self._stdout._lock:
                 self._proc.stdin.write(command)
                 self._proc.stdin.flush()
