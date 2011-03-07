@@ -96,7 +96,7 @@ class Player(object):
 
     @property
     def args(self):
-        """list of MPlayer arguments"""
+        """list of additional MPlayer arguments"""
         return self._args[7:]
 
     @args.setter
@@ -125,6 +125,7 @@ class Player(object):
     def _propget(self, pname, ptype):
         res = self._run_command('get_property', pname)
         if res is not None:
+            # Convert response to Python object
             return ptype.convert(res)
 
     def _propset(self, value, pname, ptype, pmin, pmax):
@@ -152,27 +153,6 @@ class Player(object):
         if propset is None:
             doc.append('(read-only)')
         return '\n'.join(doc)
-
-    @staticmethod
-    def _gen_func_sig(args):
-        sig = []
-        types = []
-        required = 0
-        for i, arg in enumerate(args):
-            if not arg.startswith('['):
-                optional = ''
-                required += 1
-            else:
-                arg = arg.strip('[]')
-                optional = '=None'
-            t = mtypes.type_map[arg]
-            arg = '{0}{1}{2},'.format(t.name, i, optional)
-            sig.append(arg)
-            types.append('mtypes.{0}'.format(t.__name__))
-        sig = ''.join(sig)
-        params = sig.replace('=None', '')
-        types = '({0},)'.format(','.join(types)) if types else '()'
-        return sig, params, types, required
 
     @classmethod
     def _generate_properties(cls):
@@ -217,6 +197,7 @@ class Player(object):
     @staticmethod
     def _process_args(*args, **kwargs):
         """Discard None args, check types, then adapt for MPlayer"""
+        # Get number of required parameters
         req = kwargs['req']
         # Discard None only from optional args
         args = list(args[:req]) + [x for x in args[req:] if x is not None]
@@ -229,6 +210,27 @@ class Player(object):
             # Adapt arg for MPlayer
             args[i] = types[i].adapt(arg)
         return tuple(args)
+
+    @staticmethod
+    def _gen_func_sig(args):
+        sig = []
+        types = []
+        required = 0
+        for i, arg in enumerate(args):
+            if not arg.startswith('['):
+                optional = ''
+                required += 1
+            else:
+                arg = arg.strip('[]')
+                optional = '=None'
+            t = mtypes.type_map[arg]
+            arg = '{0}{1}{2},'.format(t.name, i, optional)
+            sig.append(arg)
+            types.append('mtypes.{0}'.format(t.__name__))
+        sig = ''.join(sig)
+        params = sig.replace('=None', '')
+        types = '({0},)'.format(','.join(types)) if types else '()'
+        return sig, params, types, required
 
     @classmethod
     def _generate_methods(cls):
@@ -265,7 +267,7 @@ class Player(object):
     def introspect(cls):
         """Introspect the MPlayer executable
 
-        Generate available methods and properties based on:
+        Generate available methods and properties based on the output of:
         $ mplayer -input cmdlist
         $ mplayer -list-properties
 
@@ -289,7 +291,6 @@ class Player(object):
 
     def quit(self, retcode=0):
         """Terminate the underlying MPlayer process.
-
         Returns the exit status of MPlayer or None if not running.
         """
         if not self.is_alive():
@@ -301,7 +302,6 @@ class Player(object):
 
     def is_alive(self):
         """Check if MPlayer process is alive.
-
         Returns True if alive, else, returns False.
         """
         if self._proc is not None:
@@ -311,7 +311,6 @@ class Player(object):
 
     def _run_command(self, name, *args):
         """Send a command to MPlayer. The result, if any, is returned.
-
         args is assumed to be a tuple of strings.
         """
         if not self.is_alive() or not name:
@@ -337,6 +336,7 @@ class Player(object):
                 self._proc.stdin.write(command)
                 self._proc.stdin.flush()
                 while True:
+                    # FIXME: This might block indefinitely for get_meta_* commands
                     res = self._proc.stdout.readline().decode().rstrip()
                     if res.startswith(key) or res.startswith('ANS_ERROR'):
                         break

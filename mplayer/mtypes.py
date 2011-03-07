@@ -25,6 +25,18 @@ except NameError:
 
 
 class MPlayerType(object):
+    """The base MPlayer type.
+
+    This class and its subclasses aren't really types. They simply encapsulate
+    all the information regarding a specific MPlayer type. In particular:
+
+    name - human-readable name of the type
+    type - valid Python types for this type (for use with isinstance())
+    convert - a callable which converts MPlayer responses
+              to the corresponding Python object
+    adapt - a callable which adapts a Python object into another
+            form (usually str) suitable for MPlayer's stdin
+    """
 
     name = None
     type = None
