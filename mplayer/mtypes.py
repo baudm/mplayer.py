@@ -50,12 +50,12 @@ class FlagType(MPlayerType):
     type = bool
 
     @staticmethod
-    def convert(value):
-        return ('yes' == value)
+    def convert(res):
+        return ('yes' == res)
 
     @staticmethod
-    def adapt(value):
-        return MPlayerType.adapt(int(value))
+    def adapt(obj):
+        return MPlayerType.adapt(int(obj))
 
 
 class IntegerType(MPlayerType):
@@ -78,9 +78,9 @@ class StringType(MPlayerType):
     type = basestring
 
     @staticmethod
-    def convert(value):
-        """Value is already a string"""
-        return value
+    def convert(res):
+        """Response is already a string"""
+        return res
 
 
 class StringListType(MPlayerType):
@@ -88,14 +88,10 @@ class StringListType(MPlayerType):
     name = 'dict'
 
     @staticmethod
-    def convert(value):
-        value = value.split(',')
+    def convert(res):
+        res = res.split(',')
         # For now, return list as a dict ('metadata' property)
-        return dict(zip(value[::2], value[1::2]))
-
-    @staticmethod
-    def adapt(value):
-        raise NotImplementedError('not supported by MPlayer')
+        return dict(zip(res[::2], res[1::2]))
 
 
 type_map = {
