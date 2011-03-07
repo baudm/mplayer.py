@@ -237,6 +237,7 @@ class Player(object):
         exclude = ['tv_set_brightness', 'tv_set_contrast', 'tv_set_saturation',
             'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
             'osd', 'frame_drop']
+        truncated = {'osd_show_property_te': 'osd_show_property_text'}
         args = [cls.path, '-input', 'cmdlist']
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
@@ -250,9 +251,9 @@ class Player(object):
             # Skip conflicts with properties
             if hasattr(cls, name) or name in exclude:
                 continue
-            # Fix truncated command name
-            if name.startswith('osd_show_property_'):
-                name = 'osd_show_property_text'
+            # Fix truncated command names
+            if name in truncated:
+                name = truncated[name]
             sig, params, types, req = cls._gen_func_sig(args)
             code = '''
             def {name}(self, {sig}):
