@@ -134,7 +134,7 @@ class Player(object):
                 raise TypeError('expected {0}'.format(ptype.name))
             if pmin is not None and value < pmin:
                 raise ValueError('value must be at least {0}'.format(pmin))
-            elif pmax is not None and value > pmax:
+            if pmax is not None and value > pmax:
                 raise ValueError('value must be at most {0}'.format(pmax))
             # Adapt for MPlayer
             value = ptype.adapt(value)
@@ -338,10 +338,12 @@ class Player(object):
                 while True:
                     # FIXME: This might block indefinitely for get_meta_* commands
                     res = self._proc.stdout.readline().decode().rstrip()
-                    if res.startswith(key) or res.startswith('ANS_ERROR'):
+                    if res.startswith(key):
                         break
+                    if res.startswith('ANS_ERROR'):
+                        return
             ans = res.partition('=')[2].strip('\'"')
-            if ans in ['(null)', 'PROPERTY_UNAVAILABLE', 'PROPERTY_UNKNOWN']:
+            if ans == '(null)':
                 ans = None
             return ans
 
