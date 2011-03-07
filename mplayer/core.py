@@ -54,7 +54,7 @@ class Step(object):
     def __init__(self, value=0, direction=0):
         if not isinstance(value, mtypes.FloatType.type):
             raise TypeError('expected float for value')
-        if not isinstance(value, mtypes.IntegerType.type):
+        if not isinstance(direction, mtypes.IntegerType.type):
             raise TypeError('expected int for direction')
         # Adapt data for MPlayer
         self._val = mtypes.FloatType.adapt(value)
