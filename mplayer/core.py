@@ -242,13 +242,12 @@ class Player(object):
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
             args = line.decode().split()
-            # Skip get_* (except get_meta_*), *_property, and quit commands
-            if not args or (args[0].startswith('get_') and \
-                    not args[0].startswith('get_meta')) or \
-                    args[0].endswith('_property') or args[0] == 'quit':
+            # Skip get_* and *_property commands
+            if not args or args[0].startswith('get_') or \
+                    args[0].endswith('_property'):
                 continue
             name = args.pop(0)
-            # Skip conflicts with properties
+            # Skip conflicts with properties or defined methods
             if hasattr(cls, name) or name in exclude:
                 continue
             # Fix truncated command names
@@ -329,15 +328,14 @@ class Player(object):
             self._proc.stdin.flush()
         # For getter commands, expect a result
         elif self._proc.stdout is not None:
-            key = 'ANS_'
-            # Append property name
-            if args:
-                key += args[0]
+            # The reponses for properties start with 'ANS_<property name>'
+            key = 'ANS_{0}'.format(args[0])
             with self._stdout._lock:
                 self._proc.stdin.write(command)
                 self._proc.stdin.flush()
                 while True:
-                    # FIXME: This might block indefinitely for get_meta_* commands
+                    # FIXME: readline() might block indefinitely
+                    # for get_* commands other than get_property
                     res = self._proc.stdout.readline().decode().rstrip()
                     if res.startswith(key):
                         break
