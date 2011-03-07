@@ -21,14 +21,8 @@ import shlex
 import subprocess
 from functools import partial
 from threading import Lock
-from numbers import Number
-# For Python 2.x, be consistent with the handling of strings
-try:
-    basestring
-except NameError:
-    basestring = _str = str
-else:
-    _str = unicode
+
+from mplayer import mtypes
 
 
 __all__ = [
@@ -58,12 +52,13 @@ class Step(object):
     """
 
     def __init__(self, value=0, direction=0):
-        if not isinstance(value, (int, float)):
-            raise TypeError('expected int or float for value')
-        if not isinstance(direction, int):
+        if not mtypes.FloatType.has_instance(value):
+            raise TypeError('expected float for value')
+        if not mtypes.IntegerType.has_instance(value):
             raise TypeError('expected int for direction')
-        self._val = value
-        self._dir = direction
+        # Encode data for MPlayer
+        self._val = mtypes.FloatType.encode(value)
+        self._dir = mtypes.IntegerType.encode(direction)
 
 
 class Player(object):
@@ -130,44 +125,26 @@ class Player(object):
     def _propget(self, pname, ptype):
         res = self._run_command('get_property', pname)
         if res is not None:
-            return ptype(res)
-
-    def _propget_bool(self, pname):
-        res = self._run_command('get_property', pname)
-        if res is not None:
-            return (res == 'yes')
-
-    def _propget_dict(self, pname):
-        res = self._run_command('get_property', pname)
-        if res is not None:
-            res = res.split(',')
-            # For now, return list as a dict ('metadata' property)
-            return dict(zip(res[::2], res[1::2]))
+            return ptype.decode(res)
 
     def _propset(self, value, pname, ptype, pmin, pmax):
         if not isinstance(value, Step):
-            if not isinstance(value, ptype):
-                raise TypeError('expected {0}'.format(ptype.__name__.lower()))
+            if not ptype.has_instance(value):
+                raise TypeError('expected {0}'.format(ptype.name))
             if pmin is not None and value < pmin:
                 raise ValueError('value must be at least {0}'.format(pmin))
             elif pmax is not None and value > pmax:
                 raise ValueError('value must be at most {0}'.format(pmax))
+            # Encode for MPlayer
+            value = ptype.encode(value)
             self._run_command('set_property', pname, value)
         else:
             self._run_command('step_property', pname, value._val, value._dir)
 
-    def _propset_bool(self, value, pname):
-        if not isinstance(value, Step):
-            if not isinstance(value, bool):
-                raise TypeError('expected bool')
-            self._run_command('set_property', pname, value)
-        else:
-            self._run_command('step_property', pname)
-
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
-        doc = ['type: {0}'.format(ptype.__name__)]
-        if propset is not None and ptype is not bool:
+        doc = ['type: {0}'.format(ptype.name)]
+        if propset is not None and ptype is not mtypes.FlagType:
             if pmin is not None:
                 doc.append('min: {0}'.format(pmin))
             if pmax is not None:
@@ -177,7 +154,7 @@ class Player(object):
         return '\n'.join(doc)
 
     @staticmethod
-    def _gen_func_sig(args, type_map):
+    def _gen_func_sig(args):
         sig = []
         types = []
         for i, arg in enumerate(args):
@@ -186,30 +163,24 @@ class Player(object):
             else:
                 arg = arg.strip('[]')
                 optional = '=None'
-            t = type_map[arg]
-            arg = '{0}{1}{2},'.format(t.__name__, i, optional)
+            t = mtypes.type_map[arg]
+            arg = '{0}{1}{2},'.format(t.name, i, optional)
             sig.append(arg)
-            # In Python 2.x, check for strings using basestring.
-            # For floats, accept any instance of Number (i.e. int and float)
-            if t is not str:
-                t = t.__name__ if t is not float else Number.__name__
-            else:
-                t = basestring.__name__
-            types.append(t)
+            types.append('mtypes.{0}'.format(t.__name__))
         sig = ''.join(sig)
         params = sig.replace('=None', '')
         types = '({0},)'.format(','.join(types)) if types else '()'
         return sig, params, types
 
     @classmethod
-    def _generate_properties(cls, type_map):
+    def _generate_properties(cls):
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start']
         read_write = ['sub_delay']
         rename = {'pause': 'paused', 'path': 'filepath'}
         args = [cls.path, '-list-properties']
-        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
-        for line in mplayer.stdout:
+        proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        for line in proc.stdout:
             line = line.decode().split()
             if not line or not line[0].islower():
                 continue
@@ -219,27 +190,18 @@ class Player(object):
                 pname, ptype, ptype2, pmin, pmax = line
                 ptype += ' ' + ptype2
             # Get the corresponding Python type and convert pmin and pmax
-            ptype = type_map[ptype]
-            pmin = ptype(pmin) if pmin != 'No' else None
-            pmax = ptype(pmax) if pmax != 'No' else None
+            ptype = mtypes.type_map[ptype]
+            pmin = ptype.decode(pmin) if pmin != 'No' else None
+            pmax = ptype.decode(pmax) if pmax != 'No' else None
             # Generate property fget
-            if ptype not in [bool, dict]:
-                # In Python 2.x, we're working with unicode; don't change that.
-                _ptype = ptype if ptype is not str else _str
-                propget = partial(cls._propget, pname=pname, ptype=_ptype)
-            elif ptype is bool:
-                propget = partial(cls._propget_bool, pname=pname)
-            else:
-                propget = partial(cls._propget_dict, pname=pname)
+            propget = partial(cls._propget, pname=pname, ptype=ptype)
             # Generate property fset
             if ((pmin, pmax) != (None, None) or pname in read_write) and pname not in read_only:
-                if ptype is not bool:
-                    # For floats, accept any instance of Number (i.e. int and float)
-                    _ptype = ptype if ptype is not float else Number
-                    propset = partial(cls._propset, pname=pname, ptype=_ptype,
-                                      pmin=pmin, pmax=pmax)
-                else:
-                    propset = partial(cls._propset_bool, pname=pname)
+                # Min and max values don't make sense for FlagType
+                if ptype is mtypes.FlagType:
+                    pmin = pmax = None
+                propset = partial(cls._propset, pname=pname, ptype=ptype,
+                                  pmin=pmin, pmax=pmax)
             else:
                 propset = None
             # Generate property doc
@@ -250,14 +212,29 @@ class Player(object):
                 pname = rename[pname]
             setattr(cls, pname, prop)
 
+    @staticmethod
+    def _process_args(*args, **kwargs):
+        """Discard None args, check types, then encode"""
+        # Discard None from args
+        args = [x for x in args if x is not None]
+        types = kwargs['types']
+        for i, arg in enumerate(args):
+            # Check arg type
+            if not types[i].has_instance(arg):
+                msg = 'expected {0} for argument {1}'.format(types[i].name, i + 1)
+                raise TypeError(msg)
+            # Encode arg for MPlayer
+            args[i] = types[i].encode(arg)
+        return args
+
     @classmethod
-    def _generate_methods(cls, type_map):
+    def _generate_methods(cls):
         exclude = ['tv_set_brightness', 'tv_set_contrast', 'tv_set_saturation',
             'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
             'osd', 'frame_drop']
         args = [cls.path, '-input', 'cmdlist']
-        mplayer = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
-        for line in mplayer.stdout:
+        proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        for line in proc.stdout:
             args = line.decode().split()
             # Skip get_* (except get_meta_*), *_property, and quit commands
             if not args or (args[0].startswith('get_') and \
@@ -271,10 +248,11 @@ class Player(object):
             # Fix truncated command name
             if name.startswith('osd_show_property_'):
                 name = 'osd_show_property_text'
-            sig, params, types = cls._gen_func_sig(args, type_map)
+            sig, params, types = cls._gen_func_sig(args)
             code = '''
-            def {name}(self, {sig} prefix=None):
-                return self._run_command('{name}', {params} types={types}, prefix=prefix)
+            def {name}(self, {sig}):
+                args = self._process_args({params} types={types})
+                return self._run_command('{name}', *args)
             '''.format(name=name, sig=sig, params=params, types=types)
             local = {}
             exec(code.strip(), globals(), local)
@@ -290,12 +268,8 @@ class Player(object):
 
         See also http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
-        type_map = {
-            'Flag': bool, 'Float': float, 'Integer': int, 'Position': int,
-            'Time': float, 'String': str, 'String list': dict
-        }
-        cls._generate_properties(type_map)
-        cls._generate_methods(type_map)
+        cls._generate_properties()
+        cls._generate_methods()
 
     def spawn(self):
         """Spawn the underlying MPlayer process."""
@@ -319,7 +293,7 @@ class Player(object):
             return
         self._stdout._file = None
         self._stderr._file = None
-        self._run_command('quit', retcode)
+        self._run_command('quit', str(retcode))
         return self._proc.wait()
 
     def is_alive(self):
@@ -332,27 +306,17 @@ class Player(object):
         else:
             return False
 
-    def _run_command(self, name, *args, **kwargs):
-        """Send a command to MPlayer. The result, if any, is returned."""
+    def _run_command(self, name, *args):
+        """Send a command to MPlayer. The result, if any, is returned.
+
+        args is assumed to be a tuple of strings.
+        """
         if not self.is_alive() or not name:
             return
-        # Discard None from args
-        args = tuple((x for x in args if x is not None))
-        types = kwargs.get('types', ())
-        # Check types if specified
-        if types:
-            result = map(isinstance, args, types[:len(args)])
-            if not all(result):
-                # Raise TypeError for the first type mismatch
-                i = result.index(False)
-                msg = 'expected {0} for argument {1}'.format(types[i].__name__.lower(), i + 1)
-                raise TypeError(msg)
-        prefix = kwargs.get('prefix', None)
-        if prefix is None:
-            prefix = self.__class__.command_prefix
-        command = [prefix, name]
-        command.extend(map(lambda x: str(int(x)) if isinstance(x, bool) else str(x), args))
+        command = [self.__class__.command_prefix, name]
+        command.extend(args)
         command.append('\n')
+        # Don't prefix the following commands
         if name in ['quit', 'pause', 'stop']:
             command.pop(0)
         command = ' '.join(command).encode()
