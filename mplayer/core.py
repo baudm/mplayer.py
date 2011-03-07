@@ -145,20 +145,19 @@ class Player(object):
     @staticmethod
     def _gen_propdoc(ptype, pmin, pmax, propset):
         doc = ['type: {0}'.format(ptype.name)]
-        if propset is not None and ptype is not mtypes.FlagType:
+        if propset is not None:
             if pmin is not None:
                 doc.append('min: {0}'.format(pmin))
             if pmax is not None:
                 doc.append('max: {0}'.format(pmax))
-        if propset is None:
+        else:
             doc.append('(read-only)')
         return '\n'.join(doc)
 
     @classmethod
     def _generate_properties(cls):
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
-            'stream_start']
-        read_write = ['sub_delay']
+            'stream_start', 'stream_time_pos']
         rename = {'pause': 'paused', 'path': 'filepath'}
         args = [cls.path, '-list-properties']
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
@@ -178,14 +177,15 @@ class Player(object):
             # Generate property fget
             propget = partial(cls._propget, pname=pname, ptype=ptype)
             # Generate property fset
-            if ((pmin, pmax) != (None, None) or pname in read_write) and pname not in read_only:
+            if (pmin is None and pmax is None and pname != 'sub_delay') or \
+               pname in read_only:
+                propset = None
+            else:
                 # Min and max values don't make sense for FlagType
                 if ptype is mtypes.FlagType:
                     pmin = pmax = None
                 propset = partial(cls._propset, pname=pname, ptype=ptype,
                                   pmin=pmin, pmax=pmax)
-            else:
-                propset = None
             # Generate property doc
             propdoc = cls._gen_propdoc(ptype, pmin, pmax, propset)
             prop = property(propget, propset, doc=propdoc)
