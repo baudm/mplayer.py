@@ -27,14 +27,15 @@ from mplayer import mtypes
 
 __all__ = [
     'Player',
-    'CommandPrefix',
+    'CmdPrefix',
     'Step'
     ]
 
 
-class CommandPrefix(object):
+class CmdPrefix(object):
     """MPlayer command prefixes"""
 
+    NONE = ''
     PAUSING = 'pausing'
     PAUSING_TOGGLE = 'pausing_toggle'
     PAUSING_KEEP = 'pausing_keep'
@@ -69,11 +70,11 @@ class Player(object):
     Take note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
 
     @class attr exec_path: path to the MPlayer executable
-    @class attr command_prefix: prefix for MPlayer commands (see CommandPrefix)
+    @class attr cmd_prefix: prefix for MPlayer commands (see CmdPrefix class)
     """
 
     exec_path = 'mplayer'
-    command_prefix = CommandPrefix.PAUSING_KEEP_FORCE
+    cmd_prefix = CmdPrefix.PAUSING_KEEP_FORCE
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
         self.args = args
@@ -156,6 +157,7 @@ class Player(object):
 
     @classmethod
     def _generate_properties(cls):
+        # Properties which don't have pmin == pmax == None but are read-only
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start', 'stream_time_pos']
         rename = {'pause': 'paused'}
@@ -235,9 +237,11 @@ class Player(object):
 
     @classmethod
     def _generate_methods(cls):
+        # Commands to exclude
         exclude = ['tv_set_brightness', 'tv_set_contrast', 'tv_set_saturation',
             'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
             'osd', 'frame_drop']
+        # Commands which have truncated names in -input cmdlist
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
         args = [cls.exec_path, '-input', 'cmdlist']
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
@@ -254,6 +258,8 @@ class Player(object):
             # Fix truncated command names
             if name in truncated:
                 name = truncated[name]
+            # As of now, there's no way of specifying a function's signature
+            # without dynamically generating code
             sig, params, types, req = cls._gen_func_sig(args)
             code = '''
             def {name}(self, {sig}):
@@ -316,7 +322,7 @@ class Player(object):
         """
         if not self.is_alive() or not name:
             return
-        command = [self.__class__.command_prefix, name]
+        command = [self.__class__.cmd_prefix, name]
         command.extend(args)
         command.append('\n')
         # Don't prefix the following commands

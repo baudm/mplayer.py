@@ -5,7 +5,7 @@
 Classes:
 
 Player -- provides a clean, Pythonic interface to MPlayer
-CommandPrefix -- contains the prefixes that can be used with MPlayer commands
+CmdPrefix -- contains the prefixes that can be used with MPlayer commands
 Step -- use with property access to implement the 'step_property' command
 
 AsyncPlayer -- Player subclass with asyncore integration (POSIX only)
@@ -28,7 +28,7 @@ __all__ = [
     'PIPE',
     'STDOUT',
     'Player',
-    'CommandPrefix',
+    'CmdPrefix',
     'Step'
     ]
 
