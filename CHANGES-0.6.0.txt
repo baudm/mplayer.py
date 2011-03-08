@@ -67,6 +67,9 @@ Changes:
 Deletions:
  * Player.get_property():
    Use Python property access instead
+   
+ * Player.get_*() methods except get_meta_*():
+   Use Python property access instead
 
  * Player.query():
    The functionality of query() has been merged back to _command(). Use the
@@ -158,45 +161,3 @@ For other frameworks or toolkits, e.g. Tkinter, typical usage is as follows:
   cb = p.stdout.publish
 
   tkinter.createfilehandler(fd, tkinter.READABLE, cb)
-
-
-Example for typical usage of methods:
-
-"a hypothetical class for a GUI program"
-
-...
-mplayer.Player.path = '/usr/bin/mplayer'
-# introspect MPlayer executable so that we can just use additional methods
-mplayer.Player.introspect()
-...
-def __init__(self):
-  super(SomeClass, self).__init__()
-  self.pl = playlist_generator()
-  self.p = mplayer.Player(autospawn=False)
-  self.p.stdout.hook(self.check_mplayer_eof)
-  self.timer = SomeTimer(timeout=1000, callback=self.update_status)
-
-def __del__(self):
-  # not really needed. just here for demo purposes
-  self.p.stdout.unhook(self.check_mplayer_eof)
-  # make sure MPlayer is terminated properly
-  self.p.quit()
-
-def load_video(self):
-  video = self.pl.next() # get next video
-  self.p.loadfile(video)
-  filename = self.p.filename
-  time_length = self.p.length
-  self.statusbar.set_text('Now playing: %s (%d seconds)' % (filename, time_length))
-
-def check_mplayer_eof(self, data):
-  if data.startswith('EOF code'):
-    self.load_video()
-
-def update_status(self):
-  pos = self.p.time_pos
-  self.statusbar2.set_text('Current Time: %d' % (pos, ))
-
-def run(self):
-  self.p.spawn()
-...
