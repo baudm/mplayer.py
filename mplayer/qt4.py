@@ -63,7 +63,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
         super(QPlayerView, self).__init__(parent)
         self._mplayer = QtPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
-            '-wid', str(self.winId())])
+            '-wid', self.winId()])
         self._mplayer.stdout.hook(self._handle_data)
         @QtCore.pyqtSlot(QtCore.QObject)
         def on_destroy(obj):
