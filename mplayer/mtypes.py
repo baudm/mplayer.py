@@ -51,7 +51,7 @@ class FlagType(MPlayerType):
 
     @staticmethod
     def convert(res):
-        return ('yes' == res)
+        return (res in ['yes', '1'])
 
     @staticmethod
     def adapt(obj):
