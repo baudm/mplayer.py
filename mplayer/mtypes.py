@@ -76,6 +76,7 @@ class StringType(MPlayerType):
 
     name = 'str'
     type = basestring
+    adapt = staticmethod(repr)
 
     @staticmethod
     def convert(res):
