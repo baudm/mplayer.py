@@ -392,16 +392,10 @@ class _FileWrapper(object):
             subscriber()
         if subscriber not in self._subscribers:
             self._subscribers.append(subscriber)
-            return True
-        else:
-            return False
 
     def unhook(self, subscriber):
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
-            return True
-        else:
-            return False
 
 
 # Introspect on module load
