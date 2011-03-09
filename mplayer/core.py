@@ -81,8 +81,9 @@ class Player(object):
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
         self.args = args
-        self._stdout = _FileWrapper(stdout)
-        self._stderr = _FileWrapper(stderr)
+        self._stdout_handle = stdout
+        self._stderr_handle = stderr
+        self._stdout = _File()
         self._proc = None
         if autospawn:
             self.spawn()
@@ -279,10 +280,10 @@ class Player(object):
         args.extend(self._args)
         # Start the MPlayer process (unbuffered)
         self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
-            stdout=self._stdout._handle, stderr=self._stderr._handle,
+            stdout=self._stdout_handle, stderr=self._stderr_handle,
             close_fds=(not subprocess.mswindows))
-        self._stdout._attach(self._proc.stdout)
-        self._stderr._attach(self._proc.stderr)
+        if self._proc.stdout is not None:
+            self._stdout._attach(self._proc.stdout)
 
     def quit(self, retcode=0):
         """Terminate the underlying MPlayer process.
@@ -291,7 +292,6 @@ class Player(object):
         if not self.is_alive():
             return
         self._stdout._detach()
-        self._stderr._detach()
         self._run_command('quit', mtypes.IntegerType.adapt(retcode))
         return self._proc.wait()
 
@@ -338,18 +338,14 @@ class Player(object):
             return ans
 
 
-class _FileWrapper(object):
-    """Wrapper for stdout and stderr"""
+class _File(object):
 
-    def __init__(self, handle):
-        self._handle = handle
+    def __init__(self):
         self._file = None
         self._answers = None
 
-    def _attach(self, file):
-        if file is None:
-            return
-        self._file = file
+    def _attach(self, fobj):
+        self._file = fobj
         self._answers = queue.Queue()
         t = Thread(target=self._process_output)
         t.daemon = True
@@ -363,8 +359,6 @@ class _FileWrapper(object):
             line = self._file.readline().decode().rstrip()
             if line.startswith('ANS_'):
                 self._answers.put_nowait(line)
-        # Cleanup
-        self._answers = None
 
 
 # Introspect on module load
