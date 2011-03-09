@@ -20,7 +20,11 @@
 import shlex
 import subprocess
 from functools import partial
-from threading import Lock
+from threading import Thread
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 from mplayer import mtypes
 
@@ -57,7 +61,6 @@ class Step(object):
             raise TypeError('expected float for value')
         if not isinstance(direction, mtypes.IntegerType.type):
             raise TypeError('expected int for direction')
-        # Adapt data for MPlayer
         self._val = mtypes.FloatType.adapt(value)
         self._dir = mtypes.IntegerType.adapt(direction)
 
@@ -107,26 +110,15 @@ class Player(object):
         # Assume that args is a string.
         try:
             args = shlex.split(args)
-        except AttributeError: # args is not a string
+        except AttributeError:
             # Force all args to string
             args = map(str, args)
         _args.extend(args)
         self._args = _args
 
-    @property
-    def stdout(self):
-        """stdout of the MPlayer process"""
-        return self._stdout
-
-    @property
-    def stderr(self):
-        """stderr of the MPlayer process"""
-        return self._stderr
-
     def _propget(self, pname, ptype):
         res = self._run_command('get_property', pname)
         if res is not None:
-            # Convert response to Python object
             return ptype.convert(res)
 
     def _propset(self, value, pname, ptype, pmin, pmax):
@@ -137,7 +129,6 @@ class Player(object):
                 raise ValueError('value must be at least {0}'.format(pmin))
             if pmax is not None and value > pmax:
                 raise ValueError('value must be at most {0}'.format(pmax))
-            # Adapt for MPlayer
             value = ptype.adapt(value)
             self._run_command('set_property', pname, value)
         else:
@@ -206,11 +197,9 @@ class Player(object):
         args = list(args[:req]) + [x for x in args[req:] if x is not None]
         types = kwargs['types']
         for i, arg in enumerate(args):
-            # Check arg type
             if not isinstance(arg, types[i].type):
                 msg = 'expected {0} for argument {1}'.format(types[i].name, i + 1)
                 raise TypeError(msg)
-            # Adapt arg for MPlayer
             args[i] = types[i].adapt(arg)
         return tuple(args)
 
@@ -227,8 +216,7 @@ class Player(object):
                 arg = arg.strip('[]')
                 optional = '=None'
             t = mtypes.type_map[arg]
-            arg = '{0}{1}{2},'.format(t.name, i, optional)
-            sig.append(arg)
+            sig.append('{0}{1}{2},'.format(t.name, i, optional))
             types.append('mtypes.{0}'.format(t.__name__))
         sig = ''.join(sig)
         params = sig.replace('=None', '')
@@ -293,8 +281,8 @@ class Player(object):
         self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
             stdout=self._stdout._handle, stderr=self._stderr._handle,
             close_fds=(not subprocess.mswindows))
-        self._stdout._file = self._proc.stdout
-        self._stderr._file = self._proc.stderr
+        self._stdout._attach(self._proc.stdout)
+        self._stderr._attach(self._proc.stderr)
 
     def quit(self, retcode=0):
         """Terminate the underlying MPlayer process.
@@ -302,9 +290,9 @@ class Player(object):
         """
         if not self.is_alive():
             return
-        self._stdout._file = None
-        self._stderr._file = None
-        self._run_command('quit', str(retcode))
+        self._stdout._detach()
+        self._stderr._detach()
+        self._run_command('quit', mtypes.IntegerType.adapt(retcode))
         return self._proc.wait()
 
     def is_alive(self):
@@ -329,25 +317,21 @@ class Player(object):
         if name in ['quit', 'pause', 'stop']:
             command.pop(0)
         command = ' '.join(command).encode()
-        # For non-getter commands, simply send the command
-        if not name.startswith('get_'):
-            self._proc.stdin.write(command)
-            self._proc.stdin.flush()
-        # For getter commands, expect a result
-        elif self._proc.stdout is not None:
+        self._proc.stdin.write(command)
+        self._proc.stdin.flush()
+        # Expect a response for 'get_property' only
+        if name == 'get_property' and self._proc.stdout is not None:
             # The reponses for properties start with 'ANS_<property name>'
             key = 'ANS_{0}'.format(args[0])
-            with self._stdout._lock:
-                self._proc.stdin.write(command)
-                self._proc.stdin.flush()
-                while True:
-                    # FIXME: readline() might block indefinitely
-                    # for get_* commands other than get_property
-                    res = self._proc.stdout.readline().decode().rstrip()
-                    if res.startswith(key):
-                        break
-                    if res.startswith('ANS_ERROR'):
-                        return
+            while True:
+                try:
+                    res = self._stdout._answers.get(timeout=1.0)
+                except queue.Empty:
+                    return
+                if res.startswith(key):
+                    break
+                if res.startswith('ANS_ERROR'):
+                    return
             ans = res.partition('=')[2].strip('\'"')
             if ans == '(null)':
                 ans = None
@@ -355,53 +339,32 @@ class Player(object):
 
 
 class _FileWrapper(object):
-    """Wrapper for stdout and stderr
-
-    Implements the publisher-subscriber design pattern.
-    """
+    """Wrapper for stdout and stderr"""
 
     def __init__(self, handle):
         self._handle = handle
         self._file = None
-        self._lock = Lock()
-        self._subscribers = []
+        self._answers = None
 
-    def fileno(self):
-        if self._file is not None:
-            return self._file.fileno()
+    def _attach(self, file):
+        if file is None:
+            return
+        self._file = file
+        self._answers = queue.Queue()
+        t = Thread(target=self._process_output)
+        t.daemon = True
+        t.start()
 
-    def publish(self, *args):
-        """Publish data to subscribers
+    def _detach(self):
+        self._file = None
 
-        This is a callback for use with event loops of other frameworks.
-        It is NOT meant to be called manually. Sample usage:
-
-        m.stdout.hook(callback1)
-
-        fd = m.stdout.fileno()
-        cb = m.stdout.publish
-
-        tkinter.createfilehandler(fd, tkinter.READABLE, cb)
-        """
-        if self._lock.locked() or self._file is None:
-            return True
-        data = self._file.readline().decode().rstrip()
-        if not data:
-            return True
-        for subscriber in self._subscribers:
-            subscriber(data)
-        return True
-
-    def hook(self, subscriber):
-        if not hasattr(subscriber, '__call__'):
-            # Raise TypeError
-            subscriber()
-        if subscriber not in self._subscribers:
-            self._subscribers.append(subscriber)
-
-    def unhook(self, subscriber):
-        if subscriber in self._subscribers:
-            self._subscribers.remove(subscriber)
+    def _process_output(self):
+        while self._file is not None:
+            line = self._file.readline().decode().rstrip()
+            if line.startswith('ANS_'):
+                self._answers.put_nowait(line)
+        # Cleanup
+        self._answers = None
 
 
 # Introspect on module load
