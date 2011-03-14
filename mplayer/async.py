@@ -27,6 +27,7 @@ except ImportError:
     import Queue as queue
 
 from mplayer.core import Player
+from mplayer import misc
 
 
 __all__ = ['AsyncPlayer']
@@ -37,8 +38,8 @@ class AsyncPlayer(Player):
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None):
         super(AsyncPlayer, self).__init__(args, stdout, stderr, False)
-        self._stdout = _FileWithQueue()
-        self._stderr = _File()
+        self._stdout = _StdOut()
+        self._stderr = _StdErr()
         self._map = socket_map
         self._fd = []
         if autospawn:
@@ -76,24 +77,15 @@ class AsyncPlayer(Player):
         return super(AsyncPlayer, self).quit(retcode)
 
 
-class _File(object):
+class _StdErr(misc._StdErr):
 
     def __init__(self):
-        super(_File, self).__init__()
-        self._file = None
+        super(_StdErr, self).__init__()
         self._subscribers = []
 
-    def _attach(self, fobj):
-        self._file = fobj
-
-    def _detach(self):
-        self._file = None
-
-    def _process_output(self):
-        line = self._file.readline().decode().rstrip()
-        if line:
-            for subscriber in self._subscribers:
-                subscriber(line)
+    def _publish(self, line):
+        for subscriber in self._subscribers:
+            subscriber(line)
 
     def connect(self, subscriber):
         if not hasattr(subscriber, '__call__'):
@@ -109,23 +101,9 @@ class _File(object):
             self._subscribers.remove(subscriber)
 
 
-class _FileWithQueue(_File):
+class _StdOut(misc._StdOut, _StdErr):
 
-    def _attach(self, fobj):
-        super(_FileWithQueue, self)._attach(fobj)
-        self._answers = queue.Queue()
-
-    def _detach(self):
-        super(_FileWithQueue, self)._detach()
-        self._answers = None
-
-    def _process_output(self):
-        line = self._file.readline().decode().rstrip()
-        if line.startswith('ANS_'):
-            self._answers.put_nowait(line)
-        elif line:
-            for subscriber in self._subscribers:
-                subscriber(line)
+    pass
 
 
 class _FileDispatcher(asyncore.file_dispatcher):

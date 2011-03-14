@@ -26,24 +26,10 @@ try:
 except ImportError:
     import Queue as queue
 
-from mplayer import mtypes
+from mplayer import mtypes, misc
 
 
-__all__ = [
-    'Player',
-    'CmdPrefix',
-    'Step'
-    ]
-
-
-class CmdPrefix(object):
-    """MPlayer command prefixes"""
-
-    NONE = ''
-    PAUSING = 'pausing'
-    PAUSING_TOGGLE = 'pausing_toggle'
-    PAUSING_KEEP = 'pausing_keep'
-    PAUSING_KEEP_FORCE = 'pausing_keep_force'
+__all__ = ['Player', 'Step']
 
 
 class Step(object):
@@ -78,14 +64,14 @@ class Player(object):
     """
 
     exec_path = 'mplayer'
-    cmd_prefix = CmdPrefix.PAUSING_KEEP_FORCE
+    cmd_prefix = misc.CmdPrefix.PAUSING_KEEP_FORCE
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
         super(Player, self).__init__()
         self.args = args
         self._stdout_handle = stdout
         self._stderr_handle = stderr
-        self._stdout = _File()
+        self._stdout = _StdOut()
         self._proc = None
         if autospawn:
             self.spawn()
@@ -339,16 +325,10 @@ class Player(object):
             return ans
 
 
-class _File(object):
-
-    def __init__(self):
-        super(_File, self).__init__()
-        self._file = None
-        self._answers = None
+class _StdOut(misc._StdOut):
 
     def _attach(self, fobj):
-        self._file = fobj
-        self._answers = queue.Queue()
+        super(_StdOut, self)._attach(fobj)
         t = Thread(target=self._process_output)
         t.daemon = True
         t.start()

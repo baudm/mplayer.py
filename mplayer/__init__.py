@@ -34,4 +34,5 @@ __all__ = [
 
 # Import here for convenience.
 from subprocess import PIPE, STDOUT
-from mplayer.core import *
+from mplayer.core import Player, Step
+from mplayer.misc import CmdPrefix
