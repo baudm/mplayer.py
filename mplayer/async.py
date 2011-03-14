@@ -72,12 +72,14 @@ class AsyncPlayer(Player):
             if fd in socket_map:
                 socket_map[fd].close()
         self._fd = []
+        self._stderr._detach()
         return super(AsyncPlayer, self).quit(retcode)
 
 
 class _File(object):
 
     def __init__(self):
+        super(_File, self).__init__()
         self._file = None
         self._subscribers = []
 
@@ -112,6 +114,10 @@ class _FileWithQueue(_File):
     def _attach(self, fobj):
         super(_FileWithQueue, self)._attach(fobj)
         self._answers = queue.Queue()
+
+    def _detach(self):
+        super(_FileWithQueue, self)._detach()
+        self._answers = None
 
     def _process_output(self):
         line = self._file.readline().decode().rstrip()

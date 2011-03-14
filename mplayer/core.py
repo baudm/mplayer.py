@@ -57,6 +57,7 @@ class Step(object):
     """
 
     def __init__(self, value=0, direction=0):
+        super(Step, self).__init__()
         if not isinstance(value, mtypes.FloatType.type):
             raise TypeError('expected float for value')
         if not isinstance(direction, mtypes.IntegerType.type):
@@ -80,6 +81,7 @@ class Player(object):
     cmd_prefix = CmdPrefix.PAUSING_KEEP_FORCE
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
+        super(Player, self).__init__()
         self.args = args
         self._stdout_handle = stdout
         self._stderr_handle = stderr
@@ -130,8 +132,7 @@ class Player(object):
                 raise ValueError('value must be at least {0}'.format(pmin))
             if pmax is not None and value > pmax:
                 raise ValueError('value must be at most {0}'.format(pmax))
-            value = ptype.adapt(value)
-            self._run_command('set_property', pname, value)
+            self._run_command('set_property', pname, ptype.adapt(value))
         else:
             self._run_command('step_property', pname, value._val, value._dir)
 
@@ -341,6 +342,7 @@ class Player(object):
 class _File(object):
 
     def __init__(self):
+        super(_File, self).__init__()
         self._file = None
         self._answers = None
 
@@ -359,6 +361,8 @@ class _File(object):
             line = self._file.readline().decode().rstrip()
             if line.startswith('ANS_'):
                 self._answers.put_nowait(line)
+        # Cleanup when done
+        self._answers = None
 
 
 # Introspect on module load
