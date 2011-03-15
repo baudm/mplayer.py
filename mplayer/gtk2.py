@@ -18,52 +18,56 @@
 # along with PyMPlayer.  If not, see <http://www.gnu.org/licenses/>.
 
 from subprocess import PIPE
+from functools import partial
 
 import gtk
 import gobject
 
 from mplayer.core import Player
+from mplayer import misc
 
 
 __all__ = ['GPlayer', 'GtkPlayerView']
 
 
-class GPlayer(Player):
+class GPlayer(Player, gobject.GObject):
     """Player subclass with GTK/GObject integration."""
 
+    __gsignals__ = {
+        'stdout': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
+        'stderr': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+    }
+
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
-        self._tags = []
-        super(GPlayer, self).__init__(args, stdout, stderr, autospawn)
+        super(GPlayer, self).__init__(args, stdout, stderr, False)
+        self._stdout = _StdOut(self.emit, 'stdout')
+        self._stderr = _StdErr(self.emit, 'stderr')
+        if autospawn:
+            self.spawn()
 
     def spawn(self):
         retcode = super(GPlayer, self).spawn()
-        if self._stdout._file is not None:
-            tag = gobject.io_add_watch(self._stdout.fileno(),
-                gobject.IO_IN | gobject.IO_PRI, self._stdout.publish)
-            self._tags.append(tag)
-        if self._stderr._file is not None:
-            tag = gobject.io_add_watch(self._stderr.fileno(),
-                gobject.IO_IN | gobject.IO_PRI, self._stderr.publish)
-            self._tags.append(tag)
+        if self._proc.stderr is not None:
+            self._stderr._attach(self._proc.stderr)
         return retcode
 
     def quit(self, retcode=0):
-        map(gobject.source_remove, self._tags)
-        self._tags = []
+        if self._proc.stderr is not None:
+            self._stderr._detach()
         return super(GPlayer, self).quit(retcode)
 
 
 class GtkPlayerView(gtk.Socket):
 
     __gsignals__ = {
-        'complete': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'complete': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
     }
 
     def __init__(self):
         super(GtkPlayerView, self).__init__()
         self._mplayer = GPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'], autospawn=False)
-        self._mplayer.stdout.hook(self._handle_data)
+        self._mplayer.connect('stdout', self._handle_data)
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
@@ -90,12 +94,35 @@ class GtkPlayerView(gtk.Socket):
     def _on_destroy(self, *args):
         self._mplayer.quit()
 
-    def _handle_data(self, data):
+    def _handle_data(self, player, data):
         if data.startswith('EOF code'):
             self.emit('complete')
 
 
-# Register as a PyGTK type.
+class _StdErr(misc._StdErr):
+
+    def __init__(self, emit, signal):
+        super(_StdErr, self).__init__()
+        self._publish = partial(emit, signal)
+        self._tag = None
+
+    def _attach(self, fobj):
+        super(_StdErr, self)._attach(fobj)
+        self._tag = gobject.io_add_watch(self._file.fileno(),
+            gobject.IO_IN | gobject.IO_PRI, self._process_output)
+
+    def _detach(self):
+        gobject.source_remove(self._tag)
+        super(_StdErr, self)._detach()
+
+
+class _StdOut(_StdErr, misc._StdOut):
+
+    pass
+
+
+# Register as PyGTK types
+gobject.type_register(GPlayer)
 gobject.type_register(GtkPlayerView)
 
 
