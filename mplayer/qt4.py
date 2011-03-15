@@ -22,36 +22,34 @@ from subprocess import PIPE
 from PyQt4 import QtCore, QtGui
 
 from mplayer.core import Player
+from mplayer import misc
 
 
 __all__ = ['QtPlayer', 'QPlayerView']
 
 
-class QtPlayer(Player):
+class QtPlayer(Player, QtCore.QObject):
     """Player subclass with Qt integration."""
 
+    stdout = QtCore.pyqtSignal(str)
+    stderr = QtCore.pyqtSignal(str)
+
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
-        self._notifiers = []
-        super(QtPlayer, self).__init__(args, stdout, stderr, autospawn)
+        super(QtPlayer, self).__init__(args, stdout, stderr, False)
+        self._stdout = _StdOut(self.stdout)
+        self._stderr = _StdErr(self.stderr)
+        if autospawn:
+            self.spawn()
 
     def spawn(self):
-        retcode = super(QtPlayer, self).spawn()
-        if self._stdout._file is not None:
-            sn = QtCore.QSocketNotifier(self._stdout.fileno(),
-                QtCore.QSocketNotifier.Read)
-            sn.activated.connect(self._stdout.publish)
-            self._notifiers.append(sn)
-        if self._stderr._file is not None:
-            sn = QtCore.QSocketNotifier(self._stderr.fileno(),
-                QtCore.QSocketNotifier.Read)
-            sn.activated.connect(self._stderr.publish)
-            self._notifiers.append(sn)
-        return retcode
+        retval = super(QtPlayer, self).spawn()
+        if self._proc.stderr is not None:
+            self._stderr._attach(self._proc.stderr)
+        return retval
 
     def quit(self, retcode=0):
-        for sn in self._notifiers:
-            sn.setEnabled(False)
-        self._notifiers = []
+        if self._proc.stderr is not None:
+            self._stderr._detach()
         return super(QtPlayer, self).quit(retcode)
 
 
@@ -64,7 +62,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
         self._mplayer = QtPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', self.winId()])
-        self._mplayer.stdout.hook(self._handle_data)
+        self._mplayer.stdout.connect(self._handle_data)
         @QtCore.pyqtSlot(QtCore.QObject)
         def on_destroy(obj):
             self._mplayer.quit()
@@ -83,9 +81,34 @@ class QPlayerView(QtGui.QX11EmbedContainer):
         else:
             return attr
 
+    @QtCore.pyqtSlot(str)
     def _handle_data(self, data):
-        if data.startswith('EOF code'):
+        if str(data).startswith('EOF code'):
             self.completed.emit()
+
+
+class _StdErr(misc._BaseStdErr):
+
+    def __init__(self, signal):
+        super(_StdErr, self).__init__()
+        self._publish = signal.emit
+        self._notifier = None
+
+    def _attach(self, fobj):
+        super(_StdErr, self)._attach(fobj)
+        self._notifier = QtCore.QSocketNotifier(self._file.fileno(),
+            QtCore.QSocketNotifier.Read)
+        self._notifier.activated.connect(self._process_output)
+
+    def _detach(self):
+        self._notifier.setEnabled(False)
+        # FIXME: This doesn't work: super(_StdErr, self)._detach()
+        misc._BaseStdErr._detach(self)
+
+
+class _StdOut(_StdErr, misc._BaseStdOut):
+
+    pass
 
 
 if __name__ == '__main__':
