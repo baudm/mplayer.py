@@ -38,10 +38,9 @@ class AsyncPlayer(Player):
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None):
         super(AsyncPlayer, self).__init__(args, stdout, stderr, False)
-        self._stdout = _StdOut()
-        self._stderr = _StdErr()
-        self._map = socket_map
-        self._fd = []
+        smap = socket_map if socket_map is not None else asyncore.socket_map
+        self._stdout = _StdOut(smap)
+        self._stderr = _StdErr(smap)
         if autospawn:
             self.spawn()
 
@@ -57,31 +56,31 @@ class AsyncPlayer(Player):
 
     def spawn(self):
         retcode = super(AsyncPlayer, self).spawn()
-        if self._proc.stdout is not None:
-            self._fd.append(_FileDispatcher(self._stdout, self._map).fileno())
         if self._proc.stderr is not None:
             self._stderr._attach(self._proc.stderr)
-            self._fd.append(_FileDispatcher(self._stderr, self._map).fileno())
         return retcode
 
     def quit(self, retcode=0):
-        try:
-            socket_map = (self._map if self._map is not None else asyncore.socket_map)
-        except AttributeError:
-            socket_map = {}
-        for fd in self._fd:
-            if fd in socket_map:
-                socket_map[fd].close()
-        self._fd = []
-        self._stderr._detach()
+        if self._proc.stderr is not None:
+            self._stderr._detach()
         return super(AsyncPlayer, self).quit(retcode)
 
 
 class _StdErr(misc._StdErr):
 
-    def __init__(self):
+    def __init__(self, socket_map):
         super(_StdErr, self).__init__()
+        self._map = socket_map
+        self._fd = None
         self._subscribers = []
+
+    def _attach(self, fobj):
+        super(_StdErr, self)._attach(fobj)
+        self._fd = _FileDispatcher(self, self._map).fileno()
+
+    def _detach(self):
+        self._map[self._fd].close()
+        super(_StdErr, self)._detach()
 
     def _publish(self, line):
         for subscriber in self._subscribers:
@@ -101,7 +100,7 @@ class _StdErr(misc._StdErr):
             self._subscribers.remove(subscriber)
 
 
-class _StdOut(misc._StdOut, _StdErr):
+class _StdOut(_StdErr, misc._StdOut):
 
     pass
 
