@@ -278,7 +278,8 @@ class Player(object):
         """
         if not self.is_alive():
             return
-        self._stdout._detach()
+        if self._proc.stdout is not None:
+            self._stdout._detach()
         self._run_command('quit', mtypes.IntegerType.adapt(retcode))
         return self._proc.wait()
 
