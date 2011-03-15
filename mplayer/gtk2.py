@@ -46,10 +46,10 @@ class GPlayer(Player, gobject.GObject):
             self.spawn()
 
     def spawn(self):
-        retcode = super(GPlayer, self).spawn()
+        retval = super(GPlayer, self).spawn()
         if self._proc.stderr is not None:
             self._stderr._attach(self._proc.stderr)
-        return retcode
+        return retval
 
     def quit(self, retcode=0):
         if self._proc.stderr is not None:
@@ -99,7 +99,7 @@ class GtkPlayerView(gtk.Socket):
             self.emit('complete')
 
 
-class _StdErr(misc._StdErr):
+class _StdErr(misc._BaseStdErr):
 
     def __init__(self, emit, signal):
         super(_StdErr, self).__init__()
@@ -116,7 +116,7 @@ class _StdErr(misc._StdErr):
         super(_StdErr, self)._detach()
 
 
-class _StdOut(_StdErr, misc._StdOut):
+class _StdOut(_StdErr, misc._BaseStdOut):
 
     pass
 

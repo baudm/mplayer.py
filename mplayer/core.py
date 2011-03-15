@@ -326,7 +326,7 @@ class Player(object):
             return ans
 
 
-class _StdOut(misc._StdOut):
+class _StdOut(misc._BaseStdOut):
 
     def _attach(self, fobj):
         super(_StdOut, self)._attach(fobj)

@@ -51,10 +51,10 @@ class AsyncPlayer(Player):
         return self._stderr
 
     def spawn(self):
-        retcode = super(AsyncPlayer, self).spawn()
+        retval = super(AsyncPlayer, self).spawn()
         if self._proc.stderr is not None:
             self._stderr._attach(self._proc.stderr)
-        return retcode
+        return retval
 
     def quit(self, retcode=0):
         if self._proc.stderr is not None:
@@ -62,7 +62,7 @@ class AsyncPlayer(Player):
         return super(AsyncPlayer, self).quit(retcode)
 
 
-class _StdErr(misc._StdErr):
+class _StdErr(misc._BaseStdErr):
 
     def __init__(self, socket_map):
         super(_StdErr, self).__init__()
@@ -72,10 +72,10 @@ class _StdErr(misc._StdErr):
 
     def _attach(self, fobj):
         super(_StdErr, self)._attach(fobj)
-        self._fd = _FileDispatcher(self, self._map).fileno()
+        self._fd = _FileDispatcher(self, self._map)
 
     def _detach(self):
-        self._map[self._fd].close()
+        self._fd.close()
         super(_StdErr, self)._detach()
 
     def _publish(self, line):
@@ -96,7 +96,7 @@ class _StdErr(misc._StdErr):
             self._subscribers.remove(subscriber)
 
 
-class _StdOut(_StdErr, misc._StdOut):
+class _StdOut(_StdErr, misc._BaseStdOut):
 
     pass
 

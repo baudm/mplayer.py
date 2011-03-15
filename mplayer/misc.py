@@ -36,10 +36,10 @@ class CmdPrefix(object):
     PAUSING_KEEP_FORCE = 'pausing_keep_force'
 
 
-class _StdErr(object):
+class _BaseStdErr(object):
 
     def __init__(self):
-        super(_StdErr, self).__init__()
+        super(_BaseStdErr, self).__init__()
         self._file = None
 
     def _attach(self, fobj):
@@ -58,19 +58,15 @@ class _StdErr(object):
         return True
 
 
-class _StdOut(_StdErr):
+class _BaseStdOut(_BaseStdErr):
 
     def __init__(self):
-        super(_StdOut, self).__init__()
+        super(_BaseStdOut, self).__init__()
         self._answers = None
 
     def _attach(self, fobj):
-        super(_StdOut, self)._attach(fobj)
+        super(_BaseStdOut, self)._attach(fobj)
         self._answers = queue.Queue()
-
-    def _detach(self):
-        super(_StdOut, self)._detach()
-        self._answers = None
 
     def _process_output(self, *args):
         line = self._file.readline().decode().rstrip()
