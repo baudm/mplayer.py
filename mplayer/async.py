@@ -21,10 +21,6 @@ import os
 import fcntl
 import asyncore
 from subprocess import PIPE
-try:
-    import queue
-except ImportError:
-    import Queue as queue
 
 from mplayer.core import Player
 from mplayer import misc
