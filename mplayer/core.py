@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with PyMPlayer.  If not, see <http://www.gnu.org/licenses/>.
 
+import atexit
 import shlex
 import subprocess
 from functools import partial
@@ -73,11 +74,13 @@ class Player(object):
         self._stderr_handle = stderr
         self._stdout = _StdOut()
         self._proc = None
+        # Terminate the MPlayer process when Python terminates
+        atexit.register(self.quit)
         if autospawn:
             self.spawn()
 
     def __del__(self):
-        # Be sure to stop the MPlayer process.
+        # Terminate the MPlayer process when instance is about to be destroyed
         self.quit()
 
     def __repr__(self):
@@ -251,8 +254,8 @@ class Player(object):
         """Introspect the MPlayer executable
 
         Generate available methods and properties based on the output of:
-        $ mplayer -input cmdlist
         $ mplayer -list-properties
+        $ mplayer -input cmdlist
 
         See also http://www.mplayerhq.hu/DOCS/tech/slave.txt
         """
@@ -309,8 +312,8 @@ class Player(object):
         self._proc.stdin.flush()
         # Expect a response for 'get_property' only
         if name == 'get_property' and self._proc.stdout is not None:
-            # The reponses for properties start with 'ANS_<property name>'
-            key = 'ANS_{0}'.format(args[0])
+            # The reponses for properties start with 'ANS_<property name>='
+            key = 'ANS_{0}='.format(args[0])
             while True:
                 try:
                     res = self._stdout._answers.get(timeout=1.0)
@@ -318,7 +321,7 @@ class Player(object):
                     return
                 if res.startswith(key):
                     break
-                if res.startswith('ANS_ERROR'):
+                if res.startswith('ANS_ERROR='):
                     return
             ans = res.partition('=')[2].strip('\'"')
             if ans == '(null)':
@@ -333,9 +336,6 @@ class _StdOut(misc._BaseStdOut):
         t = Thread(target=self._process_output)
         t.daemon = True
         t.start()
-
-    def _detach(self):
-        self._file = None
 
     def _process_output(self):
         while self._file is not None:
