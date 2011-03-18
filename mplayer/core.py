@@ -62,10 +62,12 @@ class Player(object):
 
     @class attr exec_path: path to the MPlayer executable
     @class attr cmd_prefix: prefix for MPlayer commands (see CmdPrefix class)
+    @class attr version: version of the introspected MPlayer executable
     """
 
     exec_path = 'mplayer'
     cmd_prefix = misc.CmdPrefix.PAUSING_KEEP_FORCE
+    version = None
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
         super(Player, self).__init__()
@@ -154,6 +156,11 @@ class Player(object):
         rename = {'pause': 'paused'}
         args = [cls.exec_path, '-list-properties']
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        # Try to get the version of this executable
+        try:
+            cls.version = proc.stdout.readline().decode().split()[1]
+        except IndexError:
+            pass
         for line in proc.stdout:
             line = line.decode().split()
             if not line or not line[0].islower():
