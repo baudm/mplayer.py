@@ -3,32 +3,56 @@ PyMPlayer 0.7.0
 Changes since 0.6.0
 
 --------------------
-      General
+     Highlights
 --------------------
 
  * Added type checking to generated methods and properties (including Step)
  * Added value checking to generated properties
- * Properties now use functools.partial objects (more memory efficient)
+ * Generated methods no longer accept an optional 'prefix' parameter
+ * Generated properties now use functools.partial objects
  * Abstracted MPlayer type handling away from the core (see mtypes module)
+ * Consistency with string types (for Python 2.x)
 
 
 --------------------
         API
 --------------------
-
 Changes:
- * Player.path has been renamed to Player.exec_path
+ * Rename class: CommandPrefix -> CmdPrefix
+
+ * Rename attribute: Player.command_prefix -> Player.cmd_prefix
+
+ * Rename attribute: Player.path -> Player.exec_path
 
  * The 'path' property is no longer renamed to 'filepath'. Player.path now
-   pertains to the 'path' property of MPlayer (i.e. Player.filepath in 0.6.0).
+   pertains to the actual 'path' property of MPlayer. That is:
 
- * Removed optional 'prefix' parameter from generated methods. That is,
-   for instance, pause(prefix=None) -> pause().
+      Player.filepath -> Player.path
+
+ * Rename method: Player.stdout.hook() -> Player.stdout.connect()
+   (NOTE: Also applies to Player.stderr)
+
+ * Similarly, Player.stdout/stderr.unhook() has been renamed to disconnect().
+   Moreover, the parameter of disconnect() is now optional (default: None).
+   If no parameter is supplied, the list of subscribers is cleared.
+
+      unhook(subscriber) -> disconnect(subscriber=None)
+
+ * Removed optional 'prefix' parameter from generated methods.
+   That is, for instance:
+
+      pause(prefix=None) -> pause()
 
  * The default parameters of generated methods is now None instead of a blank
    string. That is, for instance:
 
-      loadfile(self, str0, int1='') -> loadfile(self, str0, int1=None)
+      loadfile(self, str0, int1='', prefix=None) -> loadfile(self, str0, int1=None)
+
+
+Additions:
+ * Add attribute: CmdPrefix.NONE (which basically means 'no prefix')
+
+ * Add attribute: Player.version (version of the introspected MPlayer executable)
 
 
 Deletions:

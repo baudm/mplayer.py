@@ -4,8 +4,8 @@ PyMPlayer provides several classes for easily using MPlayer in Python.
 
 * Features
 
-  - Pythonic interface
-  - Full support for MPlayer commands and properties
+  - Pythonic interface and code
+  - Full support for MPlayer commands and properties (generated at runtime)
   - asyncore, PyGTK, and PyQt integration
   - MS Windows support
   - Python 3 compatibility
