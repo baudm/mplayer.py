@@ -70,9 +70,8 @@ class Player(object):
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
         super(Player, self).__init__()
         self.args = args
-        self._stdout_handle = stdout
-        self._stderr_handle = stderr
-        self._stdout = _StdOut()
+        self._stdout = _StdoutWrapper(handle=stdout)
+        self._stderr = _StderrWrapper(handle=stderr)
         self._proc = None
         # Terminate the MPlayer process when Python terminates
         atexit.register(self.quit)
@@ -89,6 +88,16 @@ class Player(object):
         else:
             status = 'not running'
         return '<{0} {1}>'.format(self.__class__.__name__, status)
+
+    @property
+    def stdout(self):
+        """stdout of the MPlayer process"""
+        return self._stdout
+
+    @property
+    def stderr(self):
+        """stderr of the MPlayer process"""
+        return self._stderr
 
     @property
     def args(self):
@@ -270,10 +279,12 @@ class Player(object):
         args.extend(self._args)
         # Start the MPlayer process (unbuffered)
         self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
-            stdout=self._stdout_handle, stderr=self._stderr_handle,
+            stdout=self._stdout._handle, stderr=self._stderr._handle,
             close_fds=(not subprocess.mswindows))
         if self._proc.stdout is not None:
             self._stdout._attach(self._proc.stdout)
+        if self._proc.stderr is not None:
+            self._stderr._attach(self._proc.stderr)
 
     def quit(self, retcode=0):
         """Terminate the underlying MPlayer process.
@@ -283,6 +294,8 @@ class Player(object):
             return
         if self._proc.stdout is not None:
             self._stdout._detach()
+        if self._proc.stderr is not None:
+            self._stderr._detach()
         self._run_command('quit', mtypes.IntegerType.adapt(retcode))
         return self._proc.wait()
 
@@ -329,21 +342,21 @@ class Player(object):
             return ans
 
 
-class _StdOut(misc._BaseStdOut):
+class _StderrWrapper(misc._StderrWrapper):
 
     def _attach(self, fobj):
-        super(_StdOut, self)._attach(fobj)
-        t = Thread(target=self._process_output)
+        super(_StderrWrapper, self)._attach(fobj)
+        t = Thread(target=self._thread_func)
         t.daemon = True
         t.start()
 
-    def _process_output(self):
+    def _thread_func(self):
         while self._file is not None:
-            line = self._file.readline().decode().rstrip()
-            if line.startswith('ANS_'):
-                self._answers.put_nowait(line)
-        # Cleanup when done
-        self._answers = None
+            self._process_output()
+
+
+class _StdoutWrapper(_StderrWrapper, misc._StdoutWrapper):
+    pass
 
 
 # Introspect on module load
@@ -356,7 +369,15 @@ except OSError:
 if __name__ == '__main__':
     import sys
 
-    player = Player(sys.argv[1:])
+    def log(data):
+        print('LOG: {0}'.format(data))
+
+    def error(data):
+        print('ERROR: {0}'.format(data))
+
+    player = Player(sys.argv[1:], stderr=subprocess.PIPE)
+    player.stdout.connect(log)
+    player.stderr.connect(error)
     # block execution
     try:
         raw_input()

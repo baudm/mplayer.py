@@ -33,83 +33,48 @@ class AsyncPlayer(Player):
     """Player subclass with asyncore integration."""
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None):
-        super(AsyncPlayer, self).__init__(args, stdout, stderr, False)
-        smap = socket_map if socket_map is not None else asyncore.socket_map
-        self._stdout = _StdOut(smap)
-        self._stderr = _StdErr(smap)
+        super(AsyncPlayer, self).__init__(args, autospawn=False)
+        if socket_map is None:
+            socket_map = asyncore.socket_map
+        self._stdout = _StdoutWrapper(handle=stdout, socket_map=socket_map)
+        self._stderr = _StderrWrapper(handle=stderr, socket_map=socket_map)
         if autospawn:
             self.spawn()
 
-    @property
-    def stdout(self):
-        """stdout of the MPlayer process"""
-        return self._stdout
 
-    @property
-    def stderr(self):
-        """stderr of the MPlayer process"""
-        return self._stderr
+class _StderrWrapper(misc._StderrWrapper):
 
-    def spawn(self):
-        retval = super(AsyncPlayer, self).spawn()
-        if self._proc.stderr is not None:
-            self._stderr._attach(self._proc.stderr)
-        return retval
-
-    def quit(self, retcode=0):
-        if self._proc.stderr is not None:
-            self._stderr._detach()
-        return super(AsyncPlayer, self).quit(retcode)
-
-
-class _StdErr(misc._BaseStdErr):
-
-    def __init__(self, socket_map):
-        super(_StdErr, self).__init__()
-        self._map = socket_map
-        self._fd = None
-        self._subscribers = []
+    def __init__(self, **kwargs):
+        super(_StderrWrapper, self).__init__(**kwargs)
+        self._socket_map = kwargs['socket_map']
+        self._dispatcher = None
 
     def _attach(self, fobj):
-        super(_StdErr, self)._attach(fobj)
-        self._fd = _FileDispatcher(self, self._map)
+        super(_StderrWrapper, self)._attach(fobj)
+        self._dispatcher = _FileDispatcher(self)
 
     def _detach(self):
-        self._fd.close()
-        super(_StdErr, self)._detach()
-
-    def _publish(self, line):
-        for subscriber in self._subscribers:
-            subscriber(line)
-
-    def connect(self, subscriber):
-        if not hasattr(subscriber, '__call__'):
-            # Raise TypeError
-            subscriber()
-        if subscriber not in self._subscribers:
-            self._subscribers.append(subscriber)
-
-    def disconnect(self, subscriber=None):
-        if subscriber is None:
-            self._subscribers = []
-        elif subscriber in self._subscribers:
-            self._subscribers.remove(subscriber)
+        self._dispatcher.close()
+        super(_StderrWrapper, self)._detach()
 
 
-class _StdOut(_StdErr, misc._BaseStdOut):
-
+class _StdoutWrapper(_StderrWrapper, misc._StdoutWrapper):
     pass
 
 
 class _FileDispatcher(asyncore.file_dispatcher):
     """file_dispatcher-like class with blocking fd"""
 
-    def __init__(self, file_wrapper, socket_map):
+    def __init__(self, file_wrapper):
         self.handle_read = file_wrapper._process_output
         fd = file_wrapper._file.fileno()
-        asyncore.file_dispatcher.__init__(self, fd, socket_map)
+        try:
+            # All classes in Python 3 are new-style classes
+            super(_FileDispatcher, self).__init__(fd, file_wrapper._socket_map)
+        except TypeError:
+            asyncore.file_dispatcher.__init__(self, fd, file_wrapper._socket_map)
         # Set fd back to blocking mode since
-        # a blocking fd causes problems with MPlayer.
+        # a non-blocking fd causes problems with MPlayer.
         flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
 

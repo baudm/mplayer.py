@@ -28,29 +28,15 @@ from mplayer import misc
 __all__ = ['QtPlayer', 'QPlayerView']
 
 
-class QtPlayer(Player, QtCore.QObject):
+class QtPlayer(Player):
     """Player subclass with Qt integration."""
 
-    stdout = QtCore.pyqtSignal(str)
-    stderr = QtCore.pyqtSignal(str)
-
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
-        super(QtPlayer, self).__init__(args, stdout, stderr, False)
-        self._stdout = _StdOut(self.stdout)
-        self._stderr = _StdErr(self.stderr)
+        super(QtPlayer, self).__init__(args, autospawn=False)
+        self._stdout = _StdoutWrapper(handle=stdout)
+        self._stderr = _StderrWrapper(handle=stderr)
         if autospawn:
             self.spawn()
-
-    def spawn(self):
-        retval = super(QtPlayer, self).spawn()
-        if self._proc.stderr is not None:
-            self._stderr._attach(self._proc.stderr)
-        return retval
-
-    def quit(self, retcode=0):
-        if self._proc.stderr is not None:
-            self._stderr._detach()
-        return super(QtPlayer, self).quit(retcode)
 
 
 class QPlayerView(QtGui.QX11EmbedContainer):
@@ -81,33 +67,29 @@ class QPlayerView(QtGui.QX11EmbedContainer):
         else:
             return attr
 
-    @QtCore.pyqtSlot(str)
     def _handle_data(self, data):
-        if str(data).startswith('EOF code'):
+        if data.startswith('EOF code'):
             self.completed.emit()
 
 
-class _StdErr(misc._BaseStdErr):
+class _StderrWrapper(misc._StderrWrapper):
 
-    def __init__(self, signal):
-        super(_StdErr, self).__init__()
-        self._publish = signal.emit
+    def __init__(self, **kwargs):
+        super(_StderrWrapper, self).__init__(**kwargs)
         self._notifier = None
 
     def _attach(self, fobj):
-        super(_StdErr, self)._attach(fobj)
+        super(_StderrWrapper, self)._attach(fobj)
         self._notifier = QtCore.QSocketNotifier(self._file.fileno(),
             QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._process_output)
 
     def _detach(self):
         self._notifier.setEnabled(False)
-        # FIXME: This doesn't work: super(_StdErr, self)._detach()
-        misc._BaseStdErr._detach(self)
+        super(_StderrWrapper, self)._detach()
 
 
-class _StdOut(_StdErr, misc._BaseStdOut):
-
+class _StdoutWrapper(_StderrWrapper, misc._StdoutWrapper):
     pass
 
 

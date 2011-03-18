@@ -30,31 +30,15 @@ from mplayer import misc
 __all__ = ['GPlayer', 'GtkPlayerView']
 
 
-class GPlayer(Player, gobject.GObject):
+class GPlayer(Player):
     """Player subclass with GTK/GObject integration."""
 
-    __gsignals__ = {
-        'stdout': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,)),
-        'stderr': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_STRING,))
-    }
-
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
-        super(GPlayer, self).__init__(args, stdout, stderr, False)
-        self._stdout = _StdOut(self.emit, 'stdout')
-        self._stderr = _StdErr(self.emit, 'stderr')
+        super(GPlayer, self).__init__(args, autospawn=False)
+        self._stdout = _StdoutWrapper(handle=stdout)
+        self._stderr = _StderrWrapper(handle=stderr)
         if autospawn:
             self.spawn()
-
-    def spawn(self):
-        retval = super(GPlayer, self).spawn()
-        if self._proc.stderr is not None:
-            self._stderr._attach(self._proc.stderr)
-        return retval
-
-    def quit(self, retcode=0):
-        if self._proc.stderr is not None:
-            self._stderr._detach()
-        return super(GPlayer, self).quit(retcode)
 
 
 class GtkPlayerView(gtk.Socket):
@@ -67,7 +51,7 @@ class GtkPlayerView(gtk.Socket):
         super(GtkPlayerView, self).__init__()
         self._mplayer = GPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'], autospawn=False)
-        self._mplayer.connect('stdout', self._handle_data)
+        self._mplayer.stdout.connect(self._handle_data)
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
@@ -94,35 +78,32 @@ class GtkPlayerView(gtk.Socket):
     def _on_destroy(self, *args):
         self._mplayer.quit()
 
-    def _handle_data(self, player, data):
+    def _handle_data(self, data):
         if data.startswith('EOF code'):
             self.emit('complete')
 
 
-class _StdErr(misc._BaseStdErr):
+class _StderrWrapper(misc._StderrWrapper):
 
-    def __init__(self, emit, signal):
-        super(_StdErr, self).__init__()
-        self._publish = partial(emit, signal)
+    def __init__(self, **kwargs):
+        super(_StderrWrapper, self).__init__(**kwargs)
         self._tag = None
 
     def _attach(self, fobj):
-        super(_StdErr, self)._attach(fobj)
+        super(_StderrWrapper, self)._attach(fobj)
         self._tag = gobject.io_add_watch(self._file.fileno(),
             gobject.IO_IN | gobject.IO_PRI, self._process_output)
 
     def _detach(self):
         gobject.source_remove(self._tag)
-        super(_StdErr, self)._detach()
+        super(_StderrWrapper, self)._detach()
 
 
-class _StdOut(_StdErr, misc._BaseStdOut):
-
+class _StdoutWrapper(_StderrWrapper, misc._StdoutWrapper):
     pass
 
 
-# Register as PyGTK types
-gobject.type_register(GPlayer)
+# Register PyGTK type
 gobject.type_register(GtkPlayerView)
 
 

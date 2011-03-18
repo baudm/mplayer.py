@@ -36,11 +36,13 @@ class CmdPrefix(object):
     PAUSING_KEEP_FORCE = 'pausing_keep_force'
 
 
-class _BaseStdErr(object):
+class _StderrWrapper(object):
 
-    def __init__(self):
-        super(_BaseStdErr, self).__init__()
+    def __init__(self, **kwargs):
+        super(_StderrWrapper, self).__init__()
+        self._handle = kwargs['handle']
         self._file = None
+        self._subscribers = []
 
     def _attach(self, fobj):
         self._file = fobj
@@ -48,24 +50,37 @@ class _BaseStdErr(object):
     def _detach(self):
         self._file = None
 
-    def _publish(self, line):
-        raise NotImplementedError('need to implement _publish()')
-
     def _process_output(self, *args):
         line = self._file.readline().decode().rstrip()
         if line:
-            self._publish(line)
+            for subscriber in self._subscribers:
+                subscriber(line)
         return True
 
+    def connect(self, subscriber):
+        """Connect a subscriber to this publisher"""
+        if not hasattr(subscriber, '__call__'):
+            # Raise TypeError
+            subscriber()
+        if subscriber not in self._subscribers:
+            self._subscribers.append(subscriber)
 
-class _BaseStdOut(_BaseStdErr):
+    def disconnect(self, subscriber=None):
+        """Disconnect one or all subscribers from this publisher"""
+        if subscriber is None:
+            self._subscribers = []
+        elif subscriber in self._subscribers:
+            self._subscribers.remove(subscriber)
 
-    def __init__(self):
-        super(_BaseStdOut, self).__init__()
+
+class _StdoutWrapper(_StderrWrapper):
+
+    def __init__(self, **kwargs):
+        super(_StdoutWrapper, self).__init__(**kwargs)
         self._answers = None
 
     def _attach(self, fobj):
-        super(_BaseStdOut, self)._attach(fobj)
+        super(_StdoutWrapper, self)._attach(fobj)
         self._answers = queue.Queue()
 
     def _process_output(self, *args):
@@ -73,5 +88,6 @@ class _BaseStdOut(_BaseStdErr):
         if line.startswith('ANS_'):
             self._answers.put_nowait(line)
         elif line:
-            self._publish(line)
+            for subscriber in self._subscribers:
+                subscriber(line)
         return True
