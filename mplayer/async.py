@@ -33,10 +33,10 @@ __all__ = ['AsyncPlayer']
 class AsyncPlayer(Player):
     """Player subclass with asyncore integration."""
 
-    def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None):
+    def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, map=None):
         super(AsyncPlayer, self).__init__(args, autospawn=False)
-        self._stdout = _StdoutWrapper(handle=stdout, socket_map=socket_map)
-        self._stderr = _StderrWrapper(handle=stderr, socket_map=socket_map)
+        self._stdout = _StdoutWrapper(handle=stdout, map=map)
+        self._stderr = _StderrWrapper(handle=stderr, map=map)
         if autospawn:
             self.spawn()
 
@@ -45,7 +45,7 @@ class _StderrWrapper(misc._StderrWrapper):
 
     def __init__(self, **kwargs):
         super(_StderrWrapper, self).__init__(**kwargs)
-        self._socket_map = kwargs['socket_map']
+        self._map = kwargs['map']
         self._dispatcher = None
 
     def _attach(self, fobj):
@@ -66,7 +66,7 @@ class _FileDispatcher(asyncore.file_dispatcher):
 
     def __init__(self, file_wrapper):
         fd = file_wrapper._file.fileno()
-        asyncore.file_dispatcher.__init__(self, fd, file_wrapper._socket_map)
+        asyncore.file_dispatcher.__init__(self, fd, file_wrapper._map)
         self.handle_read = file_wrapper._process_output
         # Set fd back to blocking mode since
         # a non-blocking fd causes problems with MPlayer.
