@@ -55,7 +55,7 @@ class _StderrWrapper(object):
         if line:
             for subscriber in self._subscribers:
                 subscriber(line)
-        return True
+        return line
 
     def connect(self, subscriber):
         """Connect a subscriber to this publisher"""
@@ -90,4 +90,4 @@ class _StdoutWrapper(_StderrWrapper):
         elif line:
             for subscriber in self._subscribers:
                 subscriber(line)
-        return True
+        return line
