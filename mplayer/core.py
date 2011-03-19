@@ -196,13 +196,10 @@ class Player(object):
             setattr(cls, pname, prop)
 
     @staticmethod
-    def _process_args(*args, **kwargs):
+    def _process_args(req, types, *args):
         """Discard None args, check types, then adapt for MPlayer"""
-        # Get number of required parameters
-        req = kwargs['req']
         # Discard None only from optional args
         args = list(args[:req]) + [x for x in args[req:] if x is not None]
-        types = kwargs['types']
         for i, arg in enumerate(args):
             if not isinstance(arg, types[i].type):
                 msg = 'expected {0} for argument {1}'.format(types[i].name, i + 1)
@@ -223,11 +220,11 @@ class Player(object):
                 arg = arg.strip('[]')
                 optional = '=None'
             t = mtypes.type_map[arg]
-            sig.append('{0}{1}{2},'.format(t.name, i, optional))
-            types.append('mtypes.{0}'.format(t.__name__))
-        sig = ''.join(sig)
+            sig.append('{0}{1}{2}'.format(t.name, i, optional))
+            types.append('mtypes.{0},'.format(t.__name__))
+        sig = ','.join(sig)
         params = sig.replace('=None', '')
-        types = '({0},)'.format(','.join(types)) if types else '()'
+        types = ''.join(types)
         return sig, params, types, required
 
     @classmethod
@@ -258,7 +255,7 @@ class Player(object):
             sig, params, types, req = cls._gen_func_sig(args)
             code = '''
             def {name}(self, {sig}):
-                args = self._process_args({params} types={types}, req={req})
+                args = self._process_args({req}, ({types}), {params})
                 return self._run_command('{name}', *args)
             '''.format(name=name, sig=sig, params=params, types=types, req=req)
             local = {}
@@ -319,7 +316,7 @@ class Player(object):
         """Send a command to MPlayer. The result, if any, is returned.
         args is assumed to be a tuple of strings.
         """
-        if not self.is_alive() or not name:
+        if not self.is_alive():
             return
         command = [self.__class__.cmd_prefix, name]
         command.extend(args)
