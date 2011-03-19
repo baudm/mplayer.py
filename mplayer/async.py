@@ -19,6 +19,7 @@
 
 import os
 import fcntl
+import weakref
 import asyncore
 from subprocess import PIPE
 
@@ -49,7 +50,7 @@ class _StderrWrapper(misc._StderrWrapper):
 
     def _attach(self, fobj):
         super(_StderrWrapper, self)._attach(fobj)
-        self._dispatcher = _FileDispatcher(self)
+        self._dispatcher = weakref.proxy(_FileDispatcher(self))
 
     def _detach(self):
         self._dispatcher.close()
