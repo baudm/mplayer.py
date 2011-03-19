@@ -41,18 +41,18 @@ class QtPlayer(Player):
 
 class QPlayerView(QtGui.QX11EmbedContainer):
 
-    pt_next_entry = QtCore.pyqtSignal()
-    pt_prev_entry = QtCore.pyqtSignal()
-    pt_next_src = QtCore.pyqtSignal()
-    pt_prev_src = QtCore.pyqtSignal()
-    pt_up_next = QtCore.pyqtSignal()
-    pt_up_prev = QtCore.pyqtSignal()
-    pt_stop = QtCore.pyqtSignal()
+    eof_next_entry = QtCore.pyqtSignal()
+    eof_prev_entry = QtCore.pyqtSignal()
+    eof_next_src = QtCore.pyqtSignal()
+    eof_prev_src = QtCore.pyqtSignal()
+    eof_up_next = QtCore.pyqtSignal()
+    eof_up_prev = QtCore.pyqtSignal()
+    eof_stop = QtCore.pyqtSignal()
     _eof_map = {
-        '1': 'pt_next_entry', '-1': 'pt_prev_entry',
-        '2': 'pt_next_src', '-2': 'pt_prev_src',
-        '3': 'pt_up_next', '-3': 'pt_up_prev',
-        '4': 'pt_stop'
+        '1': 'eof_next_entry', '-1': 'eof_prev_entry',
+        '2': 'eof_next_src', '-2': 'eof_prev_src',
+        '3': 'eof_up_next', '-3': 'eof_up_prev',
+        '4': 'eof_stop'
     }
 
     def __init__(self, parent=None):
@@ -61,10 +61,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', self.winId()])
         self._mplayer.stdout.connect(self._handle_data)
-        @QtCore.pyqtSlot(QtCore.QObject)
-        def on_destroy(obj):
-            self._mplayer.quit()
-        self.destroyed.connect(on_destroy)
+        self.destroyed.connect(self._on_destroy)
 
     def __getattr__(self, name):
         # Don't expose some properties
@@ -79,9 +76,12 @@ class QPlayerView(QtGui.QX11EmbedContainer):
         else:
             return attr
 
+    def _on_destroy(self):
+        self._mplayer.quit()
+
     def _handle_data(self, data):
         if data.startswith('EOF code:'):
-            code = data.split(':')[1].strip()
+            code = data.partition(':')[2].strip()
             signal = getattr(self, self._eof_map[code])
             signal.emit()
 
@@ -115,8 +115,7 @@ if __name__ == '__main__':
     w.resize(640, 480)
     w.setWindowTitle('QtPlayer')
     p = QPlayerView(w)
-    p.pt_stop.connect(app.closeAllWindows)
-    p.pt_next_entry.connect(app.closeAllWindows)
+    p.eof_next_entry.connect(app.closeAllWindows)
     p.resize(640, 480)
     w.show()
     p.loadfile(sys.argv[1])

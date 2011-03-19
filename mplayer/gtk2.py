@@ -18,7 +18,6 @@
 # along with PyMPlayer.  If not, see <http://www.gnu.org/licenses/>.
 
 from subprocess import PIPE
-from functools import partial
 
 import gtk
 import gobject
@@ -44,19 +43,19 @@ class GPlayer(Player):
 class GtkPlayerView(gtk.Socket):
 
     __gsignals__ = {
-        'pt_next_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'pt_prev_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'pt_next_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'pt_prev_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'pt_up_next': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'pt_up_prev': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'pt_stop': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+        'eof_next_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'eof_prev_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'eof_next_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'eof_prev_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'eof_up_next': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'eof_up_prev': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'eof_stop': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
     }
     _eof_map = {
-        '1': 'pt_next_entry', '-1': 'pt_prev_entry',
-        '2': 'pt_next_src', '-2': 'pt_prev_src',
-        '3': 'pt_up_next', '-3': 'pt_up_prev',
-        '4': 'pt_stop'
+        '1': 'eof_next_entry', '-1': 'eof_prev_entry',
+        '2': 'eof_next_src', '-2': 'eof_prev_src',
+        '3': 'eof_up_next', '-3': 'eof_up_prev',
+        '4': 'eof_stop'
     }
 
     def __init__(self):
@@ -92,7 +91,7 @@ class GtkPlayerView(gtk.Socket):
 
     def _handle_data(self, data):
         if data.startswith('EOF code:'):
-            code = data.split(':')[1].strip()
+            code = data.partition(':')[2].strip()
             signal = self._eof_map[code]
             self.emit(signal)
 
@@ -129,8 +128,7 @@ if __name__ == '__main__':
     w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
     p = GtkPlayerView()
-    p.connect('pt_stop', gtk.main_quit)
-    p.connect('pt_next_entry', gtk.main_quit)
+    p.connect('eof_next_entry', gtk.main_quit)
     w.add(p)
     w.show_all()
     p.loadfile(sys.argv[1])
