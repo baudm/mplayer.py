@@ -34,8 +34,6 @@ class AsyncPlayer(Player):
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, socket_map=None):
         super(AsyncPlayer, self).__init__(args, autospawn=False)
-        if socket_map is None:
-            socket_map = asyncore.socket_map
         self._stdout = _StdoutWrapper(handle=stdout, socket_map=socket_map)
         self._stderr = _StderrWrapper(handle=stderr, socket_map=socket_map)
         if autospawn:
@@ -66,17 +64,16 @@ class _FileDispatcher(asyncore.file_dispatcher):
     """file_dispatcher-like class with blocking fd"""
 
     def __init__(self, file_wrapper):
-        self.handle_read = file_wrapper._process_output
         fd = file_wrapper._file.fileno()
-        try:
-            # All classes in Python 3 are new-style classes
-            super(_FileDispatcher, self).__init__(fd, file_wrapper._socket_map)
-        except TypeError:
-            asyncore.file_dispatcher.__init__(self, fd, file_wrapper._socket_map)
+        asyncore.file_dispatcher.__init__(self, fd, file_wrapper._socket_map)
+        self.handle_read = file_wrapper._process_output
         # Set fd back to blocking mode since
         # a non-blocking fd causes problems with MPlayer.
         flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
+
+    def writable(self):
+        return False
 
 
 if __name__ == '__main__':
