@@ -17,8 +17,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with PyMPlayer.  If not, see <http://www.gnu.org/licenses/>.
 
-import atexit
 import shlex
+import atexit
+import weakref
 import subprocess
 from functools import partial
 from threading import Thread
@@ -31,6 +32,10 @@ from mplayer import mtypes, misc
 
 
 __all__ = ['Player', 'Step']
+
+
+def _quit(player):
+    player.quit()
 
 
 class Step(object):
@@ -76,7 +81,7 @@ class Player(object):
         self._stderr = _StderrWrapper(handle=stderr)
         self._proc = None
         # Terminate the MPlayer process when Python terminates
-        atexit.register(self.quit)
+        atexit.register(_quit, weakref.proxy(self))
         if autospawn:
             self.spawn()
 
