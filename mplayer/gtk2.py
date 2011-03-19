@@ -44,7 +44,19 @@ class GPlayer(Player):
 class GtkPlayerView(gtk.Socket):
 
     __gsignals__ = {
-        'complete': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+        'pt_next_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'pt_prev_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'pt_next_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'pt_prev_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'pt_up_next': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'pt_up_prev': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'pt_stop': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+    }
+    _eof_map = {
+        '1': 'pt_next_entry', '-1': 'pt_prev_entry',
+        '2': 'pt_next_src', '-2': 'pt_prev_src',
+        '3': 'pt_up_next', '-3': 'pt_up_prev',
+        '4': 'pt_stop'
     }
 
     def __init__(self):
@@ -79,8 +91,10 @@ class GtkPlayerView(gtk.Socket):
         self._mplayer.quit()
 
     def _handle_data(self, data):
-        if data.startswith('EOF code'):
-            self.emit('complete')
+        if data.startswith('EOF code:'):
+            code = data.split(':')[1].strip()
+            signal = self._eof_map[code]
+            self.emit(signal)
 
 
 class _StderrWrapper(misc._StderrWrapper):
@@ -115,7 +129,8 @@ if __name__ == '__main__':
     w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
     p = GtkPlayerView()
-    p.connect('complete', gtk.main_quit)
+    p.connect('pt_stop', gtk.main_quit)
+    p.connect('pt_next_entry', gtk.main_quit)
     w.add(p)
     w.show_all()
     p.loadfile(sys.argv[1])

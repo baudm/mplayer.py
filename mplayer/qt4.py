@@ -41,7 +41,19 @@ class QtPlayer(Player):
 
 class QPlayerView(QtGui.QX11EmbedContainer):
 
-    completed = QtCore.pyqtSignal()
+    pt_next_entry = QtCore.pyqtSignal()
+    pt_prev_entry = QtCore.pyqtSignal()
+    pt_next_src = QtCore.pyqtSignal()
+    pt_prev_src = QtCore.pyqtSignal()
+    pt_up_next = QtCore.pyqtSignal()
+    pt_up_prev = QtCore.pyqtSignal()
+    pt_stop = QtCore.pyqtSignal()
+    _eof_map = {
+        '1': 'pt_next_entry', '-1': 'pt_prev_entry',
+        '2': 'pt_next_src', '-2': 'pt_prev_src',
+        '3': 'pt_up_next', '-3': 'pt_up_prev',
+        '4': 'pt_stop'
+    }
 
     def __init__(self, parent=None):
         super(QPlayerView, self).__init__(parent)
@@ -68,8 +80,10 @@ class QPlayerView(QtGui.QX11EmbedContainer):
             return attr
 
     def _handle_data(self, data):
-        if data.startswith('EOF code'):
-            self.completed.emit()
+        if data.startswith('EOF code:'):
+            code = data.split(':')[1].strip()
+            signal = getattr(self, self._eof_map[code])
+            signal.emit()
 
 
 class _StderrWrapper(misc._StderrWrapper):
@@ -101,7 +115,8 @@ if __name__ == '__main__':
     w.resize(640, 480)
     w.setWindowTitle('QtPlayer')
     p = QPlayerView(w)
-    p.completed.connect(app.closeAllWindows)
+    p.pt_stop.connect(app.closeAllWindows)
+    p.pt_next_entry.connect(app.closeAllWindows)
     p.resize(640, 480)
     w.show()
     p.loadfile(sys.argv[1])
