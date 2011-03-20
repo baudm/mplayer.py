@@ -206,7 +206,7 @@ class Player(object):
 
     @staticmethod
     def _process_args(req, types, *args):
-        """Discard None args, check types, then adapt for MPlayer"""
+        """Performs type checking and adaptation of arguments"""
         # Discard None only from optional args
         args = list(args[:req]) + [x for x in args[req:] if x is not None]
         for i, arg in enumerate(args):
@@ -248,14 +248,12 @@ class Player(object):
         proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
             args = line.decode().split()
-            # Skip get_* and *_property commands
-            if not args or args[0].startswith('get_') or \
-                    args[0].endswith('_property'):
+            # Skip conflicts with properties or defined methods
+            # and get_* and *_property commands
+            if not args or hasattr(cls, args[0]) or args[0].startswith('get_') \
+               or args[0] in exclude or args[0].endswith('_property'):
                 continue
             name = args.pop(0)
-            # Skip conflicts with properties or defined methods
-            if hasattr(cls, name) or name in exclude:
-                continue
             # Fix truncated command names
             if name in truncated:
                 name = truncated[name]
