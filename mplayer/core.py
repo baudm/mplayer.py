@@ -301,6 +301,8 @@ class Player(object):
         """Terminate the underlying MPlayer process.
         Returns the exit status of MPlayer or None if not running.
         """
+        if not isinstance(retcode, mtypes.IntegerType.type):
+            raise TypeError('expected int for retcode')
         if not self.is_alive():
             return
         if self._proc.stdout is not None:
