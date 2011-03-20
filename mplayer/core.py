@@ -201,6 +201,8 @@ class Player(object):
             # Rename some properties to avoid conflict
             if pname in rename:
                 pname = rename[pname]
+            # There shouldn't be any naming conflict with hardcoded properties,
+            # methods, class attributes, etc.
             assert not hasattr(cls, pname), "name conflict for '{0}'".format(pname)
             setattr(cls, pname, prop)
 
@@ -217,7 +219,7 @@ class Player(object):
         return tuple(args)
 
     @staticmethod
-    def _gen_func_sig(args):
+    def _gen_method_func(name, args):
         sig = []
         types = []
         required = 0
@@ -234,7 +236,16 @@ class Player(object):
         sig = ','.join(sig)
         params = sig.replace('=None', '')
         types = ''.join(types)
-        return sig, params, types, required
+        # As of now, there's no way of specifying a function's signature
+        # without dynamically generating code
+        code = '''
+        def {name}(self, {sig}):
+            args = self._process_args({required}, ({types}), {params})
+            return self._run_command('{name}', *args)
+        '''.format(**locals())
+        local = {}
+        exec(code.strip(), globals(), local)
+        return local[name]
 
     @classmethod
     def _generate_methods(cls):
@@ -257,17 +268,8 @@ class Player(object):
             # Fix truncated command names
             if name in truncated:
                 name = truncated[name]
-            # As of now, there's no way of specifying a function's signature
-            # without dynamically generating code
-            sig, params, types, req = cls._gen_func_sig(args)
-            code = '''
-            def {name}(self, {sig}):
-                args = self._process_args({req}, ({types}), {params})
-                return self._run_command('{name}', *args)
-            '''.format(name=name, sig=sig, params=params, types=types, req=req)
-            local = {}
-            exec(code.strip(), globals(), local)
-            setattr(cls, name, local[name])
+            func = cls._gen_method_func(name, args)
+            setattr(cls, name, func)
 
     @classmethod
     def introspect(cls):
