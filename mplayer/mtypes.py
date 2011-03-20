@@ -74,7 +74,7 @@ class FloatType(MPlayerType):
 
 class StringType(MPlayerType):
 
-    name = 'str'
+    name = 'string'
     type = basestring
     adapt = staticmethod(repr)
 
