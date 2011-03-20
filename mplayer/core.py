@@ -35,7 +35,10 @@ __all__ = ['Player', 'Step']
 
 
 def _quit(player):
-    player.quit()
+    try:
+        player.quit()
+    except ReferenceError:
+        pass
 
 
 class Step(object):
@@ -168,6 +171,7 @@ class Player(object):
             pass
         for line in proc.stdout:
             line = line.decode().split()
+            # All property names in -list-properties are in lowercase
             if not line or not line[0].islower():
                 continue
             try:
