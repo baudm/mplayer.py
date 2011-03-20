@@ -18,7 +18,7 @@ PyMPlayer provides several classes for easily using MPlayer in Python.
   Optional
 
     - PyGTK >= 2.12   http://www.pygtk.org/
-    - PyQt4 >= 4.5    http://www.riverbankcomputing.co.uk/
+    - PyQt >= 4.5    http://www.riverbankcomputing.co.uk/
 
 * Installation
 

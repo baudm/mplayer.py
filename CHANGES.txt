@@ -29,6 +29,10 @@ Changes:
 
       Player.filepath -> Player.path
 
+ * AsyncPlayer's optional 'socket_map' parameter has been renamed to 'map'.
+   The new signature is now:
+   AsyncPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True, map=None)
+
  * Rename method: Player.stdout.hook() -> Player.stdout.connect()
    (NOTE: Also applies to Player.stderr)
 
@@ -43,16 +47,11 @@ Changes:
 
       pause(prefix=None) -> pause()
 
- * The default parameters of generated methods is now None instead of a blank
-   string. That is, for instance:
-
-      loadfile(self, str0, int1='', prefix=None) -> loadfile(self, str0, int1=None)
-
 
 Additions:
- * Add attribute: CmdPrefix.NONE (which basically means 'no prefix')
+ * Class attribute: CmdPrefix.NONE (which basically means 'no prefix')
 
- * Add attribute: Player.version (version of the introspected MPlayer executable)
+ * Class attribute: Player.version (version of the introspected MPlayer executable)
 
 
 Deletions:
