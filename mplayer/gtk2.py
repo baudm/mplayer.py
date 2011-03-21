@@ -81,7 +81,7 @@ class GtkPlayerView(gtk.Socket):
 
     def _on_hierarchy_changed(self, *args):
         if self.parent is not None:
-            self._mplayer.args += ['-wid', self.get_id()]
+            self._mplayer.args += ('-wid', self.get_id())
             self._mplayer.spawn()
         else:
             self._on_destroy()

@@ -111,21 +111,20 @@ class Player(object):
 
     @property
     def args(self):
-        """list of additional MPlayer arguments"""
+        """tuple of additional MPlayer arguments"""
         return self._args[7:]
 
     @args.setter
     def args(self, args):
-        _args = ['-slave', '-idle', '-quiet', '-input', 'nodefault-bindings',
-            '-noconfig', 'all']
+        base_args = ('-slave', '-idle', '-quiet', '-input',
+            'nodefault-bindings', '-noconfig', 'all')
         # Assume that args is a string.
         try:
             args = shlex.split(args)
         except AttributeError:
             # Force all args to string
             args = map(str, args)
-        _args.extend(args)
-        self._args = _args
+        self._args = base_args + tuple(args)
 
     def _propget(self, pname, ptype):
         res = self._run_command('get_property', pname)
@@ -275,7 +274,7 @@ class Player(object):
     def introspect(cls):
         """Introspect the MPlayer executable
 
-        Generate available methods and properties based on the output of:
+        Generate available properties and methods based on the output of:
         $ mplayer -list-properties
         $ mplayer -input cmdlist
 
