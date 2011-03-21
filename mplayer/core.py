@@ -90,7 +90,8 @@ class Player(object):
 
     def __del__(self):
         # Terminate the MPlayer process when instance is about to be destroyed
-        self.quit()
+        if self.is_alive():
+            self.quit()
 
     def __repr__(self):
         if self.is_alive():
