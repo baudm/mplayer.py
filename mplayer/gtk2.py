@@ -104,8 +104,8 @@ class _StderrWrapper(misc._StderrWrapper):
 
     def _attach(self, fobj):
         super(_StderrWrapper, self)._attach(fobj)
-        self._tag = gobject.io_add_watch(self._file.fileno(),
-            gobject.IO_IN | gobject.IO_PRI, self._process_output)
+        self._tag = gobject.io_add_watch(self._file, gobject.IO_IN |
+            gobject.IO_PRI | gobject.IO_HUP, self._process_output)
 
     def _detach(self):
         gobject.source_remove(self._tag)
