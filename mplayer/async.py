@@ -65,7 +65,7 @@ class _FileDispatcher(asyncore.file_dispatcher):
     """file_dispatcher-like class with blocking fd"""
 
     def __init__(self, file_wrapper):
-        fd = file_wrapper._file.fileno()
+        fd = file_wrapper._source.fileno()
         asyncore.file_dispatcher.__init__(self, fd, file_wrapper._map)
         self.handle_read = file_wrapper._process_output
         # Set fd back to blocking mode since
