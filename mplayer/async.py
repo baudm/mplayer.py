@@ -17,8 +17,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with PyMPlayer.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import fcntl
 import weakref
 import asyncore
 from subprocess import PIPE
@@ -62,16 +60,10 @@ class _StdoutWrapper(_StderrWrapper, misc._StdoutWrapper):
 
 
 class _FileDispatcher(asyncore.file_dispatcher):
-    """file_dispatcher-like class with blocking fd"""
 
-    def __init__(self, file_wrapper):
-        fd = file_wrapper._source.fileno()
-        asyncore.file_dispatcher.__init__(self, fd, file_wrapper._map)
-        self.handle_read = file_wrapper._process_output
-        # Set fd back to blocking mode since
-        # a non-blocking fd causes problems with MPlayer.
-        flags = fcntl.fcntl(fd, fcntl.F_GETFL, 0)
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
+    def __init__(self, wrapper):
+        asyncore.file_dispatcher.__init__(self, wrapper._source, wrapper._map)
+        self.handle_read_event = wrapper._process_output
 
     def writable(self):
         return False
