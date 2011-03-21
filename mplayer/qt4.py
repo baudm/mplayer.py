@@ -92,9 +92,9 @@ class _StderrWrapper(misc._StderrWrapper):
         super(_StderrWrapper, self).__init__(**kwargs)
         self._notifier = None
 
-    def _attach(self, fobj):
-        super(_StderrWrapper, self)._attach(fobj)
-        self._notifier = QtCore.QSocketNotifier(self._file.fileno(),
+    def _attach(self, source):
+        super(_StderrWrapper, self)._attach(source)
+        self._notifier = QtCore.QSocketNotifier(self._source.fileno(),
             QtCore.QSocketNotifier.Read)
         self._notifier.activated.connect(self._process_output)
 

@@ -41,17 +41,17 @@ class _StderrWrapper(object):
     def __init__(self, **kwargs):
         super(_StderrWrapper, self).__init__()
         self._handle = kwargs['handle']
-        self._file = None
+        self._source = None
         self._subscribers = []
 
-    def _attach(self, fobj):
-        self._file = fobj
+    def _attach(self, source):
+        self._source = source
 
     def _detach(self):
-        self._file = None
+        self._source = None
 
     def _process_output(self, *args):
-        line = self._file.readline().decode().rstrip()
+        line = self._source.readline().decode().rstrip()
         if line:
             for subscriber in self._subscribers:
                 subscriber(line)
@@ -79,12 +79,12 @@ class _StdoutWrapper(_StderrWrapper):
         super(_StdoutWrapper, self).__init__(**kwargs)
         self._answers = None
 
-    def _attach(self, fobj):
-        super(_StdoutWrapper, self)._attach(fobj)
+    def _attach(self, source):
+        super(_StdoutWrapper, self)._attach(source)
         self._answers = queue.Queue()
 
     def _process_output(self, *args):
-        line = self._file.readline().decode().rstrip()
+        line = self._source.readline().decode().rstrip()
         if line.startswith('ANS_'):
             self._answers.put_nowait(line)
         elif line:

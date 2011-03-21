@@ -48,8 +48,8 @@ class _StderrWrapper(misc._StderrWrapper):
         self._map = kwargs['map']
         self._dispatcher = None
 
-    def _attach(self, fobj):
-        super(_StderrWrapper, self)._attach(fobj)
+    def _attach(self, source):
+        super(_StderrWrapper, self)._attach(source)
         self._dispatcher = weakref.proxy(_FileDispatcher(self))
 
     def _detach(self):

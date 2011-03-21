@@ -359,14 +359,14 @@ class Player(object):
 
 class _StderrWrapper(misc._StderrWrapper):
 
-    def _attach(self, fobj):
-        super(_StderrWrapper, self)._attach(fobj)
+    def _attach(self, source):
+        super(_StderrWrapper, self)._attach(source)
         t = Thread(target=self._thread_func)
         t.daemon = True
         t.start()
 
     def _thread_func(self):
-        while self._file is not None:
+        while self._source is not None:
             if not self._process_output():
                 break
 
