@@ -367,8 +367,7 @@ class _StderrWrapper(misc._StderrWrapper):
 
     def _thread_func(self):
         while self._source is not None:
-            if not self._process_output():
-                break
+            self._process_output()
 
 
 class _StdoutWrapper(_StderrWrapper, misc._StdoutWrapper):

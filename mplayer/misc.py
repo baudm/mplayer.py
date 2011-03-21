@@ -55,6 +55,9 @@ class _StderrWrapper(object):
         if line:
             for subscriber in self._subscribers:
                 subscriber(line)
+        else:
+            # Automatically detach when MPlayer dies unexpectedly
+            self._detach()
         return line
 
     def connect(self, subscriber):
@@ -90,4 +93,7 @@ class _StdoutWrapper(_StderrWrapper):
         elif line:
             for subscriber in self._subscribers:
                 subscriber(line)
+        else:
+            # Automatically detach when MPlayer dies unexpectedly
+            self._detach()
         return line

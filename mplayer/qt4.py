@@ -102,11 +102,6 @@ class _StderrWrapper(misc._StderrWrapper):
         self._notifier.setEnabled(False)
         super(_StderrWrapper, self)._detach()
 
-    def _process_output(self, *args):
-        # Automatically detach when source becomes unavailable (e.g. MPlayer died)
-        if not super(_StderrWrapper, self)._process_output():
-            self._detach()
-
 
 class _StdoutWrapper(_StderrWrapper, misc._StdoutWrapper):
     pass
