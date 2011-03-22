@@ -29,9 +29,21 @@ __all__ = ['AsyncPlayer']
 
 
 class AsyncPlayer(Player):
-    """Player subclass with asyncore integration."""
+    """Player subclass with asyncore integration.
+
+    The asyncore polling functions are used for processing the data in
+    MPlayer's stdout and stderr. This subclass is meant to be used with
+    asyncore-based applications.
+
+    """
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True, map=None):
+        """Additional arguments:
+
+        map -- custom map to be used with asyncore
+               (default: None; use the asyncore global map)
+
+        """
         super(AsyncPlayer, self).__init__(args, autospawn=False)
         self._stdout = _StdoutWrapper(handle=stdout, map=map)
         self._stderr = _StderrWrapper(handle=stderr, map=map)
@@ -63,6 +75,8 @@ class _FileDispatcher(asyncore.file_dispatcher):
 
     def __init__(self, wrapper):
         asyncore.file_dispatcher.__init__(self, wrapper._source, wrapper._map)
+        # Monkey patching: replace the handle_read_event() method
+        # with wrapper._process_output()
         self.handle_read_event = wrapper._process_output
 
     def writable(self):

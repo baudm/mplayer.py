@@ -42,19 +42,27 @@ def _quit(player):
 
 
 class Step(object):
-    """
-    A vector which contains information about the step magnitude and direction.
+    """A vector which contains information about the step size and direction.
+
     This is meant to be used with property access to implement
     the 'step_property' command like so:
 
         p.fullscreen = Step()
         p.time_pos = Step(50, -1)
+
     """
 
     def __init__(self, value=0, direction=0):
+        """Arguments:
+
+        value -- specifies by how much to change a property (default: 0)
+        direction -- specifies the direction of the step (default: 0)
+                     the change will be negative if direction < 0
+
+        """
         super(Step, self).__init__()
         if not isinstance(value, mtypes.FloatType.type):
-            raise TypeError('expected float for value')
+            raise TypeError('expected float or int for value')
         if not isinstance(direction, mtypes.IntegerType.type):
             raise TypeError('expected int for direction')
         self._val = mtypes.FloatType.adapt(value)
@@ -62,22 +70,32 @@ class Step(object):
 
 
 class Player(object):
+    """The base wrapper for MPlayer.
+
+    It exposes MPlayer commands and properties as Python methods and properties,
+    respectively. threading.Thread objects are used for processing the data in
+    MPlayer's stdout and stderr.
+
+    Class attributes:
+    cmd_prefix -- prefix for MPlayer commands (default: CmdPrefix.PAUSING_KEEP_FORCE)
+    exec_path -- path to the MPlayer executable (default: 'mplayer')
+    version -- version of the introspected MPlayer executable (default: None)
+
     """
-    An out-of-process wrapper for MPlayer. It exposes MPlayer commands and
-    properties as Python methods and properties, respectively.
 
-    Take note that MPlayer is always started in 'slave', 'idle', and 'quiet' modes.
-
-    @class attr exec_path: path to the MPlayer executable
-    @class attr cmd_prefix: prefix for MPlayer commands (see CmdPrefix class)
-    @class attr version: version of the introspected MPlayer executable
-    """
-
-    exec_path = 'mplayer'
     cmd_prefix = misc.CmdPrefix.PAUSING_KEEP_FORCE
+    exec_path = 'mplayer'
     version = None
 
     def __init__(self, args=(), stdout=subprocess.PIPE, stderr=None, autospawn=True):
+        """Arguments:
+
+        args -- additional MPlayer arguments (default: ())
+        stdout -- handle for MPlayer's stdout (default: subprocess.PIPE)
+        stderr -- handle for MPlayer's stderr (default: None)
+        autospawn -- call spawn() after instantiation (default: True)
+
+        """
         super(Player, self).__init__()
         self.args = args
         self._stdout = _StdoutWrapper(handle=stdout)
@@ -158,12 +176,12 @@ class Player(object):
 
     @classmethod
     def _generate_properties(cls):
-        # Properties which don't have pmin == pmax == None but are read-only
+        # Properties that don't have pmin == pmax == None but are actually read-only
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start', 'stream_time_pos']
         rename = {'pause': 'paused'}
-        args = [cls.exec_path, '-list-properties']
-        proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        proc = subprocess.Popen([cls.exec_path, '-list-properties'], bufsize=-1,
+                                stdout=subprocess.PIPE)
         # Try to get the version of this executable
         try:
             cls.version = proc.stdout.readline().decode().split()[1]
@@ -255,14 +273,14 @@ class Player(object):
             'osd', 'frame_drop']
         # Commands which have truncated names in -input cmdlist
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
-        args = [cls.exec_path, '-input', 'cmdlist']
-        proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'], bufsize=-1,
+                                stdout=subprocess.PIPE)
         for line in proc.stdout:
             args = line.decode().split()
             # Skip conflicts with properties or defined methods
             # and get_* and *_property commands
-            if not args or hasattr(cls, args[0]) or args[0].startswith('get_') \
-               or args[0] in exclude or args[0].endswith('_property'):
+            if not args or hasattr(cls, args[0]) or args[0].startswith('get_') or \
+               args[0] in exclude or args[0].endswith('_property'):
                 continue
             name = args.pop(0)
             # Fix truncated command names
@@ -280,6 +298,7 @@ class Player(object):
         $ mplayer -input cmdlist
 
         See also http://www.mplayerhq.hu/DOCS/tech/slave.txt
+
         """
         cls._generate_properties()
         cls._generate_methods()
@@ -302,6 +321,7 @@ class Player(object):
     def quit(self, retcode=0):
         """Terminate the underlying MPlayer process.
         Returns the exit status of MPlayer or None if not running.
+
         """
         if not isinstance(retcode, mtypes.IntegerType.type):
             raise TypeError('expected int for retcode')
@@ -317,6 +337,7 @@ class Player(object):
     def is_alive(self):
         """Check if MPlayer process is alive.
         Returns True if alive, else, returns False.
+
         """
         if self._proc is not None:
             return (self._proc.poll() is None)
@@ -326,17 +347,18 @@ class Player(object):
     def _run_command(self, name, *args):
         """Send a command to MPlayer. The result, if any, is returned.
         args is assumed to be a tuple of strings.
+
         """
         if not self.is_alive():
             return
-        command = [self.__class__.cmd_prefix, name]
-        command.extend(args)
-        command.append('\n')
+        cmd = [self.__class__.cmd_prefix, name]
+        cmd.extend(args)
+        cmd.append('\n')
         # Don't prefix the following commands
         if name in ['quit', 'pause', 'stop']:
-            command.pop(0)
-        command = ' '.join(command).encode()
-        self._proc.stdin.write(command)
+            cmd.pop(0)
+        cmd = ' '.join(cmd).encode()
+        self._proc.stdin.write(cmd)
         self._proc.stdin.flush()
         # Expect a response for 'get_property' only
         if name == 'get_property' and self._proc.stdout is not None:

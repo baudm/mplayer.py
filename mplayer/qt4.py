@@ -29,7 +29,12 @@ __all__ = ['QtPlayer', 'QPlayerView']
 
 
 class QtPlayer(Player):
-    """Player subclass with Qt integration."""
+    """Player subclass with Qt integration.
+
+    The Qt event loop is used for processing the data in MPlayer's stdout
+    and stderr. This subclass is meant to be used with Qt-based applications.
+
+    """
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         super(QtPlayer, self).__init__(args, autospawn=False)

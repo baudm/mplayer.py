@@ -30,7 +30,13 @@ __all__ = ['GPlayer', 'GtkPlayerView']
 
 
 class GPlayer(Player):
-    """Player subclass with GTK/GObject integration."""
+    """Player subclass with GTK/GObject integration.
+
+    The GTK/GObject main loop is used for processing the data in
+    MPlayer's stdout and stderr. This subclass is meant to be used
+    with GTK/GObject-based applications.
+
+    """
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         super(GPlayer, self).__init__(args, autospawn=False)
