@@ -51,14 +51,17 @@ class _StderrWrapper(object):
         self._source = None
 
     def _process_output(self, *args):
-        line = self._source.readline().decode().rstrip()
+        line = self._source.readline().decode()
         if line:
-            for subscriber in self._subscribers:
-                subscriber(line)
+            line = line.rstrip()
+            if line:
+                for subscriber in self._subscribers:
+                    subscriber(line)
+            return True
         else:
             # Automatically detach when MPlayer dies unexpectedly
             self._detach()
-        return line
+            return False
 
     def connect(self, subscriber):
         """Connect a subscriber to this publisher"""
@@ -87,13 +90,16 @@ class _StdoutWrapper(_StderrWrapper):
         self._answers = queue.Queue()
 
     def _process_output(self, *args):
-        line = self._source.readline().decode().rstrip()
-        if line.startswith('ANS_'):
-            self._answers.put_nowait(line)
-        elif line:
-            for subscriber in self._subscribers:
-                subscriber(line)
+        line = self._source.readline().decode()
+        if line:
+            line = line.rstrip()
+            if line.startswith('ANS_'):
+                self._answers.put_nowait(line)
+            elif line:
+                for subscriber in self._subscribers:
+                    subscriber(line)
+            return True
         else:
             # Automatically detach when MPlayer dies unexpectedly
             self._detach()
-        return line
+            return False
