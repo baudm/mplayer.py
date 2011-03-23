@@ -51,7 +51,7 @@ class _StderrWrapper(object):
         self._source = None
 
     def _process_output(self, *args):
-        line = self._source.readline().decode()
+        line = self._source.readline().decode('utf-8', 'ignore')
         if line:
             line = line.rstrip()
             if line:
@@ -90,7 +90,7 @@ class _StdoutWrapper(_StderrWrapper):
         self._answers = queue.Queue()
 
     def _process_output(self, *args):
-        line = self._source.readline().decode()
+        line = self._source.readline().decode('utf-8', 'ignore')
         if line:
             line = line.rstrip()
             if line.startswith('ANS_'):

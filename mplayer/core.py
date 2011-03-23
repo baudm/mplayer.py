@@ -184,11 +184,11 @@ class Player(object):
                                 stdout=subprocess.PIPE)
         # Try to get the version of this executable
         try:
-            cls.version = proc.stdout.readline().decode().split()[1]
+            cls.version = proc.stdout.readline().decode('utf-8', 'ignore').split()[1]
         except IndexError:
             pass
         for line in proc.stdout:
-            line = line.decode().split()
+            line = line.decode('utf-8', 'ignore').split()
             # All property names in -list-properties are in lowercase
             if not line or not line[0].islower():
                 continue
@@ -276,7 +276,7 @@ class Player(object):
         proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'], bufsize=-1,
                                 stdout=subprocess.PIPE)
         for line in proc.stdout:
-            args = line.decode().split()
+            args = line.decode('utf-8', 'ignore').split()
             # Skip conflicts with properties or defined methods
             # and get_* and *_property commands
             if not args or hasattr(cls, args[0]) or args[0].startswith('get_') or \
@@ -358,7 +358,7 @@ class Player(object):
         # Don't prefix the following commands
         if name in ['quit', 'pause', 'stop']:
             cmd.pop(0)
-        cmd = ' '.join(cmd).encode()
+        cmd = ' '.join(cmd).encode('utf-8', 'ignore')
         self._proc.stdin.write(cmd)
         self._proc.stdin.flush()
         # Expect a response for 'get_property' only
