@@ -300,8 +300,9 @@ class Player(object):
         See also http://www.mplayerhq.hu/DOCS/tech/slave.txt
 
         """
-        cls._generate_properties()
-        cls._generate_methods()
+        if cls.version is None:
+            cls._generate_properties()
+            cls._generate_methods()
 
     def spawn(self):
         """Spawn the underlying MPlayer process."""
