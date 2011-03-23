@@ -41,7 +41,7 @@ class MPlayerType(object):
     name = None
     type = None
     convert = None
-    adapt = staticmethod(str)
+    adapt = staticmethod(repr)
 
 
 class FlagType(MPlayerType):
@@ -55,6 +55,7 @@ class FlagType(MPlayerType):
 
     @staticmethod
     def adapt(obj):
+        # MPlayer uses 1 for True and 0 for False
         return MPlayerType.adapt(int(obj))
 
 
@@ -76,12 +77,21 @@ class StringType(MPlayerType):
 
     name = 'string'
     type = basestring
-    adapt = staticmethod(repr)
 
     @staticmethod
     def convert(res):
-        """Response is already a string"""
+        # Response is already a string
         return res
+
+    try:
+        unicode
+    except NameError:
+        pass
+    else:
+        @staticmethod
+        def adapt(obj):
+            # For Python 2.x, encode obj first to correctly adapt unicode types
+            return MPlayerType.adapt(obj.encode('utf-8', 'ignore'))
 
 
 class StringListType(MPlayerType):
