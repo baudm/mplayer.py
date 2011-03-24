@@ -180,8 +180,8 @@ class Player(object):
         read_only = ['length', 'pause', 'stream_end', 'stream_length',
             'stream_start', 'stream_time_pos']
         rename = {'pause': 'paused'}
-        proc = subprocess.Popen([cls.exec_path, '-list-properties'], bufsize=-1,
-                                stdout=subprocess.PIPE)
+        proc = subprocess.Popen([cls.exec_path, '-list-properties'],
+                                bufsize=-1, stdout=subprocess.PIPE)
         # Try to get the version of this executable
         try:
             cls.version = proc.stdout.readline().decode('utf-8', 'ignore').split()[1]
@@ -267,22 +267,53 @@ class Player(object):
 
     @classmethod
     def _generate_methods(cls):
-        # Commands to exclude
-        exclude = ['tv_set_brightness', 'tv_set_contrast', 'tv_set_saturation',
-            'tv_set_hue', 'vo_fullscreen', 'vo_ontop', 'vo_rootwin', 'vo_border',
-            'osd', 'frame_drop']
+        # Mapping of command names and their corresponding property names.
+        # A command will be excluded only if its corresponding property
+        # is already an attribute of the class
+        exclude = {
+            'forced_subs_only': 'sub_forced_only',
+            'sub_step': 'sub',
+            'sub_select': 'sub',
+            'vobsub_lang': 'sub',
+            'frame_drop': 'framedropping',
+            'osd': 'osdlevel',
+            'seek_chapter': 'chapter',
+            'speed_incr': 'speed',
+            'speed_mult': 'speed',
+            'speed_set': 'speed',
+            'switch_angle': 'angle',
+            'switch_vsync': 'vsync'
+        }
+        # Functions which generate a name that _might_ correspond
+        # to a valid property
+        prop_name_generators = {
+            'vo_': lambda s: s.partition('_')[2],
+            'tv_': lambda s: s.replace('_set_', '_').replace('_step_', '_')
+        }
         # Commands which have truncated names in -input cmdlist
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
-        proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'], bufsize=-1,
-                                stdout=subprocess.PIPE)
+        proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'],
+                                bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
             args = line.decode('utf-8', 'ignore').split()
-            # Skip conflicts with properties or defined methods
-            # and get_* and *_property commands
-            if not args or hasattr(cls, args[0]) or args[0].startswith('get_') or \
-               args[0] in exclude or args[0].endswith('_property'):
+            if not args:
                 continue
+            # Separate command name from command args
             name = args.pop(0)
+            # Exclude conflicts with properties or defined attributes
+            if hasattr(cls, name):
+                continue
+            # Exclude ALL get_* and *_property commands
+            if name.startswith('get_') or name.endswith('_property'):
+                continue
+            if name in exclude and hasattr(cls, exclude[name]):
+                continue
+            # Heuristics for commands with prefixes
+            if any(map(name.startswith, prop_name_generators)):
+                prefix = ''.join(name.partition('_')[:2])
+                attr = prop_name_generators[prefix](name)
+                if hasattr(cls, attr) and isinstance(getattr(cls, attr), property):
+                    continue
             # Fix truncated command names
             if name in truncated:
                 name = truncated[name]
