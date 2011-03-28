@@ -271,24 +271,21 @@ class Player(object):
         # A command will be excluded only if its corresponding property
         # is already an attribute of the class
         exclude = {
-            'forced_subs_only': 'sub_forced_only',
-            'sub_step': 'sub',
             'sub_select': 'sub',
             'vobsub_lang': 'sub',
+            'sub_step': 'sub',
+            'forced_subs_only': 'sub_forced_only',
             'frame_drop': 'framedropping',
             'osd': 'osdlevel',
-            'seek_chapter': 'chapter',
-            'speed_incr': 'speed',
-            'speed_mult': 'speed',
-            'speed_set': 'speed',
-            'switch_angle': 'angle',
-            'switch_vsync': 'vsync'
+            'seek_chapter': 'chapter'
         }
         # Functions which generate a name that _might_ correspond
         # to a valid property
         prop_name_generators = {
             'vo_': lambda s: s.partition('_')[2],
-            'tv_': lambda s: s.replace('_set_', '_').replace('_step_', '_')
+            'tv_': lambda s: s.replace('_set_', '_'),
+            'switch_': lambda s: s.partition('_')[2],
+            'speed_': lambda s: 'speed'
         }
         # Commands which have truncated names in -input cmdlist
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
@@ -308,7 +305,7 @@ class Player(object):
                 continue
             if name in exclude and hasattr(cls, exclude[name]):
                 continue
-            # Heuristics for commands with prefixes
+            # Heuristics for certain commands with prefixes
             if any(map(name.startswith, prop_name_generators)):
                 prefix = ''.join(name.partition('_')[:2])
                 attr = prop_name_generators[prefix](name)
