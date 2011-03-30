@@ -203,7 +203,8 @@ class Player(object):
             pmax = ptype.convert(pmax) if pmax != 'No' else None
             # Generate property fget
             propget = partial(cls._propget, pname=pname, ptype=ptype)
-            # Generate property fset
+            # Most properties with pmin == pmax == None are read-only
+            # except for 'sub_delay'
             if (pmin is None and pmax is None and pname != 'sub_delay') or \
                pname in read_only:
                 propset = None
@@ -283,7 +284,7 @@ class Player(object):
         # to a valid property
         prop_name_generators = {
             'vo_': lambda s: s.partition('_')[2],
-            'tv_': lambda s: s.replace('_set_', '_'),
+            'tv_set_': lambda s: s.replace('_set_', '_'),
             'switch_': lambda s: s.partition('_')[2],
             'speed_': lambda s: 'speed'
         }
@@ -306,9 +307,9 @@ class Player(object):
             if name in exclude and hasattr(cls, exclude[name]):
                 continue
             # Heuristics for certain commands with prefixes
-            if any(map(name.startswith, prop_name_generators)):
-                prefix = ''.join(name.partition('_')[:2])
-                attr = prop_name_generators[prefix](name)
+            prefix = list(filter(name.startswith, prop_name_generators))
+            if prefix:
+                attr = prop_name_generators[prefix[0]](name)
                 if hasattr(cls, attr) and isinstance(getattr(cls, attr), property):
                     continue
             # Fix truncated command names
