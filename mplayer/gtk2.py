@@ -47,6 +47,12 @@ class GPlayer(Player):
 
 
 class GtkPlayerView(gtk.Socket):
+    """GTK widget which embeds MPlayer.
+
+    This widget uses GPlayer internally and exposes it via the
+    GtkPlayerView.player property.
+
+    """
 
     __gsignals__ = {
         'eof_next_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
@@ -58,23 +64,33 @@ class GtkPlayerView(gtk.Socket):
         'eof_stop': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
     }
 
-    def __init__(self):
+    def __init__(self, args=(), stderr=None):
+        """Arguments:
+
+        args -- additional MPlayer arguments (default: ())
+        stderr -- handle for MPlayer's stderr (default: None)
+
+        """
         super(GtkPlayerView, self).__init__()
-        self.player = GPlayer(['-idx', '-fs', '-osdlevel', '0',
-            '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'], autospawn=False)
-        self.player.stdout.connect(self._handle_data)
+        self._player = GPlayer(('-msglevel', 'global=6', '-fixed-vo', '-fs') + args,
+                               stderr=stderr, autospawn=False)
+        self._player.stdout.connect(self._handle_data)
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
+    @property
+    def player(self):
+        return self._player
+
     def _on_hierarchy_changed(self, *args):
         if self.parent is not None:
-            self.player.args += ('-wid', self.get_id())
-            self.player.spawn()
+            self._player.args += ('-wid', self.get_id())
+            self._player.spawn()
         else:
             self._on_destroy()
 
     def _on_destroy(self, *args):
-        self.player.quit()
+        self._player.quit()
 
     def _handle_data(self, data):
         if data.startswith('EOF code:'):

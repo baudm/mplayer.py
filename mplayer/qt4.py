@@ -45,6 +45,12 @@ class QtPlayer(Player):
 
 
 class QPlayerView(QtGui.QX11EmbedContainer):
+    """Qt widget which embeds MPlayer.
+
+    This widget uses QtPlayer internally and exposes it via the
+    QPlayerView.player property.
+
+    """
 
     eof_next_entry = QtCore.pyqtSignal()
     eof_prev_entry = QtCore.pyqtSignal()
@@ -54,16 +60,26 @@ class QPlayerView(QtGui.QX11EmbedContainer):
     eof_up_prev = QtCore.pyqtSignal()
     eof_stop = QtCore.pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, args=(), stderr=None):
+        """Arguments:
+
+        parent -- the 'parent' argument of Qt classes (default: None)
+        args -- additional MPlayer arguments (default: ())
+        stderr -- handle for MPlayer's stderr (default: None)
+
+        """
         super(QPlayerView, self).__init__(parent)
-        self.player = QtPlayer(['-idx', '-fs', '-osdlevel', '0',
-            '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
-            '-wid', self.winId()])
-        self.player.stdout.connect(self._handle_data)
+        self._player = QtPlayer(('-msglevel', 'global=6', '-fixed-vo', '-fs',
+                                 '-wid', self.winId()) + args, stderr=stderr)
+        self._player.stdout.connect(self._handle_data)
         self.destroyed.connect(self._on_destroy)
 
+    @property
+    def player(self):
+        return self._player
+
     def _on_destroy(self):
-        self.player.quit()
+        self._player.quit()
 
     def _handle_data(self, data):
         if data.startswith('EOF code:'):
