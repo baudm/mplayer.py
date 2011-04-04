@@ -83,6 +83,8 @@ class Player(object):
 
     """
 
+    _base_args = ('-slave', '-idle', '-really-quiet', '-msglevel', 'global=4',
+                  '-input', 'nodefault-bindings', '-noconfig', 'all')
     cmd_prefix = misc.CmdPrefix.PAUSING_KEEP_FORCE
     exec_path = 'mplayer'
     version = None
@@ -131,19 +133,17 @@ class Player(object):
     @property
     def args(self):
         """tuple of additional MPlayer arguments"""
-        return self._args[7:]
+        return self._args[len(self._base_args):]
 
     @args.setter
     def args(self, args):
-        base_args = ('-slave', '-idle', '-quiet', '-input',
-            'nodefault-bindings', '-noconfig', 'all')
         # Assume that args is a string.
         try:
             args = shlex.split(args)
         except AttributeError:
             # Force all args to string
             args = map(str, args)
-        self._args = base_args + tuple(args)
+        self._args = self._base_args + tuple(args)
 
     def _propget(self, pname, ptype):
         res = self._run_command('get_property', pname)
