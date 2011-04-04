@@ -53,41 +53,22 @@ class QPlayerView(QtGui.QX11EmbedContainer):
     eof_up_next = QtCore.pyqtSignal()
     eof_up_prev = QtCore.pyqtSignal()
     eof_stop = QtCore.pyqtSignal()
-    _eof_map = {
-        '1': 'eof_next_entry', '-1': 'eof_prev_entry',
-        '2': 'eof_next_src', '-2': 'eof_prev_src',
-        '3': 'eof_up_next', '-3': 'eof_up_prev',
-        '4': 'eof_stop'
-    }
 
     def __init__(self, parent=None):
         super(QPlayerView, self).__init__(parent)
-        self._mplayer = QtPlayer(['-idx', '-fs', '-osdlevel', '0',
+        self.player = QtPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo',
             '-wid', self.winId()])
-        self._mplayer.stdout.connect(self._handle_data)
+        self.player.stdout.connect(self._handle_data)
         self.destroyed.connect(self._on_destroy)
 
-    def __getattr__(self, name):
-        # Don't expose some properties
-        if name in ['args', 'spawn', 'quit']:
-            # Raise an AttributeError
-            return self.__getattribute__(name)
-        try:
-            attr = getattr(self._mplayer, name)
-        except AttributeError:
-            # Raise an AttributeError
-            return self.__getattribute__(name)
-        else:
-            return attr
-
     def _on_destroy(self):
-        self._mplayer.quit()
+        self.player.quit()
 
     def _handle_data(self, data):
         if data.startswith('EOF code:'):
             code = data.partition(':')[2].strip()
-            signal = getattr(self, self._eof_map[code])
+            signal = getattr(self, misc._eof_code_map[code])
             signal.emit()
 
 
@@ -119,9 +100,9 @@ if __name__ == '__main__':
     w = QtGui.QWidget()
     w.resize(640, 480)
     w.setWindowTitle('QtPlayer')
-    p = QPlayerView(w)
-    p.eof_next_entry.connect(app.closeAllWindows)
-    p.resize(640, 480)
+    v = QPlayerView(w)
+    v.eof_next_entry.connect(app.closeAllWindows)
+    v.resize(640, 480)
     w.show()
-    p.loadfile(sys.argv[1])
+    v.player.loadfile(sys.argv[1])
     sys.exit(app.exec_())

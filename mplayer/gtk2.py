@@ -57,48 +57,29 @@ class GtkPlayerView(gtk.Socket):
         'eof_up_prev': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         'eof_stop': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
     }
-    _eof_map = {
-        '1': 'eof_next_entry', '-1': 'eof_prev_entry',
-        '2': 'eof_next_src', '-2': 'eof_prev_src',
-        '3': 'eof_up_next', '-3': 'eof_up_prev',
-        '4': 'eof_stop'
-    }
 
     def __init__(self):
         super(GtkPlayerView, self).__init__()
-        self._mplayer = GPlayer(['-idx', '-fs', '-osdlevel', '0',
+        self.player = GPlayer(['-idx', '-fs', '-osdlevel', '0',
             '-really-quiet', '-msglevel', 'global=6', '-fixed-vo'], autospawn=False)
-        self._mplayer.stdout.connect(self._handle_data)
+        self.player.stdout.connect(self._handle_data)
         self.connect('destroy', self._on_destroy)
         self.connect('hierarchy-changed', self._on_hierarchy_changed)
 
-    def __getattr__(self, name):
-        # Don't expose some properties
-        if name in ['args', 'spawn', 'quit']:
-            # Raise an AttributeError
-            return self.__getattribute__(name)
-        try:
-            attr = getattr(self._mplayer, name)
-        except AttributeError:
-            # Raise an AttributeError
-            return self.__getattribute__(name)
-        else:
-            return attr
-
     def _on_hierarchy_changed(self, *args):
         if self.parent is not None:
-            self._mplayer.args += ('-wid', self.get_id())
-            self._mplayer.spawn()
+            self.player.args += ('-wid', self.get_id())
+            self.player.spawn()
         else:
             self._on_destroy()
 
     def _on_destroy(self, *args):
-        self._mplayer.quit()
+        self.player.quit()
 
     def _handle_data(self, data):
         if data.startswith('EOF code:'):
             code = data.partition(':')[2].strip()
-            signal = self._eof_map[code]
+            signal = misc._eof_code_map[code]
             self.emit(signal)
 
 
@@ -133,9 +114,9 @@ if __name__ == '__main__':
     w.set_size_request(640, 480)
     w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
-    p = GtkPlayerView()
-    p.connect('eof_next_entry', gtk.main_quit)
-    w.add(p)
+    v = GtkPlayerView()
+    v.connect('eof_next_entry', gtk.main_quit)
+    w.add(v)
     w.show_all()
-    p.loadfile(sys.argv[1])
+    v.player.loadfile(sys.argv[1])
     gtk.main()
