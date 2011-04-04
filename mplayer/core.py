@@ -337,7 +337,7 @@ class Player(object):
         """Spawn the underlying MPlayer process."""
         if self.is_alive():
             return
-        args = [self.__class__.exec_path]
+        args = [self.exec_path]
         args.extend(self._args)
         # Start the MPlayer process (unbuffered)
         self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
@@ -381,7 +381,7 @@ class Player(object):
         """
         if not self.is_alive():
             return
-        cmd = [self.__class__.cmd_prefix, name]
+        cmd = [self.cmd_prefix, name]
         cmd.extend(args)
         cmd.append('\n')
         # Don't prefix the following commands
