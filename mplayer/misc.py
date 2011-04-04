@@ -24,13 +24,6 @@ except ImportError:
 
 
 __all__ = ['CmdPrefix']
-# A mapping of EOF codes to their corresponding signal names
-_eof_code_map = {
-    '1': 'eof_next_entry', '-1': 'eof_prev_entry',
-    '2': 'eof_next_src', '-2': 'eof_prev_src',
-    '3': 'eof_up_next', '-3': 'eof_up_prev',
-    '4': 'eof_stop'
-}
 
 
 class CmdPrefix(object):

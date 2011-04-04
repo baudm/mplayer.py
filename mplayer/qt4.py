@@ -52,13 +52,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
 
     """
 
-    eof_next_entry = QtCore.pyqtSignal()
-    eof_prev_entry = QtCore.pyqtSignal()
-    eof_next_src = QtCore.pyqtSignal()
-    eof_prev_src = QtCore.pyqtSignal()
-    eof_up_next = QtCore.pyqtSignal()
-    eof_up_prev = QtCore.pyqtSignal()
-    eof_stop = QtCore.pyqtSignal()
+    eof = QtCore.pyqtSignal(int)
 
     def __init__(self, parent=None, args=(), stderr=None):
         """Arguments:
@@ -84,8 +78,7 @@ class QPlayerView(QtGui.QX11EmbedContainer):
     def _handle_data(self, data):
         if data.startswith('EOF code:'):
             code = data.partition(':')[2].strip()
-            signal = getattr(self, misc._eof_code_map[code])
-            signal.emit()
+            self.eof.emit(int(code))
 
 
 class _StderrWrapper(misc._StderrWrapper):
@@ -117,7 +110,7 @@ if __name__ == '__main__':
     w.resize(640, 480)
     w.setWindowTitle('QtPlayer')
     v = QPlayerView(w)
-    v.eof_next_entry.connect(app.closeAllWindows)
+    v.eof.connect(app.closeAllWindows)
     v.resize(640, 480)
     w.show()
     v.player.loadfile(sys.argv[1])

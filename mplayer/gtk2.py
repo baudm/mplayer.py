@@ -55,13 +55,7 @@ class GtkPlayerView(gtk.Socket):
     """
 
     __gsignals__ = {
-        'eof_next_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'eof_prev_entry': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'eof_next_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'eof_prev_src': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'eof_up_next': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'eof_up_prev': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'eof_stop': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+        'eof': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, ))
     }
 
     def __init__(self, args=(), stderr=None):
@@ -95,8 +89,7 @@ class GtkPlayerView(gtk.Socket):
     def _handle_data(self, data):
         if data.startswith('EOF code:'):
             code = data.partition(':')[2].strip()
-            signal = misc._eof_code_map[code]
-            self.emit(signal)
+            self.emit('eof', int(code))
 
 
 class _StderrWrapper(misc._StderrWrapper):
@@ -131,7 +124,7 @@ if __name__ == '__main__':
     w.set_title('GtkPlayer')
     w.connect('destroy', gtk.main_quit)
     v = GtkPlayerView()
-    v.connect('eof_next_entry', gtk.main_quit)
+    v.connect('eof', gtk.main_quit)
     w.add(v)
     w.show_all()
     v.player.loadfile(sys.argv[1])
