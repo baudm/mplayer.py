@@ -91,7 +91,7 @@ class StringType(MPlayerType):
         @staticmethod
         def adapt(obj):
             # For Python 2.x, encode obj first to correctly adapt unicode types
-            return MPlayerType.adapt(obj.encode('utf-8', 'ignore'))
+            return obj.encode('utf-8', 'ignore').replace(' ', '\ ')
 
 
 class StringListType(MPlayerType):
