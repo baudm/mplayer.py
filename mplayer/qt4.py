@@ -23,9 +23,9 @@ from PyQt4 import QtCore, QtGui
 # Use QX11EmbedContainer for OSes with X11 support (e.g. Linux)
 # and Qwidget for Windows
 try:
-    from PyQt4.QtGui import QX11EmbedContainer as _BaseWidget
+    from PyQt4.QtGui import QX11EmbedContainer as _Container
 except ImportError:
-    from PyQt4.QtGui import QWidget as _BaseWidget
+    from PyQt4.QtGui import QWidget as _Container
 
 from mplayer.core import Player
 from mplayer import misc
@@ -44,13 +44,14 @@ class QtPlayer(Player):
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         super(QtPlayer, self).__init__(args, autospawn=False)
+        # Use the wrappers with Qt integration (defined below)
         self._stdout = _StdoutWrapper(handle=stdout)
         self._stderr = _StderrWrapper(handle=stderr)
         if autospawn:
             self.spawn()
 
 
-class QPlayerView(_BaseWidget):
+class QPlayerView(_Container):
     """Qt widget which embeds MPlayer.
 
     This widget uses QtPlayer internally and exposes it via the
@@ -76,6 +77,7 @@ class QPlayerView(_BaseWidget):
 
     @property
     def player(self):
+        """QtPlayer instance"""
         return self._player
 
     def _on_destroy(self):

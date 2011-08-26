@@ -40,6 +40,7 @@ class GPlayer(Player):
 
     def __init__(self, args=(), stdout=PIPE, stderr=None, autospawn=True):
         super(GPlayer, self).__init__(args, autospawn=False)
+        # Use the wrappers with GObject/GTK integration (defined below)
         self._stdout = _StdoutWrapper(handle=stdout)
         self._stderr = _StderrWrapper(handle=stderr)
         if autospawn:
@@ -74,6 +75,7 @@ class GtkPlayerView(gtk.Socket):
 
     @property
     def player(self):
+        """GPlayer instance"""
         return self._player
 
     def _on_hierarchy_changed(self, *args):
