@@ -70,7 +70,7 @@ class QPlayerView(_BaseWidget):
         """
         super(QPlayerView, self).__init__(parent)
         self._player = QtPlayer(('-msglevel', 'global=6', '-fixed-vo', '-fs',
-                                 '-wid', self.winId()) + args, stderr=stderr)
+                                 '-wid', int(self.winId())) + args, stderr=stderr)
         self._player.stdout.connect(self._handle_data)
         self.destroyed.connect(self._on_destroy)
 
