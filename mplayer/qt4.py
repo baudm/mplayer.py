@@ -20,6 +20,12 @@
 from subprocess import PIPE
 
 from PyQt4 import QtCore, QtGui
+# Use QX11EmbedContainer for OSes with X11 support (e.g. Linux)
+# and Qwidget for Windows
+try:
+    from PyQt4.QtGui import QX11EmbedContainer as _BaseWidget
+except ImportError:
+    from PyQt4.QtGui import QWidget as _BaseWidget
 
 from mplayer.core import Player
 from mplayer import misc
@@ -44,7 +50,7 @@ class QtPlayer(Player):
             self.spawn()
 
 
-class QPlayerView(QtGui.QX11EmbedContainer):
+class QPlayerView(_BaseWidget):
     """Qt widget which embeds MPlayer.
 
     This widget uses QtPlayer internally and exposes it via the
