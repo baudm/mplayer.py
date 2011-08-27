@@ -6,12 +6,13 @@ Changes since 0.6.0
      Highlights
 --------------------
 
- * Added type checking to generated methods and properties (including Step)
+ * Getting output from MPlayer is now thread-safe (a Queue is now used)
+ * Data can now be obtained asynchronously from Player objects (via subscribers)
+ * Revamped generation of properties (using functools.partial objects)
+ * Added type checking to generated methods and properties
  * Added value checking to generated properties
- * Generated methods no longer accept an optional 'prefix' parameter
- * Generated properties now use functools.partial objects
  * Abstracted MPlayer type handling away from the core (see mtypes module)
- * Consistency with string types (for Python 2.x)
+ * Python 2.x: unicode and str fixes
 
 
 --------------------
@@ -46,6 +47,9 @@ Changes:
    That is, for instance:
 
       pause(prefix=None) -> pause()
+
+ * Rename 'complete'/'completed' signal to 'eof'; the EOF code (int) is passed
+   to the callbacks
 
 
 Additions:
