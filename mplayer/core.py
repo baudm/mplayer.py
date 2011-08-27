@@ -389,8 +389,15 @@ class Player(object):
         # Don't prefix the following commands
         if name in ['quit', 'pause', 'stop']:
             cmd.pop(0)
-        cmd = ' '.join(cmd).encode('utf-8', 'ignore')
-        self._proc.stdin.write(cmd)
+        cmd = ' '.join(cmd)
+        # In Py3k, TypeErrors will be raised because cmd is a string but stdin
+        # expects bytes. In Python 2.x on the other hand, UnicodeEncodeErrors
+        # will be raised if cmd is unicode. In both cases, encoding the string
+        # will fix the problem.
+        try:
+            self._proc.stdin.write(cmd)
+        except (TypeError, UnicodeEncodeError):
+            self._proc.stdin.write(cmd.encode('utf-8', 'ignore'))
         self._proc.stdin.flush()
         # Expect a response for 'get_property' only
         if name == 'get_property' and self._proc.stdout is not None:

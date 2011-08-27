@@ -17,13 +17,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with PyMPlayer.  If not, see <http://www.gnu.org/licenses/>.
 
-# Python 2.x compatibility
-try:
-    basestring
-except NameError:
-    basestring = str
-
-
 class MPlayerType(object):
     """The base MPlayer type.
 
@@ -76,7 +69,11 @@ class FloatType(MPlayerType):
 class StringType(MPlayerType):
 
     name = 'string'
-    type = basestring
+    # basestring no longer exists in Py3k
+    try:
+        type = basestring
+    except NameError:
+        type = str
 
     @staticmethod
     def convert(res):
@@ -90,8 +87,9 @@ class StringType(MPlayerType):
     else:
         @staticmethod
         def adapt(obj):
-            # For Python 2.x, encode obj first to correctly adapt unicode types
-            return obj.encode('utf-8', 'ignore').replace(' ', '\ ')
+            # In Python 2.x, just escape the spaces instead of enclosing the
+            # string in quotes, which is what repr() does nicely in Py3k.
+            return obj.replace(' ', '\ ')
 
 
 class StringListType(MPlayerType):
