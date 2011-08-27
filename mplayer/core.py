@@ -255,10 +255,12 @@ class Player(object):
         sig = ','.join(sig)
         params = sig.replace('=None', '')
         types = ''.join(types)
+        args = ', '.join(args)
         # As of now, there's no way of specifying a function's signature
         # without dynamically generating code
         code = '''
         def {name}(self, {sig}):
+            """{name}({args})"""
             args = self._process_args({required}, ({types}), {params})
             return self._run_command('{name}', *args)
         '''.format(**locals())
