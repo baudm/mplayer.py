@@ -6,8 +6,10 @@ Changes since 0.6.0
      Highlights
 --------------------
 
+ * Expose ALL commands except get_* and *_property commands and
+   those which have the same name as their corresponding property
  * Getting output from MPlayer is now thread-safe (a Queue is now used)
- * Data can now be obtained asynchronously from Player objects (via subscribers)
+ * Data can now be obtained asynchronously from Player objects (via subscribers/callbacks)
  * Revamped generation of properties (using functools.partial objects)
  * Added type checking to generated methods and properties
  * Added value checking to generated properties
