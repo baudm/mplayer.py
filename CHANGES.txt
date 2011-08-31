@@ -7,25 +7,35 @@ Changes since 0.6.0
 --------------------
 
  * Expose ALL commands except get_* and *_property commands and
-   those which have the same name as their corresponding property
+   those which have the same name as their corresponding property.
+
+ * Better QPlayerView and GtkPlayerView widgets; the Player objects
+   are now directly accessible via the 'player' property.
+
  * Getting output from MPlayer is now thread-safe (a Queue is now used)
+
  * Data can now be obtained asynchronously from Player objects (via subscribers/callbacks)
- * Revamped generation of properties (using functools.partial objects)
+
+ * Improved generation of properties (using functools.partial objects)
+
  * Added type checking to generated methods and properties
+
  * Added value checking to generated properties
+
  * Abstracted MPlayer type handling away from the core (see mtypes module)
- * Python 2.x: unicode and str fixes
+
+ * Python 2.x unicode and str fixes
 
 
 --------------------
         API
 --------------------
 Changes:
- * Rename class: CommandPrefix -> CmdPrefix
+ * Renamed class: CommandPrefix -> CmdPrefix
 
- * Rename attribute: Player.command_prefix -> Player.cmd_prefix
+ * Renamed attribute: Player.command_prefix -> Player.cmd_prefix
 
- * Rename attribute: Player.path -> Player.exec_path
+ * Renamed attribute: Player.path -> Player.exec_path
 
  * The 'path' property is no longer renamed to 'filepath'. Player.path now
    pertains to the actual 'path' property of MPlayer. That is:
@@ -36,7 +46,7 @@ Changes:
    The new signature is now:
    AsyncPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True, map=None)
 
- * Rename method: Player.stdout.hook() -> Player.stdout.connect()
+ * Renamed method: Player.stdout.hook() -> Player.stdout.connect()
    (NOTE: Also applies to Player.stderr)
 
  * Similarly, Player.stdout/stderr.unhook() has been renamed to disconnect().
@@ -50,7 +60,7 @@ Changes:
 
       pause(prefix=None) -> pause()
 
- * Rename 'complete'/'completed' signal to 'eof'; the EOF code (int) is passed
+ * Replaced 'complete'/'completed' signal with the 'eof' signal; the EOF code (int) is passed
    to the callbacks
 
 
@@ -58,6 +68,10 @@ Additions:
  * Class attribute: CmdPrefix.NONE (which basically means 'no prefix')
 
  * Class attribute: Player.version (version of the introspected MPlayer executable)
+
+ * Class property: {Q,Gtk}PlayerView.player
+   - the 'player' property can be used to directly access the underlying
+     QtPlayer or GPlayer object
 
 
 Deletions:
