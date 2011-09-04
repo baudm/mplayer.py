@@ -270,26 +270,6 @@ class Player(object):
 
     @classmethod
     def _generate_methods(cls):
-        # Mapping of command names and their corresponding property names.
-        # A command will be excluded only if its corresponding property
-        # is already an attribute of the class
-        #exclude = {
-        #    'sub_select': 'sub',
-        #    'vobsub_lang': 'sub',
-        #    'sub_step': 'sub',
-        #    'forced_subs_only': 'sub_forced_only',
-        #    'frame_drop': 'framedropping',
-        #    'osd': 'osdlevel',
-        #    'seek_chapter': 'chapter'
-        #}
-        # Functions which generate a name that _might_ correspond
-        # to a valid property
-        #prop_name_generators = {
-        #    'vo_': lambda s: s.partition('_')[2],
-        #    'tv_set_': lambda s: s.replace('_set_', '_'),
-        #    'switch_': lambda s: s.partition('_')[2],
-        #    'speed_': lambda s: 'speed'
-        #}
         # Commands which have truncated names in -input cmdlist
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
         proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'],
@@ -306,14 +286,6 @@ class Player(object):
             # Exclude ALL get_* and *_property commands
             if name.startswith('get_') or name.endswith('_property'):
                 continue
-            #if name in exclude and hasattr(cls, exclude[name]):
-            #    continue
-            # Heuristics for certain commands with prefixes
-            #prefix = list(filter(name.startswith, prop_name_generators))
-            #if prefix:
-            #    attr = prop_name_generators[prefix[0]](name)
-            #    if hasattr(cls, attr) and isinstance(getattr(cls, attr), property):
-            #        continue
             # Fix truncated command names
             if name in truncated:
                 name = truncated[name]
