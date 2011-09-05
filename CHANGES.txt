@@ -1,4 +1,4 @@
-PyMPlayer 0.7.0
+mplayer.py 0.7.0
 
 Changes since 0.6.0
 

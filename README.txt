@@ -1,6 +1,6 @@
-PyMPlayer: Lightweight and dynamic MPlayer wrapper with a Pythonic API
+mplayer.py: Lightweight and dynamic MPlayer wrapper with a Pythonic API
 
-PyMPlayer provides several classes for easily using MPlayer in Python.
+mplayer.py provides several classes for easily using MPlayer in Python.
 
 * Features
 
@@ -34,20 +34,20 @@ PyMPlayer provides several classes for easily using MPlayer in Python.
 
 * Documentation
 
-    Consult the wiki pages in http://code.google.com/p/python-mplayer/
+    Consult the wiki pages at http://code.google.com/p/python-mplayer/
 
 * Copyright and Licensing
 
-    The PyMPlayer package and submodules (mplayer/*.py) are released under
+    The mplayer.py package and submodules (mplayer/*.py) are released under
     the terms of LGPL 3. See LICENSE for the full license.
 
-    PyMPlayer is Copyright (C) 2007-2011  Darwin M. Bautista.
+    mplayer.py is Copyright (C) 2007-2011  Darwin M. Bautista.
 
     The LGPL is Copyright (C) Free Software Foundation.
 
 * Contact Info
 
     Project Page: http://code.google.com/p/python-mplayer/
-    URL and download: http://pypi.python.org/pypi/PyMPlayer/
+    URL and download: http://pypi.python.org/pypi/mplayer.py/
 
     Author and Maintainer: Darwin M. Bautista <djclue917@gmail.com>

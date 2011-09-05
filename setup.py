@@ -6,7 +6,7 @@ from mplayer import __version__
 
 
 setup(
-    name='PyMPlayer',
+    name='mplayer.py',
     version=__version__,
     description='Lightweight and dynamic MPlayer wrapper with a Pythonic API',
     author='Darwin M. Bautista',
