@@ -37,14 +37,10 @@ Changes:
 
  * Renamed attribute: Player.path -> Player.exec_path
 
- * The 'path' property is no longer renamed to 'filepath'. Player.path now
-   pertains to the actual 'path' property of MPlayer. That is:
+ * The 'path' property of MPlayer is no longer renamed to 'filepath'.
+   Player.path now pertains to the actual 'path' property of MPlayer:
 
       Player.filepath -> Player.path
-
- * AsyncPlayer's optional 'socket_map' parameter has been renamed to 'map'.
-   The new signature is now:
-   AsyncPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True, map=None)
 
  * Renamed method: Player.stdout.hook() -> Player.stdout.connect()
    (NOTE: Also applies to Player.stderr)
@@ -58,20 +54,43 @@ Changes:
  * Removed optional 'prefix' parameter from generated methods.
    That is, for instance:
 
-      pause(prefix=None) -> pause()
+      Player.pause(prefix=None) -> Player.pause()
 
- * Replaced 'complete'/'completed' signal with the 'eof' signal; the EOF code (int) is passed
-   to the callbacks
+ * The optional arguments of Player's generated methods are now None
+   by default instead of a blank string. As an example:
+
+      Player.loadfile(str0, int1='', prefix=None)
+
+                     -- to --
+
+      Player.loadfile(str0, int1=None)
+
+ * AsyncPlayer's optional 'socket_map' parameter has been renamed to 'map'.
+   The new signature is now:
+   AsyncPlayer(args=(), stdout=PIPE, stderr=None, autospawn=True, map=None)
+
+ * The complete/completed signal of GtkPlayerView/QPlayerView were replaced
+   with the 'eof' signal; the EOF code (int) is now passed to the callbacks.
+
+      def callback(eof_code):
+          print 'Seen EOF code: {0}'.format(eof_code)
+
+      v = QPlayerView()
+      v.eof.connect(callback)
 
 
 Additions:
- * Class attribute: CmdPrefix.NONE (which basically means 'no prefix')
-
  * Class attribute: Player.version (version of the introspected MPlayer executable)
 
  * Class property: {Q,Gtk}PlayerView.player
    - the 'player' property can be used to directly access the underlying
      QtPlayer or GPlayer object
+
+      qv = QPlayerView()
+      gv = GtkPlayerView()
+
+      qv.player # QtPlayer instance
+      gv.player # GPlayer instance
 
 
 Deletions:
