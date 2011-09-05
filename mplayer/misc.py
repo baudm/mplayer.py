@@ -29,7 +29,6 @@ __all__ = ['CmdPrefix']
 class CmdPrefix(object):
     """MPlayer command prefixes"""
 
-    NONE = ''
     PAUSING = 'pausing'
     PAUSING_TOGGLE = 'pausing_toggle'
     PAUSING_KEEP = 'pausing_keep'
