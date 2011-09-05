@@ -89,7 +89,8 @@ class StringType(MPlayerType):
         def adapt(obj):
             # In Python 2.x, just escape the spaces instead of enclosing the
             # string in quotes, which is what repr() does nicely in Py3k.
-            return obj.replace(' ', '\ ')
+            # For Windows, also escape the backslashes.
+            return obj.replace('\\', r'\\').replace(' ', r'\ ')
 
 
 class StringListType(MPlayerType):
