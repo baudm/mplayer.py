@@ -87,10 +87,9 @@ class StringType(MPlayerType):
     else:
         @staticmethod
         def adapt(obj):
-            # For unicode types in Python 2.x, strip the leading 'u'
-            # character from the canonical string represenation of obj.
-            adapted = MPlayerType.adapt(obj)
-            return adapted[1:] if isinstance(obj, unicode) else adapted
+            # In Python 2.x, just escape the spaces instead of enclosing the
+            # string in quotes, which is what repr() does nicely in Py3k.
+            return obj.replace(' ', '\ ')
 
 
 class StringListType(MPlayerType):
