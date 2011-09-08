@@ -50,4 +50,4 @@ mplayer.py provides several classes for easily using MPlayer in Python.
     Project Page: http://code.google.com/p/python-mplayer/
     URL and download: http://pypi.python.org/pypi/mplayer.py/
 
-    Author and Maintainer: Darwin M. Bautista <djclue917@gmail.com>
+    Author and Maintainer: Darwin M. Bautista <daruuin@gmail.com>
