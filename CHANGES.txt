@@ -1,4 +1,4 @@
-mplayer.py 0.7.0
+mplayer.py 0.7.0 - September 8, 2011
 
 Changes since 0.6.0
 
