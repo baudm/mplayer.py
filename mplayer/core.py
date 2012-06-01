@@ -272,7 +272,7 @@ class Player(object):
     def _generate_methods(cls):
         # Commands which have truncated names in -input cmdlist
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
-        proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'],
+        proc = subprocess.Popen([cls.exec_path, '-msglevel', 'all=0', '-input', 'cmdlist'],
                                 bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
             args = line.decode('utf-8', 'ignore').split()
