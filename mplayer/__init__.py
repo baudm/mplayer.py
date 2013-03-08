@@ -10,6 +10,7 @@ Step -- use with property access to implement the 'step_property' command
 
 AsyncPlayer -- Player subclass with asyncore integration (POSIX only)
 GPlayer -- Player subclass with GTK/GObject integration
+GeventPlayer -- Player subclass with gevent integration
 QtPlayer -- Player subclass with Qt integration
 
 GtkPlayerView -- provides a basic (as of now) PyGTK widget that embeds MPlayer
