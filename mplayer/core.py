@@ -272,9 +272,12 @@ class Player(object):
     def _generate_methods(cls):
         # Commands which have truncated names in -input cmdlist
         truncated = {'osd_show_property_te': 'osd_show_property_text'}
-        proc = subprocess.Popen([cls.exec_path, '-msglevel', 'all=0', '-input', 'cmdlist'],
+        proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'],
                                 bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
+            # skip version string at end of mplayer2 output
+            if line.startswith("MPlayer"):
+                continue
             args = line.decode('utf-8', 'ignore').split()
             if not args:
                 continue
