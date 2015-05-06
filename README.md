@@ -45,14 +45,14 @@ You can download it here: http://pypi.python.org/pypi/PyMPlayer/
 
 # What is mplayer.py?
 
-Initially known as **PyMPlayer** (http://pypi.python.org/pypi/PyMPlayer/ renamed to avoid confusion with other projects), **mplayer.py** provides several Pythonic interfaces to MPlayer. These are implemented as the following classes (see [Introspection](Introspection.md) for more info):
+Initially known as **PyMPlayer** (http://pypi.python.org/pypi/PyMPlayer/ renamed to avoid confusion with other projects), **mplayer.py** provides several Pythonic interfaces to MPlayer. These are implemented as the following classes (see [Introspection](https://github.com/baudm/mplayer.py/wiki/Introspection) for more info):
 
-  1. **[Player](Player.md)** provides a clean, Pythonic interface to MPlayer.
-  1. **[AsyncPlayer](AsyncPlayer.md)** is a _Player_ subclass with asyncore integration (POSIX only).
-  1. **[GPlayer](GPlayer.md)** is a _Player_ subclass with GTK/GObject integration.
-  1. **[QtPlayer](QtPlayer.md)** is a _Player_ subclass with Qt integration (same usage as AsyncPlayer)
-  1. **[GtkPlayerView](GtkPlayerView.md)** provides a basic (as of now) PyGTK widget that embeds MPlayer.
-  1. **[QPlayerView](QPlayerView.md)** provides a PyQt4 widget similar to _GtkPlayerView_ in functionality.
+  1. **[Player](https://github.com/baudm/mplayer.py/wiki/Player)** provides a clean, Pythonic interface to MPlayer.
+  2. **[AsyncPlayer](https://github.com/baudm/mplayer.py/wiki/AsyncPlayer)** is a _Player_ subclass with asyncore integration (POSIX only).
+  3. **[GPlayer](https://github.com/baudm/mplayer.py/wiki/GPlayer)** is a _Player_ subclass with GTK/GObject integration.
+  4. **[QtPlayer](https://github.com/baudm/mplayer.py/wiki/QtPlayer)** is a _Player_ subclass with Qt integration (same usage as AsyncPlayer)
+  5. **[GtkPlayerView](https://github.com/baudm/mplayer.py/wiki/GtkPlayerView)** provides a basic (as of now) PyGTK widget that embeds MPlayer.
+  6. **[QPlayerView](https://github.com/baudm/mplayer.py/wiki/QPlayerView)** provides a PyQt4 widget similar to _GtkPlayerView_ in functionality.
 
 Show your appreciation by saying thanks or by donating a small amount.
 
