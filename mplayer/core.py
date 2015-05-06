@@ -142,7 +142,7 @@ class Player(object):
             args = shlex.split(args)
         except AttributeError:
             # Force all args to string
-            args = map(str, args)
+            args = list(map(str, args))
         self._args = self._base_args + tuple(args)
 
     def _propget(self, pname, ptype):
@@ -275,10 +275,11 @@ class Player(object):
         proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'],
                                 bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
+            line = line.decode('ascii')
             # skip version string at end of mplayer2 output
             if line.startswith("MPlayer"):
                 continue
-            args = line.decode('utf-8', 'ignore').split()
+            args = line.split()
             if not args:
                 continue
             # Separate command name from command args
@@ -431,6 +432,6 @@ if __name__ == '__main__':
     player.stderr.connect(error)
     # block execution
     try:
-        raw_input()
-    except NameError: # raw_input() was renamed to input() in Python 3
         input()
+    except NameError: # raw_input() was renamed to input() in Python 3
+        eval(input())
