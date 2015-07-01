@@ -71,7 +71,7 @@ class StringType(MPlayerType):
     name = 'string'
     # basestring no longer exists in Py3k
     try:
-        type = basestring
+        type = str
     except NameError:
         type = str
 
@@ -81,7 +81,7 @@ class StringType(MPlayerType):
         return res
 
     try:
-        unicode
+        str
     except NameError:
         pass
     else:
@@ -101,7 +101,7 @@ class StringListType(MPlayerType):
     def convert(res):
         res = res.split(',')
         # For now, return list as a dict ('metadata' property)
-        return dict(zip(res[::2], res[1::2]))
+        return dict(list(zip(res[::2], res[1::2])))
 
 
 type_map = {
