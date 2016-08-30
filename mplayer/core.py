@@ -243,15 +243,18 @@ class Player(object):
         types = []
         required = 0
         for i, arg in enumerate(args):
-            if not arg.startswith('['):
-                optional = ''
-                required += 1
-            else:
-                arg = arg.strip('[]')
-                optional = '=None'
-            t = mtypes.type_map[arg]
-            sig.append('{0}{1}{2}'.format(t.name, i, optional))
-            types.append('mtypes.{0},'.format(t.__name__))
+            try:
+                if not arg.startswith('['):
+                    optional = ''
+                    required += 1
+                else:
+                    arg = arg.strip('[]')
+                    optional = '=None'
+                t = mtypes.type_map[arg]
+                sig.append('{0}{1}{2}'.format(t.name, i, optional))
+                types.append('mtypes.{0},'.format(t.__name__))
+            except KeyError:
+                pass
         sig = ','.join(sig)
         params = sig.replace('=None', '')
         types = ''.join(types)
