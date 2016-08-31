@@ -243,16 +243,13 @@ class Player(object):
         types = []
         required = 0
         for i, arg in enumerate(args):
-            try:
-                t = mtypes.type_map[arg]
-            except KeyError:
-                continue
             if not arg.startswith('['):
                 optional = ''
                 required += 1
             else:
                 arg = arg.strip('[]')
                 optional = '=None'
+            t = mtypes.type_map[arg]
             sig.append('{0}{1}{2}'.format(t.name, i, optional))
             types.append('mtypes.{0},'.format(t.__name__))
         sig = ','.join(sig)
@@ -278,10 +275,11 @@ class Player(object):
         proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'],
                                 bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
+            line = line.decode('utf-8', 'ignore')
             # skip version string at end of mplayer2 output
             if line.startswith("MPlayer"):
                 continue
-            args = line.decode('utf-8', 'ignore').split()
+            args = line.split()
             if not args:
                 continue
             # Separate command name from command args
