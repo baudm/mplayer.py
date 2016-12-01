@@ -275,10 +275,11 @@ class Player(object):
         proc = subprocess.Popen([cls.exec_path, '-input', 'cmdlist'],
                                 bufsize=-1, stdout=subprocess.PIPE)
         for line in proc.stdout:
+            line = line.decode('utf-8', 'ignore')
             # skip version string at end of mplayer2 output
             if line.startswith("MPlayer"):
                 continue
-            args = line.decode('utf-8', 'ignore').split()
+            args = line.split()
             if not args:
                 continue
             # Separate command name from command args
