@@ -21,6 +21,7 @@ import shlex
 import atexit
 import weakref
 import subprocess
+import sys
 from functools import partial
 from threading import Thread
 try:
@@ -320,7 +321,7 @@ class Player(object):
         # Start the MPlayer process (unbuffered)
         self._proc = subprocess.Popen(args, stdin=subprocess.PIPE,
             stdout=self._stdout._handle, stderr=self._stderr._handle,
-            close_fds=(not subprocess.mswindows))
+            close_fds=(sys.platform != 'win32'))
         if self._proc.stdout is not None:
             self._stdout._attach(self._proc.stdout)
         if self._proc.stderr is not None:
