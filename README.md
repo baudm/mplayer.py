@@ -7,6 +7,13 @@
 ```
 
 # News
+## Version 0.7.1 Released! _(May 8, 2017)_
+You can download it here: http://pypi.python.org/pypi/mplayer.py/0.7.1
+
+  * Various MPlayer2 fixes
+  * Fix subprocess.mswindows error in python3.5+
+  * Add a gevent-friendly Player subclass.
+
 ## Version 0.7.0 Released! _(September 8, 2011)_
 You can download it here: http://pypi.python.org/pypi/mplayer.py/0.7.0
 
