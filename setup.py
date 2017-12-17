@@ -11,7 +11,7 @@ setup(
     description='Lightweight and dynamic MPlayer wrapper with a Pythonic API',
     author='Darwin M. Bautista',
     author_email='djclue917@gmail.com',
-    url='http://code.google.com/p/python-mplayer/',
+    url='https://github.com/baudm/mplayer.py',
     packages=['mplayer'],
     classifiers=[
         'Development Status :: 4 - Beta',
