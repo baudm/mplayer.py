@@ -3,7 +3,7 @@
 >>> p = mplayer.Player()
 >>> p.loadfile('/path/to/file.mkv')
 >>> p.time_pos = 40
->>> print p.length
+>>> print (p.length)
 ```
 
 # News
