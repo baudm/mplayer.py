@@ -7,6 +7,12 @@
 ```
 
 # News
+## Version 0.7.2 Released! _(March 28, 2019)_
+I will no longer update the PyPi releases. Just install it via pip like so:
+$ pip install git+https://github.com/baudm/mplayer.py.git@0.7.2
+
+  * Don't pause upon initially loading file (Fixes #32)
+
 ## Version 0.7.1 Released! _(May 8, 2017)_
 You can download it here: http://pypi.python.org/pypi/mplayer.py/0.7.1
 
