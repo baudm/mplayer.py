@@ -364,7 +364,7 @@ class Player(object):
         cmd.extend(args)
         cmd.append('\n')
         # Don't prefix the following commands
-        if name in ['quit', 'pause', 'stop']:
+        if name in ['quit', 'pause', 'stop', 'loadfile']:
             cmd.pop(0)
         cmd = ' '.join(cmd)
         # In Py3k, TypeErrors will be raised because cmd is a string but stdin
