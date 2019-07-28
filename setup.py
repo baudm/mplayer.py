@@ -1,18 +1,23 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+import setuptools
+
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
 
 from mplayer import __version__
 
 
-setup(
+setuptools.setup(
     name='mplayer.py',
     version=__version__,
     description='Lightweight and dynamic MPlayer wrapper with a Pythonic API',
     author='Darwin M. Bautista',
     author_email='djclue917@gmail.com',
     url='https://github.com/baudm/mplayer.py',
-    packages=['mplayer'],
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    packages=setuptools.find_packages(),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: X11 Applications :: GTK',
