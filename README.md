@@ -6,6 +6,21 @@
 >>> print p.length
 ```
 
+# What is mplayer.py?
+
+Initially known as **PyMPlayer** (http://pypi.python.org/pypi/PyMPlayer/ renamed to avoid confusion with other projects), **mplayer.py** provides several Pythonic interfaces to MPlayer. These are implemented as the following classes (see [Introspection](https://github.com/baudm/mplayer.py/wiki/Introspection) for more info):
+
+  1. **[Player](https://github.com/baudm/mplayer.py/wiki/Player)** provides a clean, Pythonic interface to MPlayer.
+  2. **[AsyncPlayer](https://github.com/baudm/mplayer.py/wiki/AsyncPlayer)** is a _Player_ subclass with asyncore integration (POSIX only).
+  3. **[GPlayer](https://github.com/baudm/mplayer.py/wiki/GPlayer)** is a _Player_ subclass with GTK/GObject integration.
+  4. **[QtPlayer](https://github.com/baudm/mplayer.py/wiki/QtPlayer)** is a _Player_ subclass with Qt integration (same usage as AsyncPlayer)
+  5. **[GtkPlayerView](https://github.com/baudm/mplayer.py/wiki/GtkPlayerView)** provides a basic (as of now) PyGTK widget that embeds MPlayer.
+  6. **[QPlayerView](https://github.com/baudm/mplayer.py/wiki/QPlayerView)** provides a PyQt4 widget similar to _GtkPlayerView_ in functionality.
+
+Show your appreciation by saying thanks or by donating a small amount.
+
+[![](http://www.paypal.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=Q929MN4LWEUPS&lc=PH&item_name=python%2dmplayer&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted)
+
 # News
 ## Version 0.7.2 Released! _(March 28, 2019)_
 You can download it here: http://pypi.python.org/pypi/mplayer.py/0.7.2
@@ -54,18 +69,3 @@ You can download it here: http://pypi.python.org/pypi/PyMPlayer/
   * Full support for Windows (for `get_` commands)
 
 **Don't forget to read the CHANGES file.**
-
-# What is mplayer.py?
-
-Initially known as **PyMPlayer** (http://pypi.python.org/pypi/PyMPlayer/ renamed to avoid confusion with other projects), **mplayer.py** provides several Pythonic interfaces to MPlayer. These are implemented as the following classes (see [Introspection](https://github.com/baudm/mplayer.py/wiki/Introspection) for more info):
-
-  1. **[Player](https://github.com/baudm/mplayer.py/wiki/Player)** provides a clean, Pythonic interface to MPlayer.
-  2. **[AsyncPlayer](https://github.com/baudm/mplayer.py/wiki/AsyncPlayer)** is a _Player_ subclass with asyncore integration (POSIX only).
-  3. **[GPlayer](https://github.com/baudm/mplayer.py/wiki/GPlayer)** is a _Player_ subclass with GTK/GObject integration.
-  4. **[QtPlayer](https://github.com/baudm/mplayer.py/wiki/QtPlayer)** is a _Player_ subclass with Qt integration (same usage as AsyncPlayer)
-  5. **[GtkPlayerView](https://github.com/baudm/mplayer.py/wiki/GtkPlayerView)** provides a basic (as of now) PyGTK widget that embeds MPlayer.
-  6. **[QPlayerView](https://github.com/baudm/mplayer.py/wiki/QPlayerView)** provides a PyQt4 widget similar to _GtkPlayerView_ in functionality.
-
-Show your appreciation by saying thanks or by donating a small amount.
-
-[![](http://www.paypal.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=Q929MN4LWEUPS&lc=PH&item_name=python%2dmplayer&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted)
