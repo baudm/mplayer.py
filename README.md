@@ -1,3 +1,7 @@
+# Announcement
+
+Please consider migrating to [`libmpv`](https://mpv.io/) or to `mpv`'s [JSON IPC](https://mpv.io/manual/master/#json-ipc) interface. MPlayer itself is no longer maintained.
+
 ### mplayer.py at a glance
 ```
 >>> p = mplayer.Player()
