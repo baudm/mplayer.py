@@ -7,7 +7,7 @@ Please consider migrating to [`libmpv`](https://mpv.io/) or to `mpv`'s [JSON IPC
 >>> p = mplayer.Player()
 >>> p.loadfile('/path/to/file.mkv')
 >>> p.time_pos = 40
->>> print p.length
+>>> print (p.length)
 ```
 
 # What is mplayer.py?
